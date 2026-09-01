@@ -1,5 +1,9 @@
 'use client'
 
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { deleteDeviceAction } from '@/actions/devices'
+
 type Device = {
   id: string
   storage: string | null
@@ -49,6 +53,24 @@ const categoryMap: Record<string, string> = {
 }
 
 export function DeviceDetail({ device }: { device: Device }) {
+  const router = useRouter()
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    setDeleteError(null)
+    const result = await deleteDeviceAction(device.id)
+    if (result.error) {
+      setDeleteError(result.error)
+      setIsDeleting(false)
+      setShowConfirmDelete(false)
+    } else {
+      router.push('/admin/stock')
+    }
+  }
+
   const model = device.device_models
   const images = device.device_images || []
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -250,6 +272,12 @@ export function DeviceDetail({ device }: { device: Device }) {
       {/* Actions */}
       <section className="flex flex-col gap-3 mt-4">
         {device.status === 'available' && (
+          <a href={`/admin/stock/${device.id}/editar`} className="w-full bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] font-semibold py-3 px-4 rounded-lg hover:bg-[#353534] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+            <span className="material-symbols-outlined text-[20px]">edit</span>
+            Editar dispositivo
+          </a>
+        )}
+        {device.status === 'available' && (
           <a href={`/admin/stock/${device.id}/vender`} className="w-full bg-gradient-to-r from-[#7a32d4] to-[#B98AFF] text-[#440087] font-semibold py-3 px-4 rounded-lg hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
             Marcar como vendido
           </a>
@@ -257,6 +285,47 @@ export function DeviceDetail({ device }: { device: Device }) {
         <a href="/admin/stock" className="w-full bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] font-semibold py-3 px-4 rounded-lg hover:bg-[#353534] active:scale-[0.98] transition-all flex items-center justify-center">
           Volver al stock
         </a>
+
+        {device.status === 'available' && !showConfirmDelete && (
+          <button 
+            type="button"
+            onClick={() => setShowConfirmDelete(true)}
+            className="w-full bg-transparent border border-[#690005] text-[#ffb4ab] font-semibold py-3 px-4 rounded-lg hover:bg-[#93000a]/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4"
+          >
+            <span className="material-symbols-outlined text-[20px]">delete</span>
+            Eliminar dispositivo
+          </button>
+        )}
+
+        {showConfirmDelete && (
+          <div className="bg-[#93000a]/20 border border-[#93000a] rounded-lg p-4 flex flex-col gap-3 mt-4">
+            <h4 className="text-[#ffdad6] font-bold">¿Eliminar este dispositivo?</h4>
+            <p className="text-[#ffb4ab] text-sm leading-relaxed">
+              Esta acción eliminará permanentemente el dispositivo y sus fotos del stock.
+            </p>
+            {deleteError && (
+              <p className="text-[#ffb4ab] text-sm font-semibold">{deleteError}</p>
+            )}
+            <div className="flex gap-2 mt-2">
+              <button 
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowConfirmDelete(false)}
+                className="flex-1 bg-transparent border border-[#ffb4ab]/30 text-[#ffb4ab] py-2 rounded-lg text-sm font-bold disabled:opacity-50 transition-colors hover:bg-[#ffb4ab]/10"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button"
+                disabled={isDeleting}
+                onClick={handleDelete}
+                className="flex-1 bg-[#93000a] hover:bg-[#690005] text-[#ffdad6] py-2 rounded-lg text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+              >
+                {isDeleting ? 'Eliminando...' : 'Eliminar definitivamente'}
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </>
   )
