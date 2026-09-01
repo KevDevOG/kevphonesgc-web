@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
-import { registerCapitalMovement } from '@/actions/capital-movements'
+import { registerCapitalMovement, editCapitalMovement, deleteCapitalMovement } from '@/actions/capital-movements'
 
 type Movement = {
   id: string
@@ -10,6 +10,7 @@ type Movement = {
   movement_date: string
   note: string | null
   created_at: string
+  is_reconciliation_adjustment: boolean
 }
 
 type Props = {
@@ -75,7 +76,7 @@ export function CapitalMovementsPage({ movements, totalContributions, totalWithd
         <p className="font-body-md text-[16px] text-[#A8A8B0]">Controla las entradas y salidas de capital.</p>
       </section>
 
-      {/* Summary Section (Glassmorphism Card) */}
+      {/* Summary Section */}
       <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 relative overflow-hidden group">
         <div className="absolute -top-12 -right-12 w-32 h-32 bg-[#7a32d4] rounded-full blur-[64px] opacity-20 pointer-events-none group-hover:opacity-30 transition-opacity"></div>
         <div className="flex flex-col gap-4 relative z-10">
@@ -220,6 +221,13 @@ export function CapitalMovementsPage({ movements, totalContributions, totalWithd
 }
 
 function MovementItem({ movement }: { movement: Movement }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const [editType, setEditType] = useState(movement.movement_type)
+
   let icon = 'account_balance_wallet'
   let label = 'Desconocido'
   let iconColor = 'text-[#A8A8B0]'
@@ -246,28 +254,218 @@ function MovementItem({ movement }: { movement: Movement }) {
     sign = movement.amount > 0 ? '+' : movement.amount < 0 ? '-' : ''
   }
 
-  return (
-    <div className="group flex items-start gap-4 p-4 border-b border-[#1F1F24] hover:bg-[#101014] transition-colors relative cursor-pointer">
-      {/* Hover indicator */}
-      <div className={`absolute left-0 top-0 bottom-0 w-1 scale-y-0 group-hover:scale-y-100 transition-transform origin-center ${movement.movement_type === 'contribution' ? 'bg-[#B98AFF]' : 'bg-[#1F1F24]'}`}></div>
-      
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border ${movement.movement_type === 'contribution' ? 'bg-[#7a32d4]/20 border-[#7a32d4]/50' : 'bg-[#2a2a2a] border-[#1F1F24]'}`}>
-        <span className={`material-symbols-outlined ${iconColor}`}>{icon}</span>
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsPending(true)
+    setError(null)
+    
+    const formData = new FormData(e.currentTarget)
+    formData.append('id', movement.id)
+    
+    try {
+      const result = await editCapitalMovement(formData)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setIsEditing(false)
+      }
+    } catch (err) {
+      setError('No se pudo actualizar el movimiento. Inténtalo de nuevo.')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  const handleDeleteSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsPending(true)
+    setError(null)
+    
+    const formData = new FormData()
+    formData.append('id', movement.id)
+    
+    try {
+      const result = await deleteCapitalMovement(formData)
+      if (result.error) {
+        setError(result.error)
+        setIsPending(false)
+      }
+      // If success, it will disappear due to revalidatePath
+    } catch (err) {
+      setError('No se pudo eliminar el movimiento. Inténtalo de nuevo.')
+      setIsPending(false)
+    }
+  }
+
+  if (isEditing) {
+    return (
+      <div className="p-4 border-b border-[#1F1F24] bg-[#101014] flex flex-col gap-4 relative">
+        <h4 className="text-[14px] font-semibold text-[#F7F7F7] uppercase tracking-wider border-b border-[#1F1F24] pb-2">Editar movimiento</h4>
+        
+        {error && (
+          <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] text-[14px] p-3 rounded-lg mb-2">
+            {error}
+          </div>
+        )}
+        
+        <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-[12px] font-semibold text-[#A8A8B0]" htmlFor={`edit_type_${movement.id}`}>Tipo de movimiento</label>
+              <select 
+                id={`edit_type_${movement.id}`}
+                name="movement_type" 
+                required
+                value={editType}
+                onChange={(e) => setEditType(e.target.value as any)}
+                className="bg-[#0B0B0D] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4] transition-all"
+              >
+                <option value="contribution">Aportación</option>
+                <option value="withdrawal">Retirada</option>
+                <option value="adjustment">Ajuste</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[12px] font-semibold text-[#A8A8B0]" htmlFor={`edit_amount_${movement.id}`}>Importe (€)</label>
+              <input 
+                type="number" 
+                id={`edit_amount_${movement.id}`}
+                name="amount" 
+                step="0.01" 
+                min={editType === 'adjustment' ? undefined : "0.01"}
+                required
+                defaultValue={movement.amount}
+                className="bg-[#0B0B0D] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4] transition-all"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-[12px] font-semibold text-[#A8A8B0]" htmlFor={`edit_date_${movement.id}`}>Fecha</label>
+              <input 
+                type="date" 
+                id={`edit_date_${movement.id}`}
+                name="movement_date" 
+                required
+                defaultValue={movement.movement_date}
+                className="bg-[#0B0B0D] border border-[#1F1F24] text-[#A8A8B0] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4] transition-all"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[12px] font-semibold text-[#A8A8B0]" htmlFor={`edit_note_${movement.id}`}>Nota</label>
+              <input 
+                type="text" 
+                id={`edit_note_${movement.id}`}
+                name="note" 
+                defaultValue={movement.note || ''}
+                className="bg-[#0B0B0D] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4] transition-all"
+              />
+            </div>
+          </div>
+          
+          <div className="flex gap-2 justify-end mt-2">
+            <button 
+              type="button" 
+              onClick={() => { setIsEditing(false); setError(null); }}
+              disabled={isPending}
+              className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              disabled={isPending}
+              className="bg-[#7a32d4] hover:bg-[#6e02d2] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isPending ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          </div>
+        </form>
       </div>
-      
-      <div className="flex-1 flex flex-col gap-1 min-w-0">
-        <div className="flex justify-between items-start gap-2">
-          <span className={`font-semibold text-[16px] uppercase tracking-wider truncate ${movement.movement_type === 'contribution' ? 'text-[#F7F7F7]' : 'text-[#A8A8B0]'}`} style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>{label}</span>
-          <span className={`font-extrabold text-[20px] whitespace-nowrap ${amountColor}`} style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-            {sign}{formatCurrency(Math.abs(movement.amount))}
-          </span>
+    )
+  }
+
+  if (isDeleting) {
+    return (
+      <div className="p-4 border-b border-[#1F1F24] bg-[#93000a]/10 flex flex-col gap-4 relative">
+        <h4 className="text-[16px] font-bold text-[#ffb4ab] uppercase tracking-wider border-b border-[#93000a]/30 pb-2">¿Eliminar este movimiento?</h4>
+        <p className="text-[14px] text-[#A8A8B0]">Esta acción eliminará el movimiento y recalculará los valores financieros.</p>
+        
+        {error && (
+          <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] text-[14px] p-3 rounded-lg mb-2">
+            {error}
+          </div>
+        )}
+        
+        <form onSubmit={handleDeleteSubmit} className="flex gap-2 justify-end mt-2">
+          <button 
+            type="button" 
+            onClick={() => { setIsDeleting(false); setError(null); }}
+            disabled={isPending}
+            className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            disabled={isPending}
+            className="bg-[#93000a] hover:bg-[#690005] text-[#ffb4ab] font-bold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50 border border-[#ffb4ab]/30"
+          >
+            {isPending ? 'Eliminando...' : 'Eliminar definitivamente'}
+          </button>
+        </form>
+      </div>
+    )
+  }
+
+  return (
+    <div className="group flex flex-col p-4 border-b border-[#1F1F24] hover:bg-[#101014] transition-colors relative">
+      <div className="flex items-start gap-4">
+        {/* Hover indicator */}
+        <div className={`absolute left-0 top-0 bottom-0 w-1 scale-y-0 group-hover:scale-y-100 transition-transform origin-center ${movement.movement_type === 'contribution' ? 'bg-[#B98AFF]' : 'bg-[#1F1F24]'}`}></div>
+        
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border mt-1 ${movement.movement_type === 'contribution' ? 'bg-[#7a32d4]/20 border-[#7a32d4]/50' : 'bg-[#2a2a2a] border-[#1F1F24]'}`}>
+          <span className={`material-symbols-outlined ${iconColor}`}>{icon}</span>
         </div>
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-[#A8A8B0] text-sm">{formatDate(movement.movement_date)}</span>
-          {movement.note && (
-            <span className="text-[#A8A8B0] text-sm italic truncate pl-2">{movement.note}</span>
-          )}
+        
+        <div className="flex-1 flex flex-col gap-1 min-w-0">
+          <div className="flex justify-between items-start gap-2">
+            <span className={`font-semibold text-[16px] uppercase tracking-wider truncate ${movement.movement_type === 'contribution' ? 'text-[#F7F7F7]' : 'text-[#A8A8B0]'}`} style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>{label}</span>
+            <span className={`font-extrabold text-[20px] whitespace-nowrap ${amountColor}`} style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+              {sign}{formatCurrency(Math.abs(movement.amount))}
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-[#A8A8B0] text-sm">{formatDate(movement.movement_date)}</span>
+            {movement.note && (
+              <span className="text-[#A8A8B0] text-sm italic truncate pl-2">{movement.note}</span>
+            )}
+          </div>
         </div>
+      </div>
+
+      <div className="flex justify-end mt-3 border-t border-[#1F1F24]/50 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        {movement.is_reconciliation_adjustment ? (
+          <span className="text-[12px] text-[#A8A8B0] italic bg-[#201f1f] px-2 py-1 rounded">Generado por conciliación</span>
+        ) : (
+          <div className="flex gap-3">
+            <button 
+              onClick={() => { setEditType(movement.movement_type); setIsEditing(true); }}
+              className="text-[13px] font-semibold text-[#A8A8B0] hover:text-[#d7baff] transition-colors flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-[16px]">edit</span>
+              Editar
+            </button>
+            <button 
+              onClick={() => setIsDeleting(true)}
+              className="text-[13px] font-semibold text-[#A8A8B0] hover:text-[#ffb4ab] transition-colors flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-[16px]">delete</span>
+              Eliminar
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
