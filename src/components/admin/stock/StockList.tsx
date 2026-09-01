@@ -1,6 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { deleteDeviceAction } from '@/actions/devices'
+import { updateDeviceSaleAction, cancelDeviceSaleAction } from '@/actions/sales'
+
+type Category = string
 
 type Device = {
   id: string
@@ -22,6 +26,21 @@ type Device = {
     name: string
   } | any
   device_images?: { storage_path: string }[] | any
+  sale_data?: {
+    id: string
+    device_id: string
+    buyer_client_id: string
+    final_sale_price: number
+    sold_at: string
+    sale_location: string | null
+    observations: string | null
+    clients: {
+      id: string
+      name: string
+      phone: string
+      location: string | null
+    }
+  } | null
 }
 
 type StockListProps = {
@@ -43,6 +62,13 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
   const [view, setView] = useState<'available' | 'sold'>('available')
   const [search, setSearch] = useState('')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  
+  const [editingSale, setEditingSale] = useState<Device | null>(null)
+  const [deletingDevice, setDeletingDevice] = useState<Device | null>(null)
+  const [cancellingSale, setCancellingSale] = useState<Device | null>(null)
+  
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const activeList = view === 'available' ? availableDevices : soldDevices
 
@@ -71,6 +97,69 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+
+  const handleDeleteDevice = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!deletingDevice) return
+    setIsPending(true)
+    setError(null)
+    
+    try {
+      const res = await deleteDeviceAction(deletingDevice.id)
+      if (res.error) {
+        setError(res.error)
+      } else {
+        setDeletingDevice(null)
+      }
+    } catch (err) {
+      setError('No se pudo eliminar el dispositivo. Inténtalo de nuevo.')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  const handleCancelSale = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!cancellingSale || !cancellingSale.sale_data) return
+    setIsPending(true)
+    setError(null)
+    
+    try {
+      const res = await cancelDeviceSaleAction(cancellingSale.sale_data.id)
+      if (!res.success) {
+        setError(res.error || 'No se pudo anular la venta. Inténtalo de nuevo.')
+      } else {
+        setCancellingSale(null)
+        setView('available') // Optional UX touch, switch view or keep
+      }
+    } catch (err) {
+      setError('No se pudo anular la venta. Inténtalo de nuevo.')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  const handleEditSale = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!editingSale || !editingSale.sale_data) return
+    setIsPending(true)
+    setError(null)
+    
+    const formData = new FormData(e.currentTarget)
+    
+    try {
+      const res = await updateDeviceSaleAction(editingSale.sale_data.id, formData)
+      if (!res.success) {
+        setError(res.error || 'No se pudo actualizar la venta. Inténtalo de nuevo.')
+      } else {
+        setEditingSale(null)
+      }
+    } catch (err) {
+      setError('No se pudo actualizar la venta. Inténtalo de nuevo.')
+    } finally {
+      setIsPending(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -110,6 +199,160 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {deletingDevice && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 w-full max-w-md flex flex-col gap-4">
+            <h3 className="text-[20px] font-bold text-[#ffb4ab] uppercase tracking-wider border-b border-[#93000a]/30 pb-2">¿Eliminar este dispositivo?</h3>
+            <p className="text-[14px] text-[#A8A8B0]">Esta acción eliminará permanentemente el dispositivo y sus fotos del stock.</p>
+            {error && (
+              <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] text-[14px] p-3 rounded-lg">
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleDeleteDevice} className="flex justify-end gap-3 mt-4">
+              <button 
+                type="button" 
+                onClick={() => { setDeletingDevice(null); setError(null); }}
+                disabled={isPending}
+                className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                disabled={isPending}
+                className="bg-[#93000a] hover:bg-[#690005] text-[#ffb4ab] font-bold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50 border border-[#ffb4ab]/30"
+              >
+                {isPending ? 'Eliminando...' : 'Eliminar definitivamente'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {cancellingSale && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 w-full max-w-md flex flex-col gap-4">
+            <h3 className="text-[20px] font-bold text-[#ffb4ab] uppercase tracking-wider border-b border-[#93000a]/30 pb-2">¿Anular esta venta?</h3>
+            <p className="text-[14px] text-[#A8A8B0]">El dispositivo volverá a estar disponible en stock y la venta se eliminará del historial.</p>
+            <p className="text-[14px] font-semibold text-[#F7F7F7]">El cliente no se eliminará.</p>
+            {error && (
+              <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] text-[14px] p-3 rounded-lg">
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleCancelSale} className="flex justify-end gap-3 mt-4">
+              <button 
+                type="button" 
+                onClick={() => { setCancellingSale(null); setError(null); }}
+                disabled={isPending}
+                className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                disabled={isPending}
+                className="bg-[#93000a] hover:bg-[#690005] text-[#ffb4ab] font-bold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50 border border-[#ffb4ab]/30"
+              >
+                {isPending ? 'Anulando...' : 'Anular venta'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editingSale && editingSale.sale_data && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 w-full max-w-lg flex flex-col gap-4 my-auto">
+            <h3 className="text-[20px] font-bold text-[#F7F7F7] uppercase tracking-wider border-b border-[#1F1F24] pb-2">Editar venta</h3>
+            
+            {/* Device summary context */}
+            <div className="bg-[#101014] border border-[#1F1F24] rounded-lg p-3 flex flex-col gap-1">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-[#F7F7F7]">{editingSale.device_models?.name}</span>
+                <span className="text-[12px] text-[#A8A8B0]">IMEI {maskImei(editingSale.imei_serial)}</span>
+              </div>
+              <span className="text-[13px] text-[#A8A8B0]">
+                {[editingSale.storage, editingSale.color].filter(Boolean).join(' · ')}
+              </span>
+            </div>
+
+            {error && (
+              <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] text-[14px] p-3 rounded-lg">
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleEditSale} className="flex flex-col gap-4">
+              <div className="space-y-3">
+                <h4 className="text-[14px] font-semibold text-[#A8A8B0] uppercase">Comprador</h4>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[12px] font-semibold text-[#A8A8B0]">Nombre</label>
+                  <input required name="buyerName" defaultValue={editingSale.sale_data.clients.name} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[12px] font-semibold text-[#A8A8B0]">Teléfono</label>
+                  <input required name="buyerPhone" defaultValue={editingSale.sale_data.clients.phone} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[12px] font-semibold text-[#A8A8B0]">Ubicación (opcional)</label>
+                  <input name="buyerLocation" defaultValue={editingSale.sale_data.clients.location || ''} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+                </div>
+              </div>
+
+              <div className="space-y-3 mt-2">
+                <h4 className="text-[14px] font-semibold text-[#A8A8B0] uppercase">Venta</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[12px] font-semibold text-[#A8A8B0]">Precio final (€)</label>
+                    <input type="number" step="0.01" min="0" required name="finalPrice" defaultValue={editingSale.sale_data.final_sale_price} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[12px] font-semibold text-[#A8A8B0]">Fecha de venta</label>
+                    <input type="date" required name="saleDate" defaultValue={editingSale.sale_data.sold_at} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#A8A8B0] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[12px] font-semibold text-[#A8A8B0]">Lugar de venta (opcional)</label>
+                  <input name="saleLocation" defaultValue={editingSale.sale_data.sale_location || ''} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[12px] font-semibold text-[#A8A8B0]">Observaciones</label>
+                  <input name="observations" defaultValue={editingSale.sale_data.observations || ''} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center mt-2 border-t border-[#1F1F24] pt-4">
+                <div className="flex flex-col">
+                  <span className="text-[12px] text-[#A8A8B0]">Beneficio real</span>
+                  <span className="text-[16px] font-bold text-[#d7baff]">
+                    {formatPrice(editingSale.sale_data.final_sale_price - editingSale.purchase_price)}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    type="button" 
+                    onClick={() => { setEditingSale(null); setError(null); }}
+                    disabled={isPending}
+                    className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={isPending}
+                    className="bg-[#7a32d4] hover:bg-[#6e02d2] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {isPending ? 'Guardando...' : 'Guardar cambios'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Device List */}
       <div className="flex flex-col gap-4 pb-8">
@@ -161,10 +404,31 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                           <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
                           <div className="absolute right-0 top-8 w-48 bg-[#1c1b1b] border border-[#1F1F24] rounded-lg shadow-xl z-50 py-1 overflow-hidden">
                             <a href={`/admin/stock/${device.id}`} className="block px-4 py-2 text-sm text-[#F7F7F7] hover:bg-[#353534]">Ver detalle</a>
-                            {view === 'available' && (
+                            {view === 'available' ? (
                               <>
-                                <a href={`/admin/stock/nuevo?duplicate=${device.id}`} className="block px-4 py-2 text-sm text-[#F7F7F7] hover:bg-[#353534]">Duplicar</a>
+                                <a href={`/admin/stock/${device.id}/editar`} className="block px-4 py-2 text-sm text-[#F7F7F7] hover:bg-[#353534]">Editar dispositivo</a>
                                 <a href={`/admin/stock/${device.id}/vender`} className="block px-4 py-2 text-sm text-[#F7F7F7] hover:bg-[#353534]">Marcar como vendido</a>
+                                <button 
+                                  onClick={() => { setOpenMenuId(null); setDeletingDevice(device); }}
+                                  className="block w-full text-left px-4 py-2 text-sm text-[#ffb4ab] hover:bg-[#353534]"
+                                >
+                                  Eliminar dispositivo
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button 
+                                  onClick={() => { setOpenMenuId(null); setEditingSale(device); }}
+                                  className="block w-full text-left px-4 py-2 text-sm text-[#F7F7F7] hover:bg-[#353534]"
+                                >
+                                  Editar venta
+                                </button>
+                                <button 
+                                  onClick={() => { setOpenMenuId(null); setCancellingSale(device); }}
+                                  className="block w-full text-left px-4 py-2 text-sm text-[#ffb4ab] hover:bg-[#353534]"
+                                >
+                                  Anular venta
+                                </button>
                               </>
                             )}
                           </div>
@@ -191,12 +455,21 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                       <span className="text-[10px] text-[#A8A8B0] uppercase font-semibold">Compra</span>
                       <span className="text-[14px] text-[#F7F7F7]">{formatPrice(device.purchase_price)}</span>
                     </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-[10px] text-[#A8A8B0] uppercase font-semibold">Publicación</span>
-                      <span className="text-[18px] text-[#B98AFF] font-bold" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-                        {formatPrice(device.listing_price)}
-                      </span>
-                    </div>
+                    {view === 'available' ? (
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] text-[#A8A8B0] uppercase font-semibold">Publicación</span>
+                        <span className="text-[18px] text-[#B98AFF] font-bold" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+                          {formatPrice(device.listing_price)}
+                        </span>
+                      </div>
+                    ) : device.sale_data && (
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] text-[#A8A8B0] uppercase font-semibold">Venta</span>
+                        <span className="text-[18px] text-[#d7baff] font-bold" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+                          {formatPrice(device.sale_data.final_sale_price)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -60,3 +60,83 @@ export async function registerDeviceSaleAction(
 
   return { success: true, deviceId, saleId }
 }
+
+export async function updateDeviceSaleAction(
+  saleId: string,
+  formData: FormData
+) {
+  const supabase = await createClient()
+
+  // Verify auth
+  const { data: user } = await supabase.auth.getUser()
+  if (!user.user || user.user.id !== '76320352-4c29-42ad-a105-345e0b5928dd') {
+    return { success: false, error: 'No autorizado' }
+  }
+
+  // Extract form data
+  const buyerName = formData.get('buyerName')?.toString().trim()
+  const buyerPhone = formData.get('buyerPhone')?.toString().trim()
+  const buyerLocation = formData.get('buyerLocation')?.toString().trim() || null
+  
+  const finalPriceStr = formData.get('finalPrice')?.toString()
+  const saleDateStr = formData.get('saleDate')?.toString()
+  const saleLocation = formData.get('saleLocation')?.toString().trim() || null
+  const observations = formData.get('observations')?.toString().trim() || null
+
+  // Validate
+  if (!saleId) return { success: false, error: 'No se pudo actualizar la venta. Inténtalo de nuevo.' }
+  if (!buyerName) return { success: false, error: 'No se pudo actualizar la venta. Inténtalo de nuevo.' }
+  if (!buyerPhone) return { success: false, error: 'No se pudo actualizar la venta. Inténtalo de nuevo.' }
+  if (!finalPriceStr || isNaN(Number(finalPriceStr)) || Number(finalPriceStr) < 0) {
+    return { success: false, error: 'No se pudo actualizar la venta. Inténtalo de nuevo.' }
+  }
+  if (!saleDateStr) return { success: false, error: 'No se pudo actualizar la venta. Inténtalo de nuevo.' }
+
+  const { error } = await supabase.rpc('update_device_sale', {
+    p_sale_id: saleId,
+    p_buyer_name: buyerName,
+    p_buyer_phone: buyerPhone,
+    p_buyer_location: buyerLocation,
+    p_final_sale_price: Number(finalPriceStr),
+    p_sold_at: saleDateStr,
+    p_sale_location: saleLocation,
+    p_observations: observations
+  })
+
+  if (error) {
+    return { success: false, error: 'No se pudo actualizar la venta. Inténtalo de nuevo.' }
+  }
+
+  revalidatePath('/admin/stock')
+  revalidatePath('/admin')
+  revalidatePath('/admin/finanzas')
+  revalidatePath('/admin/clientes')
+
+  return { success: true }
+}
+
+export async function cancelDeviceSaleAction(saleId: string) {
+  const supabase = await createClient()
+
+  const { data: user } = await supabase.auth.getUser()
+  if (!user.user || user.user.id !== '76320352-4c29-42ad-a105-345e0b5928dd') {
+    return { success: false, error: 'No autorizado' }
+  }
+
+  if (!saleId) return { success: false, error: 'No se pudo anular la venta. Inténtalo de nuevo.' }
+
+  const { error } = await supabase.rpc('cancel_device_sale', {
+    p_sale_id: saleId
+  })
+
+  if (error) {
+    return { success: false, error: 'No se pudo anular la venta. Inténtalo de nuevo.' }
+  }
+
+  revalidatePath('/admin/stock')
+  revalidatePath('/admin')
+  revalidatePath('/admin/finanzas')
+  revalidatePath('/admin/clientes')
+
+  return { success: true }
+}

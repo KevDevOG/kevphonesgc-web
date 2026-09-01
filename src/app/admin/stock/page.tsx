@@ -46,7 +46,46 @@ export default async function StockPage() {
   }
 
   const availableDevices = devices.filter(d => d.status === 'available')
-  const soldDevices = devices.filter(d => d.status === 'sold')
+  let soldDevices = devices.filter(d => d.status === 'sold')
+
+  const soldDeviceIds = soldDevices.map(d => d.id)
+  
+  let salesDataMap: Record<string, any> = {}
+
+  if (soldDeviceIds.length > 0) {
+    const { data: sales } = await supabase
+      .from('sales')
+      .select(`
+        id,
+        device_id,
+        buyer_client_id,
+        final_sale_price,
+        sold_at,
+        sale_location,
+        observations,
+        clients (
+          id,
+          name,
+          phone,
+          location
+        )
+      `)
+      .in('device_id', soldDeviceIds)
+
+    if (sales) {
+      for (const sale of sales) {
+        salesDataMap[sale.device_id] = {
+          ...sale,
+          clients: Array.isArray(sale.clients) ? sale.clients[0] : sale.clients
+        }
+      }
+    }
+  }
+
+  soldDevices = soldDevices.map(d => ({
+    ...d,
+    sale_data: salesDataMap[d.id] || null
+  }))
 
   const categoryOrder = { 'iphone': 1, 'ps5': 2, 'nintendo_switch': 3 }
   availableDevices.sort((a, b) => {
@@ -86,8 +125,8 @@ export default async function StockPage() {
           </section>
           
           <StockList 
-            availableDevices={availableDevices} 
-            soldDevices={soldDevices}
+            availableDevices={availableDevices as any} 
+            soldDevices={soldDevices as any}
             availableCount={availableCount}
             stockCapital={stockCapital}
             soldCount={soldCount}
