@@ -23,8 +23,9 @@ export function AdminBottomNav() {
   const isGastos = isActive('/admin/gastos')
   const isMovimientos = isActive('/admin/movimientos')
   const isModelos = isActive('/admin/modelos')
+  const isSolicitudes = isActive('/admin/solicitudes')
   
-  const isMas = isGastos || isMovimientos || isModelos || showMoreMenu
+  const isMas = isGastos || isMovimientos || isModelos || isSolicitudes || showMoreMenu
 
   return (
     <>
@@ -44,6 +45,13 @@ export function AdminBottomNav() {
             >
               <span className="material-symbols-outlined" style={{ fontVariationSettings: isGastos ? "'FILL' 1" : "'FILL' 0" }}>receipt_long</span>
               <span className="font-semibold">Gastos</span>
+            </a>
+            <a 
+              href="/admin/solicitudes" 
+              className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isSolicitudes ? 'bg-[#7a32d4]/20 text-[#d7baff]' : 'text-[#A8A8B0] hover:bg-[#1c1b1b] hover:text-[#d7baff]'}`}
+            >
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: isSolicitudes ? "'FILL' 1" : "'FILL' 0" }}>inbox</span>
+              <span className="font-semibold">Solicitudes</span>
             </a>
             <a 
               href="/admin/movimientos" 
