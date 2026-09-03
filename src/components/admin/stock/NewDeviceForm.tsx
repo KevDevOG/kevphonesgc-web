@@ -19,14 +19,21 @@ type Variant = {
   value: string
 }
 
-type NewDeviceFormProps = {
+type CatalogImage = {
+  model_id: string
+  color: string
+  storage_path: string
+}
+
+type Props = {
   models: Model[]
   variants: Variant[]
+  catalogImages?: CatalogImage[]
 }
 
 const initialState = { error: '', success: false }
 
-export function NewDeviceForm({ models, variants }: NewDeviceFormProps) {
+export function NewDeviceForm({ models, variants, catalogImages = [] }: Props) {
   const [category, setCategory] = useState<string>('iphone')
   const [modelId, setModelId] = useState<string>('')
   const [storage, setStorage] = useState<string>('')
@@ -48,6 +55,12 @@ export function NewDeviceForm({ models, variants }: NewDeviceFormProps) {
   const availableModels = models.filter(m => m.category === category)
   const availableStorage = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'storage') : []
   const availableColors = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'color') : []
+  
+  const selectedCatalogImage = modelId && color
+    ? catalogImages.find(ci => ci.model_id === modelId && ci.color === color)
+    : null
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 
   useEffect(() => {
     setModelId('')
@@ -344,10 +357,44 @@ export function NewDeviceForm({ models, variants }: NewDeviceFormProps) {
         </div>
       </section>
 
+      {/* IMAGEN DE CATÁLOGO */}
+      {modelId && color && (
+        <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 md:p-6 flex flex-col gap-4">
+          <h3 className="text-sm font-semibold text-[#A8A8B0] uppercase tracking-wider flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px]">image</span> Imagen de catálogo
+          </h3>
+          
+          {selectedCatalogImage ? (
+            <div className="flex items-start gap-4">
+              <div className="w-24 h-24 bg-[#131313] border border-[#1F1F24] rounded-xl flex items-center justify-center p-2 shrink-0">
+                <img 
+                  src={`${supabaseUrl}/storage/v1/object/public/model-images/${selectedCatalogImage.storage_path}`} 
+                  alt="Catálogo"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <p className="text-xs text-[#A8A8B0] mt-1 max-w-[200px]">
+                Esta será la imagen principal utilizada en el catálogo público.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-[#F7F7F7]">Sin imagen de catálogo asignada</span>
+              <p className="text-xs text-[#A8A8B0]">
+                Puedes añadirla desde Modelos.{' '}
+                <a href="/admin/modelos" target="_blank" className="text-[#d7baff] hover:underline inline-block mt-1">
+                  Gestionar modelos
+                </a>
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
       {/* FOTOS */}
       <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 md:p-6">
         <h3 className="text-sm font-semibold text-[#A8A8B0] uppercase tracking-wider mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">photo_camera</span> Fotos
+          <span className="material-symbols-outlined text-[18px]">photo_camera</span> Fotos reales del dispositivo
         </h3>
         
         <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>

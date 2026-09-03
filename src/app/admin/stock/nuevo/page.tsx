@@ -24,6 +24,10 @@ export default async function NewDevicePage() {
     .select('id, model_id, variant_type, value, sort_order')
     .eq('active', true)
 
+  const { data: catalogImages } = await supabase
+    .from('device_model_catalog_images')
+    .select('model_id, color, storage_path')
+
   const sortedModels = (models || []).sort((a, b) => {
     const categoryOrder = { 'iphone': 1, 'ps5': 2, 'nintendo_switch': 3 }
     const catDiff = (categoryOrder[a.category as keyof typeof categoryOrder] || 99) - (categoryOrder[b.category as keyof typeof categoryOrder] || 99)
@@ -58,7 +62,7 @@ export default async function NewDevicePage() {
             <p className="text-[#A8A8B0]">Registra una nueva unidad en stock.</p>
           </div>
           
-          <NewDeviceForm models={sortedModels} variants={sortedVariants} />
+          <NewDeviceForm models={sortedModels} variants={sortedVariants} catalogImages={catalogImages || []} />
         </main>
       </div>
     </>

@@ -50,6 +50,10 @@ export default async function EditDevicePage({ params }: PageProps) {
     .eq('active', true)
     .order('sort_order', { ascending: true })
 
+  const { data: catalogImages } = await supabase
+    .from('device_model_catalog_images')
+    .select('model_id, color, storage_path')
+
   return (
     <>
       <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -71,7 +75,7 @@ export default async function EditDevicePage({ params }: PageProps) {
             <h2 className="text-[32px] font-extrabold text-[#F7F7F7] uppercase tracking-wide" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Editar Dispositivo</h2>
             <p className="text-[16px] text-[#A8A8B0] mt-2">Modifica los datos del dispositivo seleccionado.</p>
           </div>
-          <EditDeviceForm device={device} models={models || []} variants={variants || []} />
+          <EditDeviceForm device={device} models={models || []} variants={variants || []} catalogImages={catalogImages || []} />
         </main>
       </div>
     </>
