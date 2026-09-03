@@ -53,6 +53,11 @@ export default async function DeviceDetailPage({ params }: PageProps) {
         id,
         storage_path,
         position
+      ),
+      clients (
+        name,
+        phone,
+        location
       )
     `)
     .eq('id', id)
@@ -81,7 +86,7 @@ export default async function DeviceDetailPage({ params }: PageProps) {
         </header>
         
         <main className="flex-grow px-4 py-4 flex flex-col gap-8 max-w-lg mx-auto w-full">
-          <DeviceDetail device={{...device, device_images: images}} />
+          <DeviceDetail device={{...device, clients: Array.isArray(device.clients) ? device.clients[0] : device.clients, device_images: images} as any} />
         </main>
       </div>
     </>

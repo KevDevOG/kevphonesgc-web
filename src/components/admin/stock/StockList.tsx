@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
+import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
+import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 import { deleteDeviceAction } from '@/actions/devices'
 import { updateDeviceSaleAction, cancelDeviceSaleAction } from '@/actions/sales'
 
@@ -93,7 +95,10 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
   }
 
   const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('es-ES').format(val) + ' €'
+    return new Intl.NumberFormat("es-ES", {
+      style: "currency",
+      currency: "EUR"
+    }).format(val)
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -162,7 +167,16 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <AdminPageShell>
+      <AdminPageHeader 
+        title="Stock" 
+        subtitle="Gestiona tus dispositivos disponibles y vendidos." 
+        action={
+          <a href="/admin/stock/nuevo" className="inline-flex justify-center items-center gap-2 bg-gradient-to-r from-[#7a32d4] to-[#6e02d2] border border-[#d7baff] text-[#131313] font-bold text-[14px] py-2 px-4 rounded-lg hover:brightness-110 transition-all">
+            <span className="material-symbols-outlined text-[18px]">add</span> Añadir dispositivo
+          </a>
+        }
+      />
       {/* Search */}
       <div className="relative w-full">
         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A8B0]">search</span>
@@ -175,29 +189,33 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
         />
       </div>
 
-      {/* Summary Chips */}
-      <div className="flex flex-row gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        <div className="flex flex-wrap items-center gap-4 py-2 w-full">
-          <div className="flex items-center gap-2">
-            <span className="text-[#A8A8B0] text-[14px] font-semibold">Disponibles:</span>
-            <span className="text-[#F7F7F7] font-bold">{availableCount}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[#A8A8B0] text-[14px] font-semibold">Capital en stock:</span>
-            <span className="text-[#B98AFF] font-bold">{formatPrice(stockCapital)}</span>
-          </div>
-          <div className="flex items-center gap-2 ml-auto">
-            {view === 'available' ? (
-              <button onClick={() => { setView('sold'); setSearch(''); setOpenMenuId(null); }} className="text-[#d7baff] text-[14px] font-bold hover:underline">
-                Ver vendidos ({soldCount})
-              </button>
-            ) : (
-              <button onClick={() => { setView('available'); setSearch(''); setOpenMenuId(null); }} className="text-[#d7baff] text-[14px] font-bold hover:underline">
-                Ver disponibles
-              </button>
-            )}
-          </div>
+      {/* KPI Section */}
+      <section className="grid grid-cols-2 gap-3">
+        <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col justify-between h-32">
+          <p className="text-[14px] font-semibold text-[#A8A8B0] uppercase">Disponibles</p>
+          <p className="text-[32px] font-extrabold text-[#F7F7F7] leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+            {availableCount}
+          </p>
         </div>
+
+        <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col justify-between h-32">
+          <p className="text-[14px] font-semibold text-[#A8A8B0] uppercase">Capital en stock</p>
+          <p className="text-[28px] font-extrabold text-[#B98AFF] leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+            {formatPrice(stockCapital)}
+          </p>
+        </div>
+      </section>
+
+      <div className="flex justify-end -mt-1">
+        {view === 'available' ? (
+          <button onClick={() => { setView('sold'); setSearch(''); setOpenMenuId(null); }} className="text-[#d7baff] text-[14px] font-bold hover:underline">
+            Ver vendidos ({soldCount})
+          </button>
+        ) : (
+          <button onClick={() => { setView('available'); setSearch(''); setOpenMenuId(null); }} className="text-[#d7baff] text-[14px] font-bold hover:underline">
+            Ver disponibles ({availableCount})
+          </button>
+        )}
       </div>
 
       {/* Modals */}
@@ -343,7 +361,7 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                   <button 
                     type="submit" 
                     disabled={isPending}
-                    className="bg-[#7a32d4] hover:bg-[#6e02d2] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                    className="bg-gradient-to-r from-[#7a32d4] to-[#6e02d2] border border-[#d7baff] text-[#131313] font-bold text-[14px] px-4 py-2 rounded-lg hover:brightness-110 transition-all disabled:opacity-50 disabled:hover:brightness-100"
                   >
                     {isPending ? 'Guardando...' : 'Guardar cambios'}
                   </button>
@@ -358,12 +376,9 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
       <div className="flex flex-col gap-4 pb-8">
         {filteredList.length === 0 ? (
           <div className="text-center py-12 border border-[#1F1F24] rounded-xl bg-[#0B0B0D]">
-            <p className="text-[#A8A8B0] mb-4">
+            <p className="text-[#A8A8B0]">
               {view === 'available' ? 'No hay dispositivos disponibles.' : 'No hay dispositivos vendidos.'}
             </p>
-            {view === 'available' && (
-               <a href="/admin/stock/nuevo" className="inline-block bg-[#1F1F24] text-[#F7F7F7] py-2 px-4 rounded hover:bg-[#353534]">Añadir dispositivo</a>
-            )}
           </div>
         ) : (
           filteredList.map(device => {
@@ -477,6 +492,6 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
           })
         )}
       </div>
-    </div>
+    </AdminPageShell>
   )
 }

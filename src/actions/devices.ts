@@ -18,8 +18,14 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
   const modelId = formData.get('model_id') as string
   const storage = formData.get('storage') as string | null
   const color = formData.get('color') as string | null
-  const imeiSerial = formData.get('imei_serial') as string
+  const imeiSerialRaw = formData.get('imei_serial') as string
+  const imeiSerial = imeiSerialRaw?.trim() || null
   const condition = formData.get('condition') as string
+  
+  const sellerName = formData.get('seller_name') as string
+  const sellerPhone = formData.get('seller_phone') as string
+  const sellerLocationRaw = formData.get('seller_location') as string
+  const sellerLocation = sellerLocationRaw?.trim() || null
   
   const batteryHealthStr = formData.get('battery_health') as string
   const batteryCyclesStr = formData.get('battery_cycles') as string
@@ -41,8 +47,12 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
   const imagePathsRaw = formData.get('image_paths') as string
   const imagePaths: string[] = imagePathsRaw ? JSON.parse(imagePathsRaw) : []
 
-  if (!modelId || !imeiSerial || !condition || !purchasePriceStr || !listingPriceStr || !purchasedAtStr) {
-    return { error: 'Faltan campos obligatorios.' }
+  if (!modelId || !condition || !purchasePriceStr || !listingPriceStr || !purchasedAtStr) {
+    return { error: 'Faltan campos obligatorios del dispositivo.' }
+  }
+
+  if (!sellerName?.trim() || !sellerPhone?.trim()) {
+    return { error: 'Introduce el nombre y teléfono del vendedor.' }
   }
 
   const purchasePrice = parseFloat(purchasePriceStr)
@@ -114,36 +124,41 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
   }
 
   const { error: deviceError } = await supabase
-    .from('devices')
-    .insert({
-      id: deviceId,
-      model_id: modelId,
-      seller_client_id: null,
-      storage: storage || null,
-      color: color || null,
-      imei_serial: imeiSerial,
-      battery_health: batteryHealth,
-      battery_cycles: batteryCycles,
-      condition,
-      has_box: hasBox,
-      has_cable: hasCable,
-      has_invoice: hasInvoice,
-      warranty_until: warrantyUntil || null,
-      original_parts: originalParts,
-      fully_functional: fullyFunctional,
-      purchase_price: purchasePrice,
-      listing_price: listingPrice,
-      purchase_location: purchaseLocation,
-      purchased_at: purchasedAtStr,
-      status: 'available',
-      internal_notes: internalNotes
+    .rpc('register_device', {
+      p_id: deviceId,
+      p_model_id: modelId,
+      p_storage: storage || null,
+      p_color: color || null,
+      p_imei_serial: imeiSerial,
+      p_battery_health: batteryHealth,
+      p_battery_cycles: batteryCycles,
+      p_condition: condition,
+      p_has_box: hasBox,
+      p_has_cable: hasCable,
+      p_has_invoice: hasInvoice,
+      p_warranty_until: warrantyUntil || null,
+      p_original_parts: originalParts,
+      p_fully_functional: fullyFunctional,
+      p_purchase_price: purchasePrice,
+      p_listing_price: listingPrice,
+      p_purchase_location: purchaseLocation,
+      p_purchased_at: purchasedAtStr,
+      p_status: 'available',
+      p_internal_notes: internalNotes,
+      p_seller_name: sellerName,
+      p_seller_phone: sellerPhone,
+      p_seller_location: sellerLocation
     })
 
   if (deviceError) {
     if (imagePaths.length > 0) {
       await supabase.storage.from('device-images').remove(imagePaths)
     }
-    return { error: 'Error al registrar el dispositivo. Comprueba que el IMEI/Serie no esté duplicado.' }
+    console.error(deviceError)
+    if (deviceError.message?.includes('duplicate key value') || deviceError.message?.includes('IMEI')) {
+      return { error: 'Ya existe un dispositivo registrado con ese IMEI o número de serie.' }
+    }
+    return { error: 'No se pudo registrar el dispositivo. Inténtalo de nuevo.' }
   }
 
   if (imagePaths.length > 0) {
@@ -238,8 +253,14 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
   const modelId = formData.get('model_id') as string
   const storage = formData.get('storage') as string | null
   const color = formData.get('color') as string | null
-  const imeiSerial = formData.get('imei_serial') as string
+  const imeiSerialRaw = formData.get('imei_serial') as string
+  const imeiSerial = imeiSerialRaw?.trim() || null
   const condition = formData.get('condition') as string
+  
+  const sellerName = formData.get('seller_name') as string
+  const sellerPhone = formData.get('seller_phone') as string
+  const sellerLocationRaw = formData.get('seller_location') as string
+  const sellerLocation = sellerLocationRaw?.trim() || null
   
   const batteryHealthStr = formData.get('battery_health') as string
   const batteryCyclesStr = formData.get('battery_cycles') as string
@@ -261,8 +282,12 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
   const imagePathsRaw = formData.get('image_paths') as string
   const imagePaths: string[] = imagePathsRaw ? JSON.parse(imagePathsRaw) : []
 
-  if (!modelId || !imeiSerial || !condition || !purchasePriceStr || !listingPriceStr || !purchasedAtStr) {
-    return { error: 'Faltan campos obligatorios.' }
+  if (!modelId || !condition || !purchasePriceStr || !listingPriceStr || !purchasedAtStr) {
+    return { error: 'Faltan campos obligatorios del dispositivo.' }
+  }
+
+  if (!sellerName?.trim() || !sellerPhone?.trim()) {
+    return { error: 'Introduce el nombre y teléfono del vendedor.' }
   }
 
   const purchasePrice = parseFloat(purchasePriceStr)
@@ -345,32 +370,37 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
   }
 
   const { error: deviceError } = await supabase
-    .from('devices')
-    .update({
-      model_id: modelId,
-      storage: storage || null,
-      color: color || null,
-      imei_serial: imeiSerial,
-      battery_health: batteryHealth,
-      battery_cycles: batteryCycles,
-      condition,
-      has_box: hasBox,
-      has_cable: hasCable,
-      has_invoice: hasInvoice,
-      warranty_until: warrantyUntil || null,
-      original_parts: originalParts,
-      fully_functional: fullyFunctional,
-      purchase_price: purchasePrice,
-      listing_price: listingPrice,
-      purchase_location: purchaseLocation,
-      purchased_at: purchasedAtStr,
-      internal_notes: internalNotes
+    .rpc('update_device', {
+      p_id: deviceId,
+      p_model_id: modelId,
+      p_storage: storage || null,
+      p_color: color || null,
+      p_imei_serial: imeiSerial,
+      p_battery_health: batteryHealth,
+      p_battery_cycles: batteryCycles,
+      p_condition: condition,
+      p_has_box: hasBox,
+      p_has_cable: hasCable,
+      p_has_invoice: hasInvoice,
+      p_warranty_until: warrantyUntil || null,
+      p_original_parts: originalParts,
+      p_fully_functional: fullyFunctional,
+      p_purchase_price: purchasePrice,
+      p_listing_price: listingPrice,
+      p_purchase_location: purchaseLocation,
+      p_purchased_at: purchasedAtStr,
+      p_internal_notes: internalNotes,
+      p_seller_name: sellerName,
+      p_seller_phone: sellerPhone,
+      p_seller_location: sellerLocation
     })
-    .eq('id', deviceId)
-    .eq('status', 'available')
 
   if (deviceError) {
-    return { error: 'Error al actualizar el dispositivo. Comprueba que el IMEI/Serie no esté duplicado.' }
+    console.error(deviceError)
+    if (deviceError.message?.includes('duplicate key value') || deviceError.message?.includes('IMEI')) {
+      return { error: 'Ya existe un dispositivo registrado con ese IMEI o número de serie.' }
+    }
+    return { error: 'No se pudo actualizar el dispositivo. Inténtalo de nuevo.' }
   }
 
   // Update images: delete existing and insert new order

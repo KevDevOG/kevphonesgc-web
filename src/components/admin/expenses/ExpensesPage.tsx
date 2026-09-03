@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
+import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
+import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 import { registerExpense, editExpense, deleteExpense } from '@/actions/expenses'
 
 type Category = {
@@ -28,7 +30,10 @@ type Props = {
 }
 
 function formatCurrency(amount: number) {
-  return amount.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' €'
+  return new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: "EUR"
+  }).format(amount)
 }
 
 function formatDate(dateStr: string) {
@@ -74,12 +79,11 @@ export function ExpensesPage({ categories, expenses, monthlyTotal, monthlyCount,
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header Section */}
-      <section className="flex flex-col gap-2">
-        <h2 className="text-[32px] font-extrabold text-[#F7F7F7] leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Gastos</h2>
-        <p className="text-[16px] text-[#A8A8B0]">Controla los gastos generales del negocio.</p>
-      </section>
+    <AdminPageShell>
+      <AdminPageHeader 
+        title="Gastos" 
+        subtitle="Registra y controla los gastos del negocio." 
+      />
 
       {/* Form Section */}
       <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 shadow-sm relative overflow-hidden">
@@ -155,7 +159,7 @@ export function ExpensesPage({ categories, expenses, monthlyTotal, monthlyCount,
           <button 
             type="submit" 
             disabled={isPending}
-            className="mt-2 w-full bg-gradient-to-r from-[#7a32d4] to-[#B98AFF] text-[#131313] font-bold text-[14px] py-3 rounded-lg hover:opacity-90 transition-opacity flex justify-center items-center gap-2 disabled:opacity-50"
+            className="mt-2 w-full bg-gradient-to-r from-[#7a32d4] to-[#6e02d2] border border-[#d7baff] text-[#131313] font-bold text-[14px] py-3 rounded-lg hover:brightness-110 transition-all flex justify-center items-center gap-2 disabled:opacity-50 disabled:hover:brightness-100"
           >
             {isPending ? 'Guardando...' : (
               <>
@@ -222,7 +226,7 @@ export function ExpensesPage({ categories, expenses, monthlyTotal, monthlyCount,
           ))
         )}
       </section>
-    </div>
+    </AdminPageShell>
   )
 }
 

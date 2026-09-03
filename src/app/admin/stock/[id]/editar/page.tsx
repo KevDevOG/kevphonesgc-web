@@ -24,7 +24,8 @@ export default async function EditDevicePage({ params }: PageProps) {
     .select(`
       *,
       device_models (*),
-      device_images (*)
+      device_images (*),
+      clients (*)
     `)
     .eq('id', id)
     .single()

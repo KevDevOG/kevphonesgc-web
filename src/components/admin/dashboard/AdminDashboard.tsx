@@ -1,6 +1,8 @@
 'use client'
 
 import React from 'react'
+import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
+import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 
 type ProfitEvo = {
   label: string
@@ -87,27 +89,18 @@ export function AdminDashboard({
   const allZero = profitEvolution.every(p => p.profit === 0)
 
   return (
-    <div className="pb-28 pt-16 px-4 md:px-8 bg-[#050505] min-h-screen text-[#F7F7F7] antialiased">
-      <header className="bg-[#131313] fixed top-0 w-full z-50 border-b border-[#1F1F24] flex justify-between items-center px-4 h-14 left-0">
-        <div className="flex items-center gap-2 text-[#d7baff]">
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
-          <h1 className="font-bold text-[24px]" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>KevPhonesGC Admin</h1>
-        </div>
-      </header>
-
-      <main className="flex flex-col gap-8 max-w-[1280px] mx-auto pt-4">
+    <AdminPageShell>
         
-        {/* Header Section */}
-        <section className="flex justify-between items-end">
-          <div>
-            <h2 className="text-[32px] font-extrabold text-[#F7F7F7] mb-1 leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Resumen</h2>
-            <p className="text-[16px] text-[#A8A8B0]">Vista general de KevPhonesGC</p>
-          </div>
-          <div className="bg-[#7247b0] rounded px-3 py-1 flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#B98AFF]"></span>
-            <span className="text-[14px] font-semibold text-[#e5d0ff] uppercase tracking-wider">{monthLabel}</span>
-          </div>
-        </section>
+        <AdminPageHeader 
+          title="Resumen" 
+          subtitle="Vista general de KevPhonesGC" 
+          action={
+            <div className="bg-[#7247b0] rounded px-3 py-1 flex items-center gap-1 w-fit">
+              <span className="w-2 h-2 rounded-full bg-[#B98AFF]"></span>
+              <span className="text-[14px] font-semibold text-[#e5d0ff] uppercase tracking-wider">{monthLabel}</span>
+            </div>
+          }
+        />
 
         {/* Capital Summary */}
         <section className="grid grid-cols-2 gap-3">
@@ -314,32 +307,6 @@ export function AdminDashboard({
             )}
           </ul>
         </section>
-
-      </main>
-      
-      {/* Quick Navigation Footer */}
-      <nav className="bg-[#101014] fixed bottom-0 w-full z-50 flex justify-around items-center h-16 px-1 left-0 border-t border-[#1F1F24]">
-        <a href="/admin" className="flex flex-col items-center justify-center text-[#d7baff] font-bold cursor-pointer transition-transform w-16">
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>dashboard</span>
-          <span className="text-[12px] font-semibold mt-1">Inicio</span>
-        </a>
-        <a href="/admin/stock" className="flex flex-col items-center justify-center text-[#A8A8B0] hover:text-[#d7baff] cursor-pointer transition-all w-16">
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 0" }}>inventory_2</span>
-          <span className="text-[12px] font-semibold mt-1">Stock</span>
-        </a>
-        <a href="/admin/finanzas" className="flex flex-col items-center justify-center text-[#A8A8B0] hover:text-[#d7baff] cursor-pointer transition-all w-16">
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 0" }}>account_balance</span>
-          <span className="text-[12px] font-semibold mt-1">Finanzas</span>
-        </a>
-        <a href="/admin/clientes" className="flex flex-col items-center justify-center text-[#A8A8B0] hover:text-[#d7baff] cursor-pointer transition-all w-16">
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 0" }}>group</span>
-          <span className="text-[12px] font-semibold mt-1">Clientes</span>
-        </a>
-        <a href="/admin/movimientos" className="flex flex-col items-center justify-center text-[#A8A8B0] hover:text-[#d7baff] cursor-pointer transition-all w-16">
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 0" }}>sync_alt</span>
-          <span className="text-[12px] font-semibold mt-1">Movs.</span>
-        </a>
-      </nav>
-    </div>
+    </AdminPageShell>
   )
 }

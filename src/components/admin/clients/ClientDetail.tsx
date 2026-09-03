@@ -1,6 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { updateClientAction, deleteClientAction } from '@/actions/clients'
 
 type Client = {
   id: string
@@ -19,7 +21,7 @@ type Device = {
   id: string
   storage: string | null
   color: string | null
-  imei_serial: string
+  imei_serial: string | null
   purchase_price: number
   listing_price: number
   purchased_at?: string
@@ -43,8 +45,8 @@ type Props = {
   devices: Device[] // Devices the client sold TO us
 }
 
-function maskImei(imei: string) {
-  if (!imei || imei.length <= 4) return imei
+function maskImei(imei: string | null) {
+  if (!imei || imei.length <= 4) return imei || ''
   return `•••• ${imei.slice(-4)}`
 }
 
@@ -64,29 +66,172 @@ function getMonthYearString(dateStr: string) {
 }
 
 export function ClientDetail({ client, sales, devices }: Props) {
+  const router = useRouter()
   const purchases_count = sales.length
   const purchases_total = sales.reduce((acc, sale) => acc + Number(sale.final_sale_price), 0)
   
   const sales_to_business_count = devices.length
   const paid_to_client_total = devices.reduce((acc, dev) => acc + Number(dev.purchase_price), 0)
 
+  const [isEditing, setIsEditing] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsPending(true)
+    setError(null)
+    const formData = new FormData(e.currentTarget)
+    
+    try {
+      const res = await updateClientAction(client.id, formData)
+      if (!res.success) {
+        setError(res.error || 'No se pudo actualizar el cliente. Inténtalo de nuevo.')
+      } else {
+        setIsEditing(false)
+      }
+    } catch (err) {
+      setError('No se pudo actualizar el cliente. Inténtalo de nuevo.')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  const handleDelete = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsPending(true)
+    setError(null)
+    
+    try {
+      const res = await deleteClientAction(client.id)
+      if (!res.success) {
+        setError(res.error || 'No se pudo eliminar el cliente. Inténtalo de nuevo.')
+      } else {
+        router.push('/admin/clientes')
+      }
+    } catch (err) {
+      setError('No se pudo eliminar el cliente. Inténtalo de nuevo.')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-20">
       
+      {/* Edit Modal */}
+      {isEditing && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 w-full max-w-md flex flex-col gap-4">
+            <h3 className="text-[20px] font-bold text-[#F7F7F7] uppercase tracking-wider border-b border-[#1F1F24] pb-2">Editar cliente</h3>
+            {error && (
+              <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] text-[14px] p-3 rounded-lg">
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleEdit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[12px] font-semibold text-[#A8A8B0]">Nombre</label>
+                <input required name="name" defaultValue={client.name} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[12px] font-semibold text-[#A8A8B0]">Teléfono</label>
+                <input required name="phone" defaultValue={client.phone} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[12px] font-semibold text-[#A8A8B0]">Ubicación (opcional)</label>
+                <input name="location" defaultValue={client.location || ''} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+              </div>
+              <div className="flex justify-end gap-3 mt-2">
+                <button 
+                  type="button" 
+                  onClick={() => { setIsEditing(false); setError(null); }}
+                  disabled={isPending}
+                  className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isPending}
+                  className="bg-[#7a32d4] hover:bg-[#6e02d2] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isPending ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {isDeleting && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 w-full max-w-md flex flex-col gap-4">
+            <h3 className="text-[20px] font-bold text-[#ffb4ab] uppercase tracking-wider border-b border-[#93000a]/30 pb-2">¿Eliminar este cliente?</h3>
+            <p className="text-[14px] text-[#A8A8B0]">Solo se podrá eliminar si no tiene compras o ventas asociadas.</p>
+            <p className="text-[14px] text-[#A8A8B0] font-semibold">Las operaciones históricas nunca se eliminarán.</p>
+            {error && (
+              <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] text-[14px] p-3 rounded-lg">
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleDelete} className="flex justify-end gap-3 mt-2">
+              <button 
+                type="button" 
+                onClick={() => { setIsDeleting(false); setError(null); }}
+                disabled={isPending}
+                className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                disabled={isPending}
+                className="bg-[#93000a] hover:bg-[#690005] text-[#ffb4ab] font-bold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50 border border-[#ffb4ab]/30"
+              >
+                {isPending ? 'Eliminando...' : 'Eliminar definitivamente'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Client Summary */}
       <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 flex flex-col gap-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-[#7a32d4] opacity-10 blur-3xl rounded-full pointer-events-none"></div>
-        <div className="z-10">
-          <h2 className="text-[32px] font-extrabold text-[#F7F7F7] mb-1 leading-tight tracking-wide" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-            {client.name}
-          </h2>
-          <div className="flex items-center gap-2 text-[#A8A8B0] text-[16px]">
-            <span className="material-symbols-outlined text-[18px]">phone</span>
-            <span>{client.phone}</span>
+        
+        <div className="z-10 flex justify-between items-start">
+          <div>
+            <h2 className="text-[32px] font-extrabold text-[#F7F7F7] mb-1 leading-tight tracking-wide" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+              {client.name}
+            </h2>
+            <div className="flex items-center gap-2 text-[#A8A8B0] text-[16px]">
+              <span className="material-symbols-outlined text-[18px]">phone</span>
+              <span>{client.phone}</span>
+            </div>
+            <div className="flex items-center gap-2 text-[#A8A8B0] text-[16px] mt-1">
+              <span className="material-symbols-outlined text-[18px]">location_on</span>
+              <span>{client.location || 'No especificada'}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-[#A8A8B0] text-[16px] mt-1">
-            <span className="material-symbols-outlined text-[18px]">location_on</span>
-            <span>{client.location || 'No especificada'}</span>
+          
+          <div className="flex flex-col gap-2">
+            <button 
+              onClick={() => setIsEditing(true)}
+              className="text-[#A8A8B0] hover:text-[#d7baff] transition-colors p-2 rounded hover:bg-[#1c1b1b] flex items-center justify-center border border-transparent hover:border-[#d7baff]/30"
+              title="Editar cliente"
+            >
+              <span className="material-symbols-outlined">edit</span>
+            </button>
+            <button 
+              onClick={() => setIsDeleting(true)}
+              className="text-[#A8A8B0] hover:text-[#ffb4ab] transition-colors p-2 rounded hover:bg-[#1c1b1b] flex items-center justify-center border border-transparent hover:border-[#ffb4ab]/30"
+              title="Eliminar cliente"
+            >
+              <span className="material-symbols-outlined">delete</span>
+            </button>
           </div>
         </div>
         
@@ -138,9 +283,9 @@ export function ClientDetail({ client, sales, devices }: Props) {
         </div>
       </section>
 
-      {/* Compras a KevPhonesGC */}
+      {/* Ventas de KevPhonesGC al cliente */}
       <section>
-        <h3 className="text-[24px] font-bold text-[#F7F7F7] mb-4 border-b border-[#1F1F24] pb-2" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Compras a KevPhonesGC</h3>
+        <h3 className="text-[24px] font-bold text-[#F7F7F7] mb-4 border-b border-[#1F1F24] pb-2" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Le hemos vendido</h3>
         <div className="flex flex-col gap-4">
           {sales.length === 0 ? (
             <p className="text-[#A8A8B0] text-[14px]">Este cliente todavía no ha comprado dispositivos.</p>
@@ -180,9 +325,9 @@ export function ClientDetail({ client, sales, devices }: Props) {
         </div>
       </section>
 
-      {/* Ventas a KevPhonesGC */}
+      {/* Compras de KevPhonesGC al cliente */}
       <section>
-        <h3 className="text-[24px] font-bold text-[#F7F7F7] mb-4 border-b border-[#1F1F24] pb-2" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Ventas a KevPhonesGC</h3>
+        <h3 className="text-[24px] font-bold text-[#F7F7F7] mb-4 border-b border-[#1F1F24] pb-2" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Nos ha vendido</h3>
         <div className="flex flex-col gap-4">
           {devices.length === 0 ? (
             <p className="text-[#A8A8B0] text-[14px]">Este cliente todavía no ha vendido dispositivos.</p>

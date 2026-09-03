@@ -229,8 +229,8 @@ export function NewDeviceForm({ models, variants }: NewDeviceFormProps) {
           </div>
 
           <div>
-            <label className={labelClass}>IMEI / Número de serie</label>
-            <input type="text" name="imei_serial" required placeholder="Introduce IMEI o Serie" className={inputClass} />
+            <label className={labelClass}>IMEI / Número de serie (Opcional)</label>
+            <input type="text" name="imei_serial" placeholder="Introduce IMEI o Serie" className={inputClass} />
           </div>
 
           <div>
@@ -287,6 +287,27 @@ export function NewDeviceForm({ models, variants }: NewDeviceFormProps) {
         <div className="mt-6">
           <label className={labelClass}>Garantía oficial hasta (Opcional)</label>
           <input type="date" name="warranty_until" className={inputClass} />
+        </div>
+      </section>
+
+      {/* VENDEDOR */}
+      <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 md:p-6">
+        <h3 className="text-sm font-semibold text-[#A8A8B0] uppercase tracking-wider mb-6 flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px]">person</span> Vendedor
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className={labelClass}>Nombre *</label>
+            <input type="text" name="seller_name" required className={inputClass} />
+          </div>
+          <div>
+            <label className={labelClass}>Teléfono *</label>
+            <input type="text" name="seller_phone" required className={inputClass} />
+          </div>
+        </div>
+        <div>
+          <label className={labelClass}>Ubicación (Opcional)</label>
+          <input type="text" name="seller_location" className={inputClass} />
         </div>
       </section>
 

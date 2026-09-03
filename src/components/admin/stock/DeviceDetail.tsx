@@ -8,7 +8,7 @@ type Device = {
   id: string
   storage: string | null
   color: string | null
-  imei_serial: string
+  imei_serial: string | null
   battery_health: number | null
   battery_cycles: number | null
   condition: string
@@ -37,6 +37,11 @@ type Device = {
     storage_path: string
     position: number
   }[]
+  clients: {
+    name: string
+    phone: string
+    location: string | null
+  } | null
 }
 
 const conditionMap: Record<string, string> = {
@@ -203,10 +208,35 @@ export function DeviceDetail({ device }: { device: Device }) {
         </ul>
       </section>
 
+      {/* Seller Info */}
+      {device.clients && (
+        <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-lg p-4 flex flex-col mb-4">
+          <h3 className="text-[24px] font-bold text-[#B98AFF] mb-4 flex items-center gap-2" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+            <span className="material-symbols-outlined text-[20px]">person</span> Vendedor
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="block text-[#A8A8B0] text-xs uppercase tracking-wider mb-1">Nombre</span>
+              <span className="text-[#F7F7F7] text-[16px]">{device.clients.name}</span>
+            </div>
+            <div>
+              <span className="block text-[#A8A8B0] text-xs uppercase tracking-wider mb-1">Teléfono</span>
+              <span className="text-[#F7F7F7] text-[16px]">{device.clients.phone}</span>
+            </div>
+            {device.clients.location && (
+              <div className="col-span-2">
+                <span className="block text-[#A8A8B0] text-xs uppercase tracking-wider mb-1">Ubicación</span>
+                <span className="text-[#F7F7F7] text-[16px]">{device.clients.location}</span>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Purchase Info */}
       <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-lg p-4 flex flex-col">
         <h3 className="text-[24px] font-bold text-[#B98AFF] mb-4 flex items-center gap-2" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-          <span className="material-symbols-outlined text-[20px]">person</span> Compra
+          <span className="material-symbols-outlined text-[20px]">payments</span> Compra
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
