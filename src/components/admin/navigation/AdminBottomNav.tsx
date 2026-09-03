@@ -22,8 +22,9 @@ export function AdminBottomNav() {
   const isClientes = isActive('/admin/clientes')
   const isGastos = isActive('/admin/gastos')
   const isMovimientos = isActive('/admin/movimientos')
+  const isModelos = isActive('/admin/modelos')
   
-  const isMas = isGastos || isMovimientos || showMoreMenu
+  const isMas = isGastos || isMovimientos || isModelos || showMoreMenu
 
   return (
     <>
@@ -50,6 +51,13 @@ export function AdminBottomNav() {
             >
               <span className="material-symbols-outlined" style={{ fontVariationSettings: isMovimientos ? "'FILL' 1" : "'FILL' 0" }}>sync_alt</span>
               <span className="font-semibold">Movimientos</span>
+            </a>
+            <a 
+              href="/admin/modelos" 
+              className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isModelos ? 'bg-[#7a32d4]/20 text-[#d7baff]' : 'text-[#A8A8B0] hover:bg-[#1c1b1b] hover:text-[#d7baff]'}`}
+            >
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: isModelos ? "'FILL' 1" : "'FILL' 0" }}>devices</span>
+              <span className="font-semibold">Modelos</span>
             </a>
           </div>
         </div>
