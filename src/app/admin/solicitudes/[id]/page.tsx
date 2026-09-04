@@ -4,7 +4,12 @@ import { SaleRequestDetail } from '@/components/admin/requests/SaleRequestDetail
 
 const ADMIN_UUID = '76320352-4c29-42ad-a105-345e0b5928dd'
 
-export default async function SaleRequestDetailPage({ params }: { params: { id: string } }) {
+type PageProps = {
+  params: Promise<{ id: string }>
+}
+
+export default async function SaleRequestDetailPage({ params }: PageProps) {
+  const { id } = await params
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -23,7 +28,7 @@ export default async function SaleRequestDetailPage({ params }: { params: { id: 
         category
       )
     `)
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (error || !request) {
@@ -32,9 +37,30 @@ export default async function SaleRequestDetailPage({ params }: { params: { id: 
 
   const { data: images } = await supabase
     .from('sale_request_images')
-    .select('id, storage_path, position, created_at')
-    .eq('request_id', params.id)
+    .select('id, storage_path, photo_type, position, created_at')
+    .eq('request_id', id)
     .order('position', { ascending: true })
 
-  return <SaleRequestDetail request={request} images={images || []} />
+  const imagesWithUrls = []
+  if (images) {
+    for (const img of images) {
+      try {
+        const { data, error: urlError } = await supabase.storage
+          .from('sale-request-images')
+          .createSignedUrl(img.storage_path, 3600)
+        
+        imagesWithUrls.push({
+          ...img,
+          signedUrl: !urlError && data?.signedUrl ? data.signedUrl : null
+        })
+      } catch (err) {
+        imagesWithUrls.push({
+          ...img,
+          signedUrl: null
+        })
+      }
+    }
+  }
+
+  return <SaleRequestDetail request={request} images={imagesWithUrls} />
 }

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
@@ -46,8 +47,10 @@ type SaleRequest = {
 type SaleRequestImage = {
   id: string
   storage_path: string
+  photo_type: string
   position: number
   created_at: string
+  signedUrl: string | null
 }
 
 type SaleRequestDetailProps = {
@@ -70,6 +73,17 @@ const sourceLabels: Record<string, string> = {
   other: 'Otro'
 }
 
+const photoTypeLabels: Record<string, string> = {
+  front_off: 'Frontal apagada',
+  front_on: 'Frontal encendida',
+  back: 'Trasera',
+  right_side: 'Lado derecho',
+  left_side: 'Lado izquierdo',
+  top: 'Parte superior',
+  bottom: 'Parte inferior',
+  extra: 'Foto extra'
+}
+
 const statusLabels: Record<string, string> = {
   new: 'Nueva',
   in_progress: 'En proceso',
@@ -89,6 +103,64 @@ export function SaleRequestDetail({ request, images }: SaleRequestDetailProps) {
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+  const [selectedPhoto, setSelectedPhoto] = useState<SaleRequestImage | null>(null)
+  const lightboxOpenRef = useRef(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && selectedPhoto) {
+      const originalOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = originalOverflow
+      }
+    }
+  }, [mounted, selectedPhoto])
+
+  const openLightbox = (img: SaleRequestImage) => {
+    if (!lightboxOpenRef.current) {
+      window.history.pushState({ lightbox: true }, '')
+      lightboxOpenRef.current = true
+    }
+    setSelectedPhoto(img)
+  }
+
+  const closeLightbox = () => {
+    if (lightboxOpenRef.current) {
+      lightboxOpenRef.current = false
+      setSelectedPhoto(null)
+      if (window.history.state?.lightbox) {
+        window.history.back()
+      }
+    }
+  }
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (lightboxOpenRef.current) {
+        lightboxOpenRef.current = false
+        setSelectedPhoto(null)
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && lightboxOpenRef.current) {
+        closeLightbox()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -250,8 +322,44 @@ export function SaleRequestDetail({ request, images }: SaleRequestDetailProps) {
               <span className="material-symbols-outlined text-[18px]">photo_library</span> Fotos
             </h3>
             {images.length > 0 ? (
-              <div className="text-sm text-[#F7F7F7]">
-                Se han adjuntado {images.length} foto{images.length !== 1 ? 's' : ''} a esta solicitud.
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {images.map(img => {
+                  const label = photoTypeLabels[img.photo_type] || 'Foto'
+                  
+                  if (!img.signedUrl) {
+                    return (
+                      <div key={img.id} className="border border-[#1F1F24] bg-[#131313] rounded-xl overflow-hidden flex flex-col">
+                        <div className="aspect-[4/3] bg-black flex items-center justify-center border-b border-[#1F1F24]">
+                          <span className="text-sm text-[#A8A8B0]">No se pudo cargar esta foto.</span>
+                        </div>
+                        <div className="p-3">
+                          <p className="text-sm font-medium text-[#F7F7F7]">{label}</p>
+                          <p className="text-xs text-[#6E6E78]">Posición: {img.position + 1}</p>
+                        </div>
+                      </div>
+                    )
+                  }
+                  
+                  return (
+                    <div 
+                      key={img.id} 
+                      className="border border-[#1F1F24] bg-[#131313] rounded-xl overflow-hidden flex flex-col cursor-pointer hover:border-[#9867db]/50 transition-colors"
+                      onClick={() => openLightbox(img)}
+                    >
+                      <div className="aspect-[4/3] bg-black border-b border-[#1F1F24]">
+                        <img 
+                          src={img.signedUrl} 
+                          alt={label} 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <p className="text-sm font-medium text-[#F7F7F7]">{label}</p>
+                        <p className="text-xs text-[#6E6E78]">Posición: {img.position + 1}</p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <p className="text-sm text-[#A8A8B0]">Sin fotos adjuntas</p>
@@ -378,6 +486,38 @@ export function SaleRequestDetail({ request, images }: SaleRequestDetailProps) {
 
         </div>
       </div>
+
+      {/* LIGHTBOX */}
+      {mounted && selectedPhoto && selectedPhoto.signedUrl && createPortal(
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm"
+          onClick={closeLightbox}
+        >
+          <button 
+            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+            onClick={(e) => {
+              e.stopPropagation()
+              closeLightbox()
+            }}
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+          
+          <div className="w-full max-w-5xl h-full max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex-1 min-h-0 relative">
+              <img 
+                src={selectedPhoto.signedUrl} 
+                alt={photoTypeLabels[selectedPhoto.photo_type] || 'Foto'} 
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="shrink-0 pt-4 text-center">
+              <p className="text-lg font-medium text-white">{photoTypeLabels[selectedPhoto.photo_type] || 'Foto'}</p>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </AdminPageShell>
   )
 }
