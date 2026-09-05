@@ -17,6 +17,7 @@ export default async function Home() {
       condition,
       has_box,
       has_cable,
+      has_invoice,
       original_parts,
       fully_functional,
       warranty_until,
@@ -26,7 +27,9 @@ export default async function Home() {
         id,
         name,
         brand,
-        category
+        category,
+        supports_battery_health,
+        supports_cycles
       )
     `)
     .eq('status', 'available')
@@ -34,6 +37,39 @@ export default async function Home() {
 
   if (devicesError) {
     console.error('Error fetching devices:', devicesError)
+  }
+
+  const deviceIds = devicesData ? devicesData.map(d => d.id) : []
+
+  // 1.5 Fetch device_images for real photos
+  let deviceImagesData: any[] = []
+  if (deviceIds.length > 0) {
+    const { data: imgData, error: imgError } = await supabase
+      .from('device_images')
+      .select('id, device_id, storage_path, position')
+      .in('device_id', deviceIds)
+      .order('position', { ascending: true })
+      
+    if (imgError) {
+      console.error('Error fetching real device images:', imgError)
+    } else {
+      deviceImagesData = imgData || []
+    }
+  }
+  
+  const realImageMap = new Map<string, { id: string, url: string, position: number }[]>()
+  for (const img of deviceImagesData) {
+    const { data } = supabase.storage.from('device-images').getPublicUrl(img.storage_path)
+    if (data?.publicUrl) {
+      if (!realImageMap.has(img.device_id)) {
+        realImageMap.set(img.device_id, [])
+      }
+      realImageMap.get(img.device_id)!.push({
+        id: img.id,
+        url: data.publicUrl,
+        position: img.position
+      })
+    }
   }
 
   // 2. Fetch catalog images to map exactly to model_id + color
@@ -67,6 +103,8 @@ export default async function Home() {
 
       const imageKey = `${d.model_id}|${d.color || ''}`
       const catalog_image_url = imageMap.get(imageKey) || null
+      
+      const realImages = realImageMap.get(d.id) || []
 
       publicStock.push({
         id: d.id,
@@ -78,6 +116,7 @@ export default async function Home() {
         condition: d.condition,
         has_box: d.has_box,
         has_cable: d.has_cable,
+        has_invoice: d.has_invoice,
         original_parts: d.original_parts,
         fully_functional: d.fully_functional,
         warranty_until: d.warranty_until,
@@ -86,7 +125,10 @@ export default async function Home() {
         model_name: dm.name,
         brand: dm.brand,
         category: dm.category,
-        catalog_image_url
+        supports_battery_health: dm.supports_battery_health,
+        supports_cycles: dm.supports_cycles,
+        catalog_image_url,
+        real_images: realImages
       })
     }
   }

@@ -2,12 +2,10 @@ import { PublicStockItem } from './PublicStockSection'
 
 interface PublicStockCardProps {
   device: PublicStockItem
+  onSelect: () => void
 }
 
-export function PublicStockCard({ device }: PublicStockCardProps) {
-  const isSealed = device.condition === 'sealed'
-  const hasWarranty = device.warranty_until && new Date(device.warranty_until) > new Date()
-
+export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
   const formattedPrice = device.listing_price
     ? new Intl.NumberFormat('es-ES', {
         style: 'currency',
@@ -17,89 +15,73 @@ export function PublicStockCard({ device }: PublicStockCardProps) {
       }).format(device.listing_price)
     : null
 
+  const isPhone = device.category === 'iphone'
+
   return (
-    <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-3xl overflow-hidden flex flex-col group hover:border-[#9867db]/50 transition-all duration-300 relative shadow-lg">
+    <button 
+      onClick={onSelect}
+      className="text-left w-full bg-[#0B0B0D] border border-[#1F1F24] rounded-[2rem] overflow-hidden flex flex-col group hover:border-[#9867db]/50 hover:shadow-[0_0_25px_rgba(152,103,219,0.12)] transition-all duration-300 relative"
+      aria-label={`Ver detalles de ${device.model_name}`}
+    >
       
-      {/* Badges Area */}
-      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-        {isSealed && (
-          <span className="px-3 py-1 bg-white/90 backdrop-blur-md text-black text-xs font-bold rounded-full shadow-lg">
-            Precintado
-          </span>
-        )}
-        {!isSealed && hasWarranty && (
-          <span className="px-3 py-1 bg-[#9867db]/20 backdrop-blur-md text-[#d7baff] border border-[#9867db]/30 text-xs font-medium rounded-full shadow-lg">
-            Con garantía
-          </span>
-        )}
+      {/* Top Badge */}
+      <div className="absolute top-4 left-4 z-10">
+        <span className="px-3 py-1 bg-[#9867db]/10 backdrop-blur-md text-[#d7baff] border border-[#9867db]/20 group-hover:border-[#9867db]/40 transition-colors text-[10px] font-bold rounded-full uppercase tracking-widest">
+          Disponible
+        </span>
       </div>
 
       {/* Image Area */}
-      <div className="w-full aspect-[4/5] bg-gradient-to-b from-[#131313] to-[#0B0B0D] flex items-center justify-center p-8 relative overflow-hidden">
+      <div className="w-full h-56 bg-gradient-to-b from-[#131313]/50 to-[#0B0B0D] flex items-center justify-center p-6 relative overflow-hidden">
         {device.catalog_image_url ? (
           <img 
             src={device.catalog_image_url} 
             alt={`${device.model_name} ${device.color || ''}`}
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-contain group-hover:scale-[1.03] transition-transform duration-500"
           />
         ) : (
-          <div className="w-24 h-32 border-2 border-dashed border-[#1F1F24] rounded-xl flex items-center justify-center text-[#1F1F24]">
-            <span className="material-symbols-outlined text-4xl">smartphone</span>
+          <div className="flex flex-col items-center justify-center opacity-40">
+            <span className="material-symbols-outlined text-4xl text-[#8E8E98] font-light mb-2">smartphone</span>
+            <span className="text-[10px] text-[#8E8E98] uppercase tracking-wider font-medium">Imagen próximamente</span>
           </div>
         )}
       </div>
 
       {/* Content Area */}
-      <div className="p-6 flex flex-col flex-1">
-        <h3 className="text-xl font-bold text-white mb-2 leading-tight">
+      <div className="p-5 pt-3 flex flex-col flex-1 w-full text-center items-center">
+        <h3 className="text-lg font-bold text-white mb-1 leading-tight">
           {device.model_name}
         </h3>
         
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-4">
+        <div className="flex flex-wrap items-center justify-center gap-x-1.5 mb-2">
           {device.storage && (
-            <span className="text-sm text-[#A8A8B0]">{device.storage}</span>
+            <span className="text-sm text-[#8E8E98]">{device.storage}</span>
           )}
           {device.storage && device.color && (
-            <span className="text-[#333333]">•</span>
+            <span className="text-[#333333]">·</span>
           )}
           {device.color && (
-            <span className="text-sm text-[#A8A8B0]">{device.color}</span>
-          )}
-          {device.battery_health !== null && (
-            <>
-              <span className="text-[#333333]">•</span>
-              <span className="text-sm text-[#A8A8B0]">Salud {device.battery_health}%</span>
-            </>
+            <span className="text-sm text-[#8E8E98]">{device.color}</span>
           )}
         </div>
 
-        {/* Compact Accessories */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {device.has_box && (
-            <span className="px-2 py-1 bg-[#131313] rounded-md text-xs text-[#6E6E78] border border-[#1F1F24]">Caja</span>
-          )}
-          {device.has_cable && (
-            <span className="px-2 py-1 bg-[#131313] rounded-md text-xs text-[#6E6E78] border border-[#1F1F24]">Cable</span>
-          )}
-          {device.original_parts && (
-            <span className="px-2 py-1 bg-[#131313] rounded-md text-xs text-[#6E6E78] border border-[#1F1F24]">Piezas orig.</span>
+        {/* Battery / Conditional Info */}
+        <div className="h-6 mb-4 flex items-center justify-center">
+          {isPhone && device.battery_health !== null && (
+            <span className="text-xs font-medium text-[#d7baff] bg-[#9867db]/10 px-2 py-0.5 rounded border border-[#9867db]/20">
+              Batería {device.battery_health}%
+            </span>
           )}
         </div>
 
-        {/* Price & Action */}
-        <div className="mt-auto flex items-end justify-between">
-          <div className="flex flex-col">
-            <span className="text-xs text-[#6E6E78] mb-1 uppercase tracking-wider font-medium">Precio</span>
-            <span className="text-2xl font-bold text-white">{formattedPrice || '-'}</span>
-          </div>
-          <button 
-            className="w-12 h-12 rounded-full bg-[#131313] group-hover:bg-[#9867db] group-hover:text-white text-[#A8A8B0] border border-[#1F1F24] group-hover:border-[#9867db] flex items-center justify-center transition-all duration-300"
-            aria-label="Ver detalles"
-          >
-            <span className="material-symbols-outlined">arrow_forward</span>
-          </button>
+        {/* Price & Secondary Line */}
+        <div className="mt-auto flex flex-col items-center w-full">
+          <span className="text-xl font-bold text-white mb-1">{formattedPrice || '-'}</span>
+          <span className="text-xs text-[#9867db]/70 font-medium tracking-wide">
+            Disponible en Canarias
+          </span>
         </div>
       </div>
-    </div>
+    </button>
   )
 }
