@@ -247,3 +247,184 @@ export async function registerTradeInAction(input: RegisterTradeInInput) {
     return { success: false, error: 'No se pudo registrar la parte de pago. Inténtalo de nuevo.' }
   }
 }
+
+export type UpdateTradeInInput = {
+  tradeInId: string
+  finalSalePrice: number
+  receivedPurchasePrice: number
+  receivedListingPrice: number
+  operationDate: string
+  saleLocation?: string | null
+  purchaseLocation?: string | null
+  saleObservations?: string | null
+}
+
+export async function updateTradeInAction(input: UpdateTradeInInput) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.id !== ADMIN_UUID) {
+      return { success: false, error: 'No autorizado' }
+    }
+
+    if (!input || typeof input !== 'object') {
+      return { success: false, error: 'Datos no válidos.' }
+    }
+
+    if (!UUID_REGEX.test(input.tradeInId)) {
+      return { success: false, error: 'ID de operación no válido.' }
+    }
+
+    if (
+      typeof input.finalSalePrice !== 'number' || !isFinite(input.finalSalePrice) || input.finalSalePrice < 0 ||
+      typeof input.receivedPurchasePrice !== 'number' || !isFinite(input.receivedPurchasePrice) || input.receivedPurchasePrice < 0 ||
+      typeof input.receivedListingPrice !== 'number' || !isFinite(input.receivedListingPrice) || input.receivedListingPrice < 0
+    ) {
+      return { success: false, error: 'Los precios deben ser numéricos y no negativos.' }
+    }
+
+    if (!input.operationDate || !/^\d{4}-\d{2}-\d{2}$/.test(input.operationDate)) {
+      return { success: false, error: 'La fecha de operación es inválida.' }
+    }
+
+    const trimNull = (v: any) => (typeof v === 'string' && v.trim() !== '') ? v.trim() : null
+
+    const normalizedSaleLocation = trimNull(input.saleLocation)
+    const normalizedPurchaseLocation = trimNull(input.purchaseLocation)
+    const normalizedSaleObservations = trimNull(input.saleObservations)
+
+    const { data, error: rpcError } = await supabase.rpc('update_trade_in_operation', {
+      p_trade_in_id: input.tradeInId,
+      p_final_sale_price: input.finalSalePrice,
+      p_received_purchase_price: input.receivedPurchasePrice,
+      p_received_listing_price: input.receivedListingPrice,
+      p_operation_date: input.operationDate,
+      p_sale_location: normalizedSaleLocation,
+      p_purchase_location: normalizedPurchaseLocation,
+      p_sale_observations: normalizedSaleObservations
+    })
+
+    if (rpcError) {
+      console.error('RPC Error update_trade_in_operation:', rpcError)
+      const msg = rpcError.message || ''
+
+      if (msg.includes('trade_in_received_device_not_available')) {
+        return { success: false, error: 'No se puede editar esta parte de pago porque el dispositivo recibido ya no está disponible.' }
+      }
+      if (msg.includes('Operación de parte de pago no encontrada')) {
+        return { success: false, error: 'La operación de parte de pago no existe.' }
+      }
+      if (msg.includes('No autorizado')) {
+        return { success: false, error: 'No autorizado' }
+      }
+      if (msg.includes('Venta original no encontrada') || msg.includes('Dispositivo saliente no encontrado') || msg.includes('Dispositivo recibido no encontrado')) {
+        return { success: false, error: 'La operación está incompleta y no puede modificarse.' }
+      }
+      return { success: false, error: 'No se pudo actualizar la parte de pago. Inténtalo de nuevo.' }
+    }
+
+    revalidatePath('/admin')
+    revalidatePath('/admin/stock')
+    revalidatePath('/admin/finanzas')
+    revalidatePath('/admin/clientes')
+    revalidatePath('/admin/solicitudes')
+    revalidatePath('/')
+
+    return { success: true, tradeInId: input.tradeInId }
+
+  } catch (err) {
+    console.error('Unhandled error in updateTradeInAction:', err)
+    return { success: false, error: 'No se pudo actualizar la parte de pago. Inténtalo de nuevo.' }
+  }
+}
+
+export async function cancelTradeInAction(tradeInId: string) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || user.id !== ADMIN_UUID) {
+      return { success: false, error: 'No autorizado' }
+    }
+
+    if (!UUID_REGEX.test(tradeInId)) {
+      return { success: false, error: 'ID de operación no válido.' }
+    }
+
+    const { data, error: rpcError } = await supabase.rpc('cancel_trade_in_operation', {
+      p_trade_in_id: tradeInId
+    })
+
+    if (rpcError) {
+      console.error('RPC Error cancel_trade_in_operation:', rpcError)
+      const msg = rpcError.message || ''
+
+      if (msg.includes('trade_in_received_device_already_sold')) {
+        return { success: false, error: 'No se puede anular esta parte de pago porque el dispositivo recibido ya fue vendido.' }
+      }
+      if (msg.includes('trade_in_request_state_invalid')) {
+        return { success: false, error: 'La solicitud vinculada no está en un estado válido para anular esta parte de pago.' }
+      }
+      if (msg.includes('Operación de parte de pago no encontrada')) {
+        return { success: false, error: 'La operación de parte de pago no existe.' }
+      }
+      if (msg.includes('No autorizado')) {
+        return { success: false, error: 'No autorizado' }
+      }
+      if (msg.includes('Venta original no encontrada') || msg.includes('Dispositivo saliente no encontrado') || msg.includes('Dispositivo recibido no encontrado') || msg.includes('Solicitud vinculada no encontrada')) {
+        return { success: false, error: 'La operación está incompleta y no puede anularse.' }
+      }
+      
+      return { success: false, error: 'No se pudo anular la parte de pago. Inténtalo de nuevo.' }
+    }
+
+    if (!data || data.length === 0) {
+      return { success: false, error: 'No se pudo anular la parte de pago. Inténtalo de nuevo.' }
+    }
+
+    const result = data[0]
+    
+    // REVALIDATION
+    revalidatePath('/admin')
+    revalidatePath('/admin/stock')
+    revalidatePath(`/admin/stock/${result.outgoing_device_id}`)
+    revalidatePath('/admin/finanzas')
+    revalidatePath('/admin/clientes')
+    revalidatePath('/admin/solicitudes')
+    revalidatePath('/')
+
+    if (result.sale_request_id) {
+      revalidatePath(`/admin/solicitudes/${result.sale_request_id}`)
+    }
+
+    // STORAGE CLEANUP
+    if (result.received_image_paths && Array.isArray(result.received_image_paths) && result.received_image_paths.length > 0) {
+      const { error: storageError } = await supabase.storage
+        .from('device-images')
+        .remove(result.received_image_paths)
+
+      if (storageError) {
+        console.warn('Storage cleanup failed after trade-in cancellation:', storageError)
+        return {
+          success: true,
+          warning: 'La parte de pago se anuló correctamente, pero no se pudieron eliminar algunas imágenes del almacenamiento.',
+          outgoingDeviceId: result.outgoing_device_id,
+          receivedDeviceId: result.received_device_id,
+          saleRequestId: result.sale_request_id
+        }
+      }
+    }
+
+    return { 
+      success: true,
+      outgoingDeviceId: result.outgoing_device_id,
+      receivedDeviceId: result.received_device_id,
+      saleRequestId: result.sale_request_id
+    }
+
+  } catch (err) {
+    console.error('Unhandled error in cancelTradeInAction:', err)
+    return { success: false, error: 'No se pudo anular la parte de pago. Inténtalo de nuevo.' }
+  }
+}

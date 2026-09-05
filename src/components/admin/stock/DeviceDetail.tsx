@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { deleteDeviceAction } from '@/actions/devices'
+import { EditTradeInForm } from '@/components/admin/stock/EditTradeInForm'
+import { CancelTradeInDialog } from '@/components/admin/stock/CancelTradeInDialog'
 
 type Device = {
   id: string
@@ -57,11 +60,40 @@ const categoryMap: Record<string, string> = {
   'nintendo_switch': 'Nintendo Switch'
 }
 
-export function DeviceDetail({ device }: { device: Device }) {
+type TradeInContext = {
+  direction: 'outgoing' | 'incoming'
+  id: string
+  saleId: string
+  receivedDeviceId: string
+  saleRequestId: string | null
+  finalSalePrice: number
+  soldAt: string
+  saleLocation: string | null
+  saleObservations: string | null
+  purchaseLocation: string | null
+  receivedListingPrice: number
+  outgoingDevice: {
+    id: string
+    storage: string | null
+    color: string | null
+    modelName: string
+  }
+  incomingDevice: {
+    id: string
+    storage: string | null
+    color: string | null
+    purchasePrice: number
+    modelName: string
+  }
+} | null
+
+export function DeviceDetail({ device, tradeInContext }: { device: Device, tradeInContext?: TradeInContext }) {
   const router = useRouter()
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isEditingTradeIn, setIsEditingTradeIn] = useState(false)
+  const [isCancelingTradeIn, setIsCancelingTradeIn] = useState(false)
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -118,6 +150,108 @@ export function DeviceDetail({ device }: { device: Device }) {
           </span>
         </div>
       </section>
+
+      {tradeInContext && (
+        <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-lg p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[24px] font-bold text-[#d7baff] flex items-center gap-2" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+              <span className="material-symbols-outlined text-[20px]">sync_alt</span> Parte de pago
+            </h3>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setIsCancelingTradeIn(true)}
+                className="text-xs bg-[#93000a]/10 text-[#ffb4ab] border border-[#93000a]/30 px-3 py-1 rounded-full font-semibold hover:bg-[#93000a]/20 transition-colors flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[14px]">cancel</span>
+                Anular parte de pago
+              </button>
+              <button 
+                onClick={() => setIsEditingTradeIn(true)}
+                className="text-xs bg-[#B98AFF]/10 text-[#B98AFF] border border-[#B98AFF]/30 px-3 py-1 rounded-full font-semibold hover:bg-[#B98AFF]/20 transition-colors flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[14px]">edit</span>
+                Editar operación
+              </button>
+              <span className="bg-[#d7baff]/10 text-[#d7baff] border border-[#d7baff]/20 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide hidden md:inline-block">
+                {tradeInContext.direction === 'outgoing' ? 'Entregado por KevPhonesGC' : 'Recibido del cliente'}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Outgoing Device */}
+            <div className="bg-[#131313] border border-[#1F1F24] p-4 rounded-lg flex flex-col justify-between">
+              <div>
+                <span className="block text-xs uppercase tracking-wider text-[#A8A8B0] mb-2">Dispositivo entregado por KevPhonesGC</span>
+                <Link href={`/admin/stock/${tradeInContext.outgoingDevice.id}`} className="text-white font-medium hover:text-[#B98AFF] transition-colors block">
+                  {tradeInContext.outgoingDevice.modelName} {tradeInContext.outgoingDevice.storage ? `· ${tradeInContext.outgoingDevice.storage}` : ''}
+                </Link>
+                {tradeInContext.outgoingDevice.color && (
+                  <span className="text-sm text-[#A8A8B0] block">{tradeInContext.outgoingDevice.color}</span>
+                )}
+              </div>
+              <div className="mt-4 pt-3 border-t border-[#1F1F24]">
+                <span className="block text-xs text-[#A8A8B0] mb-1">Precio de venta</span>
+                <span className="text-lg font-bold text-white">{formatPrice(tradeInContext.finalSalePrice)}</span>
+              </div>
+            </div>
+
+            {/* Incoming Device */}
+            <div className="bg-[#131313] border border-[#1F1F24] p-4 rounded-lg flex flex-col justify-between">
+              <div>
+                <span className="block text-xs uppercase tracking-wider text-[#A8A8B0] mb-2">Dispositivo recibido</span>
+                <Link href={`/admin/stock/${tradeInContext.incomingDevice.id}`} className="text-white font-medium hover:text-[#B98AFF] transition-colors block">
+                  {tradeInContext.incomingDevice.modelName} {tradeInContext.incomingDevice.storage ? `· ${tradeInContext.incomingDevice.storage}` : ''}
+                </Link>
+                {tradeInContext.incomingDevice.color && (
+                  <span className="text-sm text-[#A8A8B0] block">{tradeInContext.incomingDevice.color}</span>
+                )}
+              </div>
+              <div className="mt-4 pt-3 border-t border-[#1F1F24]">
+                <span className="block text-xs text-[#A8A8B0] mb-1">Precio de compra</span>
+                <span className="text-lg font-bold text-white">{formatPrice(tradeInContext.incomingDevice.purchasePrice)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Settlement */}
+          <div className="bg-[#131313] border border-[#1F1F24] rounded-lg p-4 flex flex-col items-center justify-center text-center">
+            {(() => {
+              const diff = tradeInContext.finalSalePrice - tradeInContext.incomingDevice.purchasePrice
+              if (diff > 0) {
+                return (
+                  <>
+                    <span className="text-xs uppercase tracking-widest text-[#A8A8B0] mb-1">Cliente pagó</span>
+                    <span className="text-2xl font-extrabold text-white">{formatPrice(diff)}</span>
+                  </>
+                )
+              } else if (diff < 0) {
+                return (
+                  <>
+                    <span className="text-xs uppercase tracking-widest text-[#A8A8B0] mb-1">KevPhonesGC pagó al cliente</span>
+                    <span className="text-2xl font-extrabold text-amber-400">{formatPrice(Math.abs(diff))}</span>
+                  </>
+                )
+              } else {
+                return (
+                  <>
+                    <span className="text-xs uppercase tracking-widest text-[#A8A8B0] mb-1">Sin diferencia</span>
+                    <span className="text-2xl font-extrabold text-[#A8A8B0]">{formatPrice(0)}</span>
+                  </>
+                )
+              }
+            })()}
+          </div>
+
+          {tradeInContext.saleRequestId && (
+            <div className="mt-2 text-center">
+              <Link href={`/admin/solicitudes/${tradeInContext.saleRequestId}`} className="text-sm text-[#A8A8B0] hover:text-[#d7baff] underline underline-offset-4 transition-colors">
+                Ver solicitud original
+              </Link>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Image & Key Specs Grid */}
       <section className="grid grid-cols-2 gap-3">
@@ -357,6 +491,20 @@ export function DeviceDetail({ device }: { device: Device }) {
           </div>
         )}
       </section>
+      
+      {isEditingTradeIn && tradeInContext && (
+        <EditTradeInForm 
+          context={tradeInContext} 
+          onClose={() => setIsEditingTradeIn(false)} 
+        />
+      )}
+
+      {isCancelingTradeIn && tradeInContext && (
+        <CancelTradeInDialog 
+          context={tradeInContext} 
+          onClose={() => setIsCancelingTradeIn(false)} 
+        />
+      )}
     </>
   )
 }

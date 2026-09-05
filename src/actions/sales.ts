@@ -104,6 +104,9 @@ export async function updateDeviceSaleAction(
   })
 
   if (error) {
+    if (error.message?.includes('trade_in_requires_dedicated_flow')) {
+      return { success: false, error: 'Esta venta pertenece a una operación de parte de pago y no puede editarse desde la venta estándar.' }
+    }
     return { success: false, error: 'No se pudo actualizar la venta. Inténtalo de nuevo.' }
   }
 
@@ -130,6 +133,9 @@ export async function cancelDeviceSaleAction(saleId: string) {
   })
 
   if (error) {
+    if (error.message?.includes('trade_in_requires_dedicated_flow')) {
+      return { success: false, error: 'Esta venta pertenece a una operación de parte de pago y no puede anularse desde la venta estándar.' }
+    }
     return { success: false, error: 'No se pudo anular la venta. Inténtalo de nuevo.' }
   }
 
