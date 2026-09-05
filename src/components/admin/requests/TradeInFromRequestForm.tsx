@@ -169,7 +169,7 @@ export function TradeInFromRequestForm({ request, tradeInContext }: { request: S
   const settlement = fSalePrice - fPurchasePrice
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pb-28 md:pb-32 bg-black/80 backdrop-blur-sm overflow-y-auto">
       <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 w-full max-w-4xl my-auto shadow-2xl relative">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">

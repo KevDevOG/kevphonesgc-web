@@ -66,11 +66,11 @@ export default async function SaleRequestDetailPage({ params }: PageProps) {
   let tradeInContext = null
   if (request.quote_id) {
     try {
-      const { data: quote } = await supabase
+      const { data: quote, error: quoteError } = await supabase
         .from('iphone_quotes')
         .select('quote_mode, target_device_id, target_listing_price_snapshot')
         .eq('id', request.quote_id)
-        .single()
+        .maybeSingle()
 
       if (quote?.quote_mode === 'trade_in' && quote.target_device_id) {
         const { data: targetDevice } = await supabase
@@ -83,17 +83,18 @@ export default async function SaleRequestDetailPage({ params }: PageProps) {
             listing_price,
             status,
             device_models (
+              id,
               name,
               brand,
               category
             )
           `)
           .eq('id', quote.target_device_id)
-          .single()
+          .maybeSingle()
 
         tradeInContext = {
           targetDeviceId: quote.target_device_id,
-          targetListingPriceSnapshot: quote.target_listing_price_snapshot,
+          targetListingPriceSnapshot: Number(quote.target_listing_price_snapshot),
           targetDevice: targetDevice ? {
             id: targetDevice.id,
             modelId: targetDevice.model_id,

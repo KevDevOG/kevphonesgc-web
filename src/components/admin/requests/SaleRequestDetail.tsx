@@ -236,22 +236,28 @@ export function SaleRequestDetail({ request, images, tradeInContext }: SaleReque
         title={request.device_models?.name || 'Solicitud de venta'}
         subtitle={`Recibida el ${new Date(request.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`}
         action={
-          <div className="flex flex-col md:flex-row items-center gap-3">
-            <span className={`px-3 py-1.5 rounded-full border text-sm font-medium ${statusColors[request.status] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
-              {statusLabels[request.status] || request.status}
-            </span>
-            {(request.status === 'new' || request.status === 'in_progress') && (
-              <>
-                {tradeInContext ? (
-                  <TradeInFromRequestForm request={request} tradeInContext={tradeInContext} />
-                ) : (
-                  <PurchaseFromRequestForm request={request} />
-                )}
-              </>
-            )}
-          </div>
+          <span className={`px-3 py-1 rounded-full border text-sm font-medium ${statusColors[request.status] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
+            {statusLabels[request.status] || request.status}
+          </span>
         }
       />
+
+      {(request.status === 'new' || request.status === 'in_progress') && (
+        <div className="mb-6 flex justify-end">
+          {tradeInContext ? (
+            tradeInContext.targetDevice?.status === 'available' ? (
+              <TradeInFromRequestForm request={request} tradeInContext={tradeInContext} />
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm font-medium">
+                <span className="material-symbols-outlined text-[18px]">warning</span>
+                El dispositivo elegido por el cliente ya no está disponible.
+              </div>
+            )
+          ) : (
+            <PurchaseFromRequestForm request={request} />
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm">
