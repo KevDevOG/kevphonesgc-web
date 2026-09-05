@@ -387,7 +387,6 @@ export async function cancelTradeInAction(tradeInId: string) {
     
     // REVALIDATION
     revalidatePath('/admin')
-    revalidatePath('/admin/stock')
     revalidatePath(`/admin/stock/${result.outgoing_device_id}`)
     revalidatePath('/admin/finanzas')
     revalidatePath('/admin/clientes')

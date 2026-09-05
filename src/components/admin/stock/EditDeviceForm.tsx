@@ -104,8 +104,23 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
   
   const [uploading, setUploading] = useState(false)
   const [formState, setFormState] = useState(initialState)
+  const [isTradeInReceived, setIsTradeInReceived] = useState(false)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    async function checkTradeIn() {
+      const { data } = await supabase
+        .from('trade_in_operations')
+        .select('id')
+        .eq('received_device_id', device.id)
+        .maybeSingle()
+      if (data) {
+        setIsTradeInReceived(true)
+      }
+    }
+    checkTradeIn()
+  }, [device.id, supabase])
 
   useEffect(() => {
     // Initial images load
@@ -399,11 +414,21 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
         <h3 className="text-sm font-semibold text-[#A8A8B0] uppercase tracking-wider mb-6 flex items-center gap-2">
           <span className="material-symbols-outlined text-[18px]">payments</span> Compra y Venta
         </h3>
+
+        {isTradeInReceived && (
+          <div className="bg-[#B98AFF]/10 border border-[#B98AFF]/30 p-3 rounded-lg mb-6 flex items-start gap-2">
+            <span className="material-symbols-outlined text-[#B98AFF] text-[20px]">info</span>
+            <p className="text-xs text-[#d7baff]">
+              Estos datos pertenecen a una parte de pago. Modifícalos desde «Editar operación».
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div className="relative">
             <label className={labelClass}>Precio de compra</label>
             <span className="absolute left-3 top-[34px] text-[#A8A8B0]">€</span>
-            <input type="number" step="0.01" min="0" name="purchase_price" defaultValue={device.purchase_price} required className={`${inputClass} pl-8`} />
+            <input type="number" step="0.01" min="0" name="purchase_price" defaultValue={device.purchase_price} required disabled={isTradeInReceived} className={`${inputClass} pl-8 disabled:opacity-50 disabled:cursor-not-allowed`} />
           </div>
           <div className="relative">
             <label className={labelClass}>Precio de publicación</label>
@@ -414,11 +439,11 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className={labelClass}>Fecha de compra</label>
-            <input type="date" name="purchased_at" required defaultValue={device.purchased_at} className={inputClass} />
+            <input type="date" name="purchased_at" required defaultValue={device.purchased_at} disabled={isTradeInReceived} className={`${inputClass} disabled:opacity-50 disabled:cursor-not-allowed`} />
           </div>
           <div>
             <label className={labelClass}>Lugar de compra</label>
-            <input type="text" name="purchase_location" defaultValue={device.purchase_location || ''} className={inputClass} />
+            <input type="text" name="purchase_location" defaultValue={device.purchase_location || ''} disabled={isTradeInReceived} className={`${inputClass} disabled:opacity-50 disabled:cursor-not-allowed`} />
           </div>
         </div>
         <div>

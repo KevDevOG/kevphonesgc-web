@@ -37,10 +37,7 @@ export function CancelTradeInDialog({ context, onClose }: { context: TradeInCont
   
   const [confirmText, setConfirmText] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [successResult, setSuccessResult] = useState<{
-    warning?: string,
-    outgoingDeviceId?: string
-  } | null>(null)
+
 
   const isConfirmed = confirmText === 'ANULAR'
 
@@ -55,24 +52,26 @@ export function CancelTradeInDialog({ context, onClose }: { context: TradeInCont
       if (!result.success) {
         setError(result.error || 'Error desconocido')
       } else {
-        setSuccessResult({
-          warning: result.warning,
-          outgoingDeviceId: result.outgoingDeviceId
-        })
+        if (result.warning) {
+          console.warn(result.warning)
+        }
+        
+        onClose()
+        
+        let destination = '/admin/stock'
+        if (result.outgoingDeviceId && typeof result.outgoingDeviceId === 'string') {
+          destination = `/admin/stock/${result.outgoingDeviceId}`
+        }
+        
+        if (result.warning) {
+          destination += '?tradeInCancelled=1&storageWarning=1'
+        } else {
+          destination += '?tradeInCancelled=1'
+        }
+        
+        router.replace(destination)
       }
     })
-  }
-
-  const handleFinish = () => {
-    onClose()
-    if (successResult) {
-      if (successResult.outgoingDeviceId && typeof successResult.outgoingDeviceId === 'string') {
-        router.push(`/admin/stock/${successResult.outgoingDeviceId}`)
-      } else {
-        router.push('/admin/stock')
-      }
-      router.refresh()
-    }
   }
 
   return (
@@ -84,7 +83,7 @@ export function CancelTradeInDialog({ context, onClose }: { context: TradeInCont
           </h2>
           <button 
             onClick={onClose}
-            disabled={isPending || !!successResult}
+            disabled={isPending}
             className="text-[#A8A8B0] hover:text-white transition-colors"
           >
             <span className="material-symbols-outlined">close</span>
@@ -92,92 +91,65 @@ export function CancelTradeInDialog({ context, onClose }: { context: TradeInCont
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 pb-32">
-          {successResult ? (
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col items-center justify-center py-6 text-center gap-4">
-                <span className="material-symbols-outlined text-[64px] text-[#ffb4ab]">check_circle</span>
-                <p className="text-xl text-white font-bold">Parte de pago anulada</p>
-                <p className="text-[#A8A8B0]">El dispositivo entregado vuelve a estar Disponible.</p>
-              </div>
-              {successResult.warning && (
-                <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffdad6] p-3 rounded text-sm text-center">
-                  {successResult.warning}
-                </div>
-              )}
+          <form id="cancelTradeInForm" onSubmit={handleSubmit} className="flex flex-col gap-6">
+            
+            <div className="flex flex-col gap-3">
+              <p className="text-[#ffdad6] font-bold">Al anular esta operación ocurrirá lo siguiente:</p>
+              <ul className="list-disc list-inside text-sm text-[#ffb4ab] space-y-1">
+                <li>Se eliminará la venta del dispositivo entregado por KevPhonesGC.</li>
+                <li>El dispositivo entregado volverá a estar Disponible.</li>
+                <li>El dispositivo recibido será eliminado del stock.</li>
+                <li>La solicitud original volverá a "En proceso" (si aplica).</li>
+                <li>El efecto financiero se revertirá automáticamente.</li>
+              </ul>
             </div>
-          ) : (
-            <form id="cancelTradeInForm" onSubmit={handleSubmit} className="flex flex-col gap-6">
-              
-              <div className="flex flex-col gap-3">
-                <p className="text-[#ffdad6] font-bold">Al anular esta operación ocurrirá lo siguiente:</p>
-                <ul className="list-disc list-inside text-sm text-[#ffb4ab] space-y-1">
-                  <li>Se eliminará la venta del dispositivo entregado por KevPhonesGC.</li>
-                  <li>El dispositivo entregado volverá a estar Disponible.</li>
-                  <li>El dispositivo recibido será eliminado del stock.</li>
-                  <li>La solicitud original volverá a "En proceso" (si aplica).</li>
-                  <li>El efecto financiero se revertirá automáticamente.</li>
-                </ul>
-              </div>
 
-              <div className="bg-[#93000a]/10 border border-[#93000a]/50 p-3 rounded-lg flex items-start gap-2">
-                <span className="material-symbols-outlined text-[#ffb4ab] text-[20px]">warning</span>
-                <p className="text-xs text-[#ffb4ab]">
-                  Esta acción solo puede realizarse si el dispositivo recibido todavía no ha sido vendido.
-                </p>
-              </div>
+            <div className="bg-[#93000a]/10 border border-[#93000a]/50 p-3 rounded-lg flex items-start gap-2">
+              <span className="material-symbols-outlined text-[#ffb4ab] text-[20px]">warning</span>
+              <p className="text-xs text-[#ffb4ab]">
+                Esta acción solo puede realizarse si el dispositivo recibido todavía no ha sido vendido.
+              </p>
+            </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-white">
-                  Para confirmar, escribe ANULAR
-                </label>
-                <input 
-                  type="text"
-                  required
-                  value={confirmText}
-                  onChange={(e) => setConfirmText(e.target.value)}
-                  placeholder="ANULAR"
-                  className="bg-[#050505] border border-[#690005] rounded p-2 text-white focus:outline-none focus:border-[#ffb4ab]"
-                />
-              </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-white">
+                Para confirmar, escribe ANULAR
+              </label>
+              <input 
+                type="text"
+                required
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder="ANULAR"
+                className="bg-[#050505] border border-[#690005] rounded p-2 text-white focus:outline-none focus:border-[#ffb4ab]"
+              />
+            </div>
 
-              {error && (
-                <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] p-3 rounded text-sm">
-                  {error}
-                </div>
-              )}
-            </form>
-          )}
+            {error && (
+              <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] p-3 rounded text-sm">
+                {error}
+              </div>
+            )}
+          </form>
         </div>
 
         <div className="p-4 border-t border-[#1F1F24] bg-[#0B0B0D] flex gap-3">
-          {successResult ? (
-             <button 
-               type="button"
-               onClick={handleFinish}
-               className="w-full bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] py-3 rounded-lg text-sm font-bold hover:bg-[#353534] transition-colors"
-             >
-               Ver dispositivo disponible
-             </button>
-          ) : (
-            <>
-              <button 
-                type="button"
-                onClick={onClose}
-                disabled={isPending}
-                className="flex-1 bg-transparent border border-[#A8A8B0]/30 text-[#A8A8B0] py-3 rounded-lg text-sm font-bold disabled:opacity-50 hover:bg-[#A8A8B0]/10 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                type="submit"
-                form="cancelTradeInForm"
-                disabled={isPending || !isConfirmed}
-                className="flex-1 bg-[#93000a] text-[#ffdad6] py-3 rounded-lg text-sm font-bold disabled:opacity-50 hover:bg-[#690005] transition-colors"
-              >
-                {isPending ? 'Anulando...' : 'Anular definitivamente'}
-              </button>
-            </>
-          )}
+          <button 
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="flex-1 bg-transparent border border-[#A8A8B0]/30 text-[#A8A8B0] py-3 rounded-lg text-sm font-bold disabled:opacity-50 hover:bg-[#A8A8B0]/10 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit"
+            form="cancelTradeInForm"
+            disabled={isPending || !isConfirmed}
+            className="flex-1 bg-[#93000a] text-[#ffdad6] py-3 rounded-lg text-sm font-bold disabled:opacity-50 hover:bg-[#690005] transition-colors"
+          >
+            {isPending ? 'Anulando...' : 'Anular definitivamente'}
+          </button>
         </div>
       </div>
     </div>

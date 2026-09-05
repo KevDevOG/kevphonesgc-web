@@ -300,12 +300,29 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
   // 1. Check device status
   const { data: existingDevice } = await supabase
     .from('devices')
-    .select('status')
+    .select('status, purchase_price, purchased_at, purchase_location')
     .eq('id', deviceId)
     .single()
 
   if (!existingDevice || existingDevice.status !== 'available') {
     return { error: 'El dispositivo no existe o ya ha sido vendido.' }
+  }
+
+  // 1b. Check if this is a received trade-in device
+  const { data: tradeInOp } = await supabase
+    .from('trade_in_operations')
+    .select('id')
+    .eq('received_device_id', deviceId)
+    .maybeSingle()
+
+  let finalPurchasePrice = purchasePrice
+  let finalPurchasedAtStr = purchasedAtStr
+  let finalPurchaseLocation = purchaseLocation
+
+  if (tradeInOp) {
+    finalPurchasePrice = existingDevice.purchase_price
+    finalPurchasedAtStr = existingDevice.purchased_at
+    finalPurchaseLocation = existingDevice.purchase_location
   }
 
   const { data: model } = await supabase
@@ -385,10 +402,10 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
       p_warranty_until: warrantyUntil || null,
       p_original_parts: originalParts,
       p_fully_functional: fullyFunctional,
-      p_purchase_price: purchasePrice,
+      p_purchase_price: finalPurchasePrice,
       p_listing_price: listingPrice,
-      p_purchase_location: purchaseLocation,
-      p_purchased_at: purchasedAtStr,
+      p_purchase_location: finalPurchaseLocation,
+      p_purchased_at: finalPurchasedAtStr,
       p_internal_notes: internalNotes,
       p_seller_name: sellerName,
       p_seller_phone: sellerPhone,
