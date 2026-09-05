@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 import { updateSaleRequestStatusAction } from '@/actions/sale-requests'
+import { PurchaseFromRequestForm } from '@/components/admin/requests/PurchaseFromRequestForm'
+import { TradeInFromRequestForm } from '@/components/admin/requests/TradeInFromRequestForm'
 
 type DeviceModel = {
   id: string
@@ -53,9 +55,24 @@ type SaleRequestImage = {
   signedUrl: string | null
 }
 
+type TradeInContext = {
+  targetDeviceId: string
+  targetListingPriceSnapshot: number
+  targetDevice: {
+    id: string
+    modelId: string
+    modelName: string
+    storage: string | null
+    color: string | null
+    listingPrice: number
+    status: string
+  } | null
+} | null
+
 type SaleRequestDetailProps = {
   request: SaleRequest
   images: SaleRequestImage[]
+  tradeInContext?: TradeInContext
 }
 
 const conditionLabels: Record<string, string> = {
@@ -98,8 +115,12 @@ const statusColors: Record<string, string> = {
   discarded: 'bg-red-500/10 text-red-500 border-red-500/20'
 }
 
-export function SaleRequestDetail({ request, images }: SaleRequestDetailProps) {
+export function SaleRequestDetail({ request, images, tradeInContext }: SaleRequestDetailProps) {
   const router = useRouter()
+  
+  const formatMoney = (amount: number) => 
+    new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount)
+    
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
@@ -215,9 +236,20 @@ export function SaleRequestDetail({ request, images }: SaleRequestDetailProps) {
         title={request.device_models?.name || 'Solicitud de venta'}
         subtitle={`Recibida el ${new Date(request.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`}
         action={
-          <span className={`px-3 py-1 rounded-full border text-sm font-medium ${statusColors[request.status] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
-            {statusLabels[request.status] || request.status}
-          </span>
+          <div className="flex flex-col md:flex-row items-center gap-3">
+            <span className={`px-3 py-1.5 rounded-full border text-sm font-medium ${statusColors[request.status] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
+              {statusLabels[request.status] || request.status}
+            </span>
+            {(request.status === 'new' || request.status === 'in_progress') && (
+              <>
+                {tradeInContext ? (
+                  <TradeInFromRequestForm request={request} tradeInContext={tradeInContext} />
+                ) : (
+                  <PurchaseFromRequestForm request={request} />
+                )}
+              </>
+            )}
+          </div>
         }
       />
 
@@ -232,6 +264,21 @@ export function SaleRequestDetail({ request, images }: SaleRequestDetailProps) {
         {/* COLUMNA PRINCIPAL */}
         <div className="lg:col-span-2 space-y-6">
           
+          {/* VALORACIÓN (Si existe) */}
+          {request.estimated_min !== null && request.estimated_max !== null && (
+            <section className="bg-[#9867db]/10 border border-[#9867db]/20 rounded-xl p-6">
+              <h3 className="text-xs font-semibold text-[#d7baff] uppercase tracking-wider mb-1">
+                Valoración mostrada al cliente
+              </h3>
+              <div className="text-2xl font-semibold text-white mb-1">
+                {formatMoney(request.estimated_min)} – {formatMoney(request.estimated_max)}
+              </div>
+              <p className="text-sm text-[#A8A8B0]">
+                Importe orientativo calculado antes de enviar la solicitud.
+              </p>
+            </section>
+          )}
+
           {/* DISPOSITIVO */}
           <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6">
             <h3 className="text-sm font-semibold text-[#A8A8B0] uppercase tracking-wider mb-6 flex items-center gap-2">

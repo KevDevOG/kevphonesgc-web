@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import IphoneQuoteFlow from '@/components/public/quote/IphoneQuoteFlow'
+import { PublicHeader } from '@/components/public/PublicHeader'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,20 +28,23 @@ export default async function CotizarPage({
 
     if (deviceError || !device || device.status !== 'available' || typeof device.listing_price !== 'number') {
       return (
-        <main className="min-h-screen bg-black pt-24 pb-12 px-4 flex flex-col items-center justify-center">
-          <div className="text-center max-w-md">
-            <h2 className="text-xl text-white font-medium mb-4">Dispositivo no disponible</h2>
-            <p className="text-zinc-400 mb-8">
-              Este dispositivo ya no está disponible para parte de pago.
-            </p>
-            <a 
-              href="/#stock"
-              className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-xl transition-colors"
-            >
-              Ver stock disponible
-            </a>
-          </div>
-        </main>
+        <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
+          <PublicHeader />
+          <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex flex-col items-center justify-center">
+            <div className="text-center max-w-md">
+              <h2 className="text-xl text-white font-medium mb-4">Dispositivo no disponible</h2>
+              <p className="text-zinc-400 mb-8">
+                Este dispositivo ya no está disponible para parte de pago.
+              </p>
+              <a 
+                href="/#stock"
+                className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-xl transition-colors"
+              >
+                Ver stock disponible
+              </a>
+            </div>
+          </main>
+        </div>
       )
     }
 
@@ -67,21 +71,27 @@ export default async function CotizarPage({
       hint: basePricesError.hint
     })
     return (
-      <main className="min-h-screen bg-black pt-24 pb-12 px-4 flex items-center justify-center">
-        <div className="text-center text-zinc-400">
-          <p>El cotizador no está disponible en este momento.</p>
-        </div>
-      </main>
+      <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
+        <PublicHeader />
+        <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
+          <div className="text-center text-zinc-400">
+            <p>El cotizador no está disponible en este momento.</p>
+          </div>
+        </main>
+      </div>
     )
   }
 
   if (!basePrices || basePrices.length === 0) {
     return (
-      <main className="min-h-screen bg-black pt-24 pb-12 px-4 flex items-center justify-center">
-        <div className="text-center text-zinc-400">
-          <p>No hay configuraciones de cotización activas en este momento.</p>
-        </div>
-      </main>
+      <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
+        <PublicHeader />
+        <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
+          <div className="text-center text-zinc-400">
+            <p>No hay configuraciones de cotización activas en este momento.</p>
+          </div>
+        </main>
+      </div>
     )
   }
 
@@ -106,21 +116,27 @@ export default async function CotizarPage({
       hint: modelsError.hint
     })
     return (
-      <main className="min-h-screen bg-black pt-24 pb-12 px-4 flex items-center justify-center">
-        <div className="text-center text-zinc-400">
-          <p>El cotizador no está disponible en este momento.</p>
-        </div>
-      </main>
+      <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
+        <PublicHeader />
+        <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
+          <div className="text-center text-zinc-400">
+            <p>El cotizador no está disponible en este momento.</p>
+          </div>
+        </main>
+      </div>
     )
   }
 
   if (!modelsData || modelsData.length === 0) {
     return (
-      <main className="min-h-screen bg-black pt-24 pb-12 px-4 flex items-center justify-center">
-        <div className="text-center text-zinc-400">
-          <p>No hay configuraciones de cotización activas en este momento.</p>
-        </div>
-      </main>
+      <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
+        <PublicHeader />
+        <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
+          <div className="text-center text-zinc-400">
+            <p>No hay configuraciones de cotización activas en este momento.</p>
+          </div>
+        </main>
+      </div>
     )
   }
 
@@ -141,11 +157,14 @@ export default async function CotizarPage({
       hint: variantsError.hint
     })
     return (
-      <main className="min-h-screen bg-black pt-24 pb-12 px-4 flex items-center justify-center">
-        <div className="text-center text-zinc-400">
-          <p>El cotizador no está disponible en este momento.</p>
-        </div>
-      </main>
+      <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
+        <PublicHeader />
+        <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
+          <div className="text-center text-zinc-400">
+            <p>El cotizador no está disponible en este momento.</p>
+          </div>
+        </main>
+      </div>
     )
   }
 
@@ -181,26 +200,32 @@ export default async function CotizarPage({
 
   if (models.length === 0) {
     return (
-      <main className="min-h-screen bg-black pt-24 pb-12 px-4 flex items-center justify-center">
-        <div className="text-center text-zinc-400">
-          <p>No hay configuraciones de cotización activas en este momento.</p>
-        </div>
-      </main>
+      <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
+        <PublicHeader />
+        <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
+          <div className="text-center text-zinc-400">
+            <p>No hay configuraciones de cotización activas en este momento.</p>
+          </div>
+        </main>
+      </div>
     )
   }
 
   return (
-    <main className="min-h-screen bg-black pt-24 pb-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-2 text-center">Tasa tu iPhone</h1>
-        <p className="text-zinc-400 text-center mb-8">Obtén una valoración orientativa en pocos pasos.</p>
-        
-        <IphoneQuoteFlow 
-          models={models} 
-          quoteMode={mode}
-          targetDevice={targetDevice}
-        />
-      </div>
-    </main>
+    <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
+      <PublicHeader />
+      <main className="flex-1 pt-12 md:pt-24 pb-12 px-4">
+        <div className="max-w-2xl mx-auto">
+          <h1 className="text-3xl font-bold text-white mb-2 text-center">Tasa tu iPhone</h1>
+          <p className="text-zinc-400 text-center mb-8">Obtén una valoración orientativa en pocos pasos.</p>
+          
+          <IphoneQuoteFlow 
+            models={models} 
+            quoteMode={mode}
+            targetDevice={targetDevice}
+          />
+        </div>
+      </main>
+    </div>
   )
 }

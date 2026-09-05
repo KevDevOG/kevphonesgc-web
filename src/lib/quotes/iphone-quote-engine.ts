@@ -24,7 +24,7 @@ export type QuoteResult =
   | { ok: false; code: string }
   | { 
       ok: true
-      quoteId: string
+      handoffToken: string
       estimatedMin: number
       estimatedMax: number
       targetListingPrice?: number
@@ -318,7 +318,7 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
         target_listing_price_snapshot: input.quoteMode === 'trade_in' ? targetListingPrice : null,
         source: input.source || null
       })
-      .select('id')
+      .select('handoff_token')
       .single()
 
     if (quoteError || !quote) {
@@ -335,7 +335,7 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
     if (input.quoteMode === 'sell') {
       return {
         ok: true,
-        quoteId: quote.id,
+        handoffToken: quote.handoff_token,
         estimatedMin,
         estimatedMax
       }
@@ -360,7 +360,7 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
 
       return {
         ok: true,
-        quoteId: quote.id,
+        handoffToken: quote.handoff_token,
         estimatedMin,
         estimatedMax,
         targetListingPrice: tPrice,

@@ -25,6 +25,7 @@ export type FinalizeRequestInput = {
     photoType: string
     storagePath: string
   }>
+  quoteHandoffToken?: string | null
 }
 
 export type FinalizeRequestResponse = {
@@ -62,6 +63,14 @@ export async function finalizePublicSaleRequestAction(
   }
   if (typeof input.modelId !== 'string' || !UUID_REGEX.test(input.modelId)) {
     return { success: false, error: 'Los datos de la solicitud no son válidos.' }
+  }
+
+  // 1.6 Quote Handoff Token (Optional)
+  let safeQuoteHandoffToken: string | null = null
+  if (input.quoteHandoffToken && typeof input.quoteHandoffToken === 'string') {
+    if (UUID_REGEX.test(input.quoteHandoffToken)) {
+      safeQuoteHandoffToken = input.quoteHandoffToken
+    }
   }
 
   // 1.8 Strict String Runtime Validation
@@ -226,7 +235,8 @@ export async function finalizePublicSaleRequestAction(
         p_customer_location: customerLocation,
         p_notes: notes,
         p_source: source,
-        p_photos: mappedPhotos
+        p_photos: mappedPhotos,
+        p_quote_handoff_token: safeQuoteHandoffToken
       }
     )
 

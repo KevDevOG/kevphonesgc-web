@@ -12,9 +12,10 @@ type QuoteResultProps = {
   }
   quoteMode?: 'sell' | 'trade_in'
   onReset: () => void
+  onContinue: () => void
 }
 
-export default function QuoteResultCard({ result, quoteMode = 'sell', onReset }: QuoteResultProps) {
+export default function QuoteResultCard({ result, quoteMode = 'sell', onReset, onContinue }: QuoteResultProps) {
   const isTradeIn = quoteMode === 'trade_in'
   return (
     <div className="bg-zinc-900 border border-purple-900/30 rounded-2xl p-6 md:p-8 w-full max-w-xl mx-auto shadow-2xl">
@@ -65,12 +66,12 @@ export default function QuoteResultCard({ result, quoteMode = 'sell', onReset }:
       </div>
 
       <div className="space-y-3">
-        <Link 
-          href="/vender" 
+        <button 
+          onClick={onContinue}
           className="block w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-4 px-6 rounded-xl text-center transition-colors"
         >
           {isTradeIn ? 'Solicitar revisión' : 'Quiero vender mi iPhone'}
-        </Link>
+        </button>
         <button
           onClick={onReset}
           className="block w-full bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-4 px-6 rounded-xl text-center transition-colors"

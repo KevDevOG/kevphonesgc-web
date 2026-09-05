@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { GuidedPhotoUpload, SelectedPhoto } from './GuidedPhotoUpload'
 import { createSaleRequestUploadSessionAction } from '@/actions/public-sale-request-uploads'
 import { finalizePublicSaleRequestAction } from '@/actions/public-sale-request-finalize'
@@ -52,6 +52,93 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
 
   const [requiredPhotos, setRequiredPhotos] = useState<Record<string, SelectedPhoto | null>>({})
   const [extraPhotos, setExtraPhotos] = useState<SelectedPhoto[]>([])
+
+  const [isPrefilled, setIsPrefilled] = useState(false)
+  const [prefillTradeInTarget, setPrefillTradeInTarget] = useState<any | null>(null)
+  const [quoteHandoffToken, setQuoteHandoffToken] = useState<string | null>(null)
+
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('kevphones_quote_prefill_v1')
+      if (!stored) return
+
+      const payload = JSON.parse(stored)
+      if (payload.version !== 1 || !payload.createdAt) return
+
+      const ageMs = Date.now() - payload.createdAt
+      if (ageMs > 60 * 60 * 1000) {
+        sessionStorage.removeItem('kevphones_quote_prefill_v1')
+        return
+      }
+
+      if (payload.device && typeof payload.device === 'object') {
+        const { modelId: pModelId, storage: pStorage, color: pColor } = payload.device
+        
+        const foundModel = models.find(m => m.id === pModelId)
+        if (foundModel) {
+          setModelId(pModelId)
+          
+          // Verify storage
+          const availableS = variants.filter(v => v.model_id === pModelId && v.variant_type === 'storage')
+          if (!pStorage || availableS.some(v => v.value === pStorage)) {
+            setStorage(pStorage || '')
+          }
+          
+          // Verify color
+          const availableC = variants.filter(v => v.model_id === pModelId && v.variant_type === 'color')
+          if (!pColor || availableC.some(v => v.value === pColor)) {
+            setColor(pColor || '')
+          }
+
+          if (payload.device.condition) setDeviceCondition(payload.device.condition)
+          if (payload.device.batteryHealth !== null && payload.device.batteryHealth !== undefined) setBatteryHealth(String(payload.device.batteryHealth))
+          if (payload.device.batteryCycles !== null && payload.device.batteryCycles !== undefined) setBatteryCycles(String(payload.device.batteryCycles))
+          if (typeof payload.device.hasBox === 'boolean') setHasBox(payload.device.hasBox)
+          if (typeof payload.device.hasCable === 'boolean') setHasCable(payload.device.hasCable)
+          if (typeof payload.device.hasInvoice === 'boolean') setHasInvoice(payload.device.hasInvoice)
+          if (typeof payload.device.originalParts === 'boolean') setOriginalParts(payload.device.originalParts)
+          if (typeof payload.device.fullyFunctional === 'boolean') setFullyFunctional(payload.device.fullyFunctional)
+          if (typeof payload.device.blocked === 'boolean') setBlocked(payload.device.blocked)
+          if (payload.device.officialWarrantyUntil) setOfficialWarrantyUntil(payload.device.officialWarrantyUntil)
+
+          setIsPrefilled(true)
+          setStep(1) // Skip category selection if prefilled
+        }
+      }
+
+      if (payload.mode === 'trade_in' && payload.tradeInTarget) {
+        setPrefillTradeInTarget(payload.tradeInTarget)
+      }
+
+      if (payload.handoffToken) {
+        setQuoteHandoffToken(payload.handoffToken)
+      }
+
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }, [models, variants])
+
+  const handleClearPrefill = () => {
+    sessionStorage.removeItem('kevphones_quote_prefill_v1')
+    setIsPrefilled(false)
+    setPrefillTradeInTarget(null)
+    setQuoteHandoffToken(null)
+    setModelId('')
+    setStorage('')
+    setColor('')
+    setDeviceCondition('good')
+    setBatteryHealth('')
+    setBatteryCycles('')
+    setHasBox(false)
+    setHasCable(false)
+    setHasInvoice(false)
+    setOriginalParts(true)
+    setFullyFunctional(true)
+    setBlocked(false)
+    setOfficialWarrantyUntil('')
+    setStep(0)
+  }
 
   const selectedModel = models.find(m => m.id === modelId)
   const availableStorages = variants.filter(v => v.model_id === modelId && v.variant_type === 'storage')
@@ -183,6 +270,12 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
 
       setSubmitStatus('Enviando solicitud...')
 
+      let finalNotes = notes || ''
+      if (prefillTradeInTarget) {
+        const tradeInText = `\n\n--- Parte de pago para: ${prefillTradeInTarget.modelName} ${prefillTradeInTarget.storage || ''} ${prefillTradeInTarget.color || ''} (${prefillTradeInTarget.listingPrice} €) [ID: ${prefillTradeInTarget.id}] ---`
+        finalNotes = finalNotes + tradeInText
+      }
+
       const finalizeRes = await finalizePublicSaleRequestAction({
         sessionId: sessionRes.sessionId,
         modelId,
@@ -200,9 +293,10 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
         officialWarrantyUntil: officialWarrantyUntil || null,
         customerName,
         customerLocation: customerLocation || null,
-        notes: notes || null,
+        notes: finalNotes.trim() || null,
         source: 'direct',
-        photos: finalPhotos
+        photos: finalPhotos,
+        quoteHandoffToken
       })
 
       if (!finalizeRes.success) {
@@ -210,6 +304,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
       }
 
       setIsSuccess(true)
+      sessionStorage.removeItem('kevphones_quote_prefill_v1')
 
     } catch (e: any) {
       setSubmitError(e.message || 'Error inesperado.')
@@ -295,6 +390,40 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
       </div>
 
       <div className="relative">
+        {isPrefilled && (
+          <div className="mb-6 p-4 bg-purple-900/20 border border-purple-500/30 rounded-xl flex items-center justify-between animate-in fade-in">
+            <div>
+              <p className="text-purple-300 font-medium mb-1">Datos importados desde tu valoración</p>
+              <p className="text-zinc-400 text-sm">Revisa que la información sea correcta antes de enviar la solicitud.</p>
+            </div>
+            <button 
+              onClick={handleClearPrefill}
+              className="text-xs text-zinc-400 hover:text-white px-3 py-1.5 bg-zinc-900 rounded-lg transition-colors border border-zinc-700 hover:border-zinc-500"
+            >
+              Empezar de cero
+            </button>
+          </div>
+        )}
+
+        {prefillTradeInTarget && (
+          <div className="mb-6 p-6 bg-zinc-900 border border-[#9867db]/30 rounded-2xl flex flex-col items-center shadow-lg text-center animate-in fade-in">
+            <h2 className="text-sm uppercase tracking-widest text-[#6E6E78] font-bold mb-2">Parte de pago para</h2>
+            <p className="text-xl font-medium text-white mb-1">
+              {prefillTradeInTarget.modelName}
+              {(prefillTradeInTarget.storage || prefillTradeInTarget.color) && (
+                <span className="text-zinc-400">
+                  {' · '}
+                  {[prefillTradeInTarget.storage, prefillTradeInTarget.color].filter(Boolean).join(' / ')}
+                </span>
+              )}
+            </p>
+            <p className="text-2xl font-bold text-[#9867db] mb-4">{prefillTradeInTarget.listingPrice} €</p>
+            <p className="text-sm text-zinc-400 max-w-md mx-auto">
+              Enviaremos tu solicitud para revisar tu iPhone y confirmar la diferencia final.
+            </p>
+          </div>
+        )}
+
         {step === 1 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
             <div>

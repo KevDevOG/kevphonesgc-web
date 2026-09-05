@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { submitPublicIphoneQuote } from '@/actions/public-quote'
 import QuoteResultCard from './QuoteResultCard'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 type ModelData = {
   id: string
@@ -59,6 +60,7 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
   // Results
   const [quoteResult, setQuoteResult] = useState<any | null>(null)
   const [manualReview, setManualReview] = useState(false)
+  const router = useRouter()
 
   const selectedModel = models.find(m => m.id === modelId)
 
@@ -182,6 +184,45 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
     setManualReview(false)
     setErrorMsg('')
     setValidationError('')
+  }
+
+  const handleContinueToVender = () => {
+    try {
+      const payload = {
+        version: 1,
+        createdAt: Date.now(),
+        mode: quoteMode,
+        handoffToken: quoteResult?.handoffToken || undefined,
+        device: {
+          modelId,
+          storage,
+          color,
+          condition: deviceCondition,
+          batteryHealth,
+          batteryCycles,
+          hasBox,
+          hasCable,
+          hasInvoice,
+          originalParts,
+          fullyFunctional,
+          blocked: isBlocked,
+          officialWarrantyUntil
+        },
+        tradeInTarget: quoteMode === 'trade_in' && targetDevice ? {
+          id: targetDevice.id,
+          modelName: targetDevice.model_name,
+          storage: targetDevice.storage,
+          color: targetDevice.color,
+          listingPrice: targetDevice.listing_price
+        } : undefined
+      }
+      
+      sessionStorage.setItem('kevphones_quote_prefill_v1', JSON.stringify(payload))
+    } catch (e) {
+      // Safely ignore storage errors
+    }
+    
+    router.push('/vender')
   }
 
   // Common styles
@@ -466,12 +507,12 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
               : 'Por las características indicadas no podemos ofrecer una valoración automática. Puedes enviarnos una solicitud para revisarlo personalmente.'}
           </p>
           <div className="space-y-4">
-            <Link 
-              href="/vender" 
+            <button 
+              onClick={handleContinueToVender}
               className="block w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-4 px-6 rounded-xl transition-colors"
             >
               Enviar solicitud
-            </Link>
+            </button>
             <button
               onClick={resetFlow}
               className="block w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium py-4 px-6 rounded-xl transition-colors"
@@ -495,6 +536,7 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
           result={quoteResult} 
           quoteMode={quoteMode}
           onReset={resetFlow} 
+          onContinue={handleContinueToVender}
         />
       )}
     </div>
