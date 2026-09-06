@@ -1,10 +1,74 @@
 import { createClient } from '@/lib/supabase/server'
 import { PublicStockSection, PublicStockItem } from '@/components/public/stock/PublicStockSection'
+import { PublicReviewsSection, PublicReview } from '@/components/public/reviews/PublicReviewsSection'
+import { PublicFaqSection } from '@/components/public/faq/PublicFaqSection'
+import { PublicFooter } from '@/components/public/footer/PublicFooter'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import Link from 'next/link'
 
 export default async function Home() {
   const supabase = await createClient()
+
+  // 0. Fetch business settings for contact info
+  let whatsappPhone: string | null = null
+  let contactEnabled: boolean = false
+  let heroTitle = "iPhones revisados. Compra con confianza."
+  let heroSubtitle = "Stock real, dispositivos revisados y valoración de tu iPhone en pocos pasos."
+  let shippingText = "Atención en Canarias"
+  let wallapopUrl: string | null = null
+  let instagramUrl: string | null = null
+  let tiktokUrl: string | null = null
+
+  try {
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('business_settings')
+      .select('whatsapp_phone, contact_enabled, hero_title, hero_subtitle, shipping_text, wallapop_url, instagram_url, tiktok_url')
+      .eq('singleton', true)
+      .maybeSingle()
+      
+    if (settingsError) {
+      console.error('Error fetching business settings:', settingsError)
+    } else if (settingsData) {
+      contactEnabled = settingsData.contact_enabled === true
+      whatsappPhone = settingsData.whatsapp_phone || null
+      
+      const ht = settingsData.hero_title?.trim()
+      if (ht) heroTitle = ht
+      
+      const hs = settingsData.hero_subtitle?.trim()
+      if (hs) heroSubtitle = hs
+      
+      const st = settingsData.shipping_text?.trim()
+      if (st) shippingText = st
+      
+      const wu = settingsData.wallapop_url?.trim()
+      if (wu) wallapopUrl = wu
+
+      const iu = settingsData.instagram_url?.trim()
+      if (iu) instagramUrl = iu
+
+      const tu = settingsData.tiktok_url?.trim()
+      if (tu) tiktokUrl = tu
+    }
+  } catch (err) {
+    console.error('Unhandled error fetching business settings:', err)
+  }
+
+  // 0.5. Fetch public reviews
+  const { data: reviewsData, error: reviewsError } = await supabase
+    .from('reviews')
+    .select('id, author_name, review_text, source, rating, review_date, featured, sort_order, created_at')
+    .eq('active', true)
+    .order('featured', { ascending: false })
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
+    .limit(6)
+
+  if (reviewsError) {
+    console.error('Error fetching reviews:', reviewsError)
+  }
+  
+  const publicReviews: PublicReview[] = reviewsData || []
 
   // 1. Fetch available devices
   const { data: devicesData, error: devicesError } = await supabase
@@ -170,15 +234,12 @@ export default async function Home() {
                 <span className="text-[10px] sm:text-xs font-semibold text-zinc-300 tracking-widest uppercase">COMPRA · VENTA · TASACIÓN · CANARIAS</span>
               </div>
               
-              <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold text-white tracking-tight mb-6 leading-[1.1]">
-                iPhones revisados.<br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-600">
-                  Compra con confianza.
-                </span>
+              <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold text-white tracking-tight mb-6 leading-[1.1] whitespace-pre-wrap">
+                {heroTitle}
               </h1>
               
-              <p className="text-zinc-400 text-lg md:text-xl mb-10 max-w-lg leading-relaxed">
-                Stock real, dispositivos revisados y valoración de tu iPhone en pocos pasos.
+              <p className="text-zinc-400 text-lg md:text-xl mb-10 max-w-lg leading-relaxed whitespace-pre-wrap">
+                {heroSubtitle}
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mb-6">
@@ -263,7 +324,7 @@ export default async function Home() {
                 </div>
                 <div>
                   <h3 className="text-white font-medium mb-1">Trato directo</h3>
-                  <p className="text-zinc-500 text-sm">Atención en Canarias</p>
+                  <p className="text-zinc-500 text-sm whitespace-pre-wrap">{shippingText}</p>
                 </div>
               </div>
 
@@ -272,8 +333,28 @@ export default async function Home() {
         </div>
         
         <section id="stock" className="pt-8 scroll-mt-20">
-          <PublicStockSection devices={publicStock} />
+          <PublicStockSection 
+            devices={publicStock} 
+            whatsappPhone={whatsappPhone}
+            contactEnabled={contactEnabled}
+          />
         </section>
+
+        <section id="reviews" className="bg-[#060608] border-t border-[#1F1F24]">
+          <PublicReviewsSection reviews={publicReviews} wallapopUrl={wallapopUrl} />
+        </section>
+
+        <section id="faq" className="bg-black border-t border-[#1F1F24]">
+          <PublicFaqSection />
+        </section>
+
+        <PublicFooter 
+          whatsappPhone={whatsappPhone}
+          contactEnabled={contactEnabled}
+          instagramUrl={instagramUrl}
+          tiktokUrl={tiktokUrl}
+          wallapopUrl={wallapopUrl}
+        />
       </main>
     </div>
   )

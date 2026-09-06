@@ -31,9 +31,11 @@ export type PublicStockItem = {
 
 interface PublicStockSectionProps {
   devices: PublicStockItem[]
+  whatsappPhone: string | null
+  contactEnabled: boolean
 }
 
-export function PublicStockSection({ devices }: PublicStockSectionProps) {
+export function PublicStockSection({ devices, whatsappPhone, contactEnabled }: PublicStockSectionProps) {
   const [selectedDevice, setSelectedDevice] = useState<PublicStockItem | null>(null)
   const [activeCategory, setActiveCategory] = useState<string>('Todos')
 
@@ -104,6 +106,8 @@ export function PublicStockSection({ devices }: PublicStockSectionProps) {
         <PublicDeviceDetailModal 
           device={selectedDevice} 
           onClose={() => setSelectedDevice(null)} 
+          whatsappPhone={whatsappPhone}
+          contactEnabled={contactEnabled}
         />
       )}
     </section>

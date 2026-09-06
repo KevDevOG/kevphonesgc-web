@@ -8,6 +8,8 @@ import { PublicStockItem } from './PublicStockSection'
 interface PublicDeviceDetailModalProps {
   device: PublicStockItem
   onClose: () => void
+  whatsappPhone: string | null
+  contactEnabled: boolean
 }
 
 const CONDITION_LABELS: Record<string, string> = {
@@ -17,7 +19,7 @@ const CONDITION_LABELS: Record<string, string> = {
   marked: 'Con marcas'
 }
 
-export function PublicDeviceDetailModal({ device, onClose }: PublicDeviceDetailModalProps) {
+export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contactEnabled }: PublicDeviceDetailModalProps) {
   const [mounted, setMounted] = useState(false)
   const isSealed = device.condition === 'sealed'
   const hasWarranty = device.warranty_until && new Date(device.warranty_until) > new Date()
@@ -226,17 +228,30 @@ export function PublicDeviceDetailModal({ device, onClose }: PublicDeviceDetailM
           </div>
 
           <div className="mt-10">
-            {/* WhatsApp CTA disabled cleanly because no public number is configured */}
-            <button 
-              disabled
-              className="w-full py-4 rounded-xl font-bold bg-[#131313] text-[#6E6E78] border border-[#1F1F24] flex items-center justify-center gap-2 cursor-not-allowed"
-            >
-              Preguntar por WhatsApp
-              <span className="text-xs font-normal opacity-70">(Próximamente)</span>
-            </button>
-            <p className="text-center text-xs text-[#6E6E78] mt-3">
-              Actualmente estamos conectando nuestro WhatsApp. Por favor, vuelve pronto.
-            </p>
+            {contactEnabled && whatsappPhone ? (
+              <a 
+                href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
+                  `Hola, estoy interesado en este dispositivo de KevPhonesGC:\n\n${device.model_name}\n${device.storage ? `${device.storage}\n` : ''}${device.color ? `${device.color}\n` : ''}Precio: ${device.listing_price ? `${device.listing_price} €` : 'No disponible'}\n\n¿Sigue disponible?`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-4 rounded-xl font-bold bg-[#25D366] text-white hover:bg-[#1DA851] flex items-center justify-center gap-2 transition-colors shadow-lg shadow-[#25D366]/20"
+              >
+                Preguntar por WhatsApp
+              </a>
+            ) : (
+              <div>
+                <button 
+                  disabled
+                  className="w-full py-4 rounded-xl font-bold bg-[#131313] text-[#6E6E78] border border-[#1F1F24] flex items-center justify-center gap-2 cursor-not-allowed"
+                >
+                  Contacto no disponible
+                </button>
+                <p className="text-center text-xs text-[#6E6E78] mt-3">
+                  El contacto por WhatsApp no está disponible temporalmente.
+                </p>
+              </div>
+            )}
 
             <div className="mt-4 pt-4 border-t border-[#1F1F24]">
               <Link 
