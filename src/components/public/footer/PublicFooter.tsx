@@ -111,8 +111,15 @@ export function PublicFooter({
       </div>
 
       {/* Bottom Row */}
-      <div className="max-w-7xl mx-auto pt-8 border-t border-[#1F1F24] flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p className="text-sm text-[#6E6E78]">© 2026 KevPhonesGC. Todos los derechos reservados.</p>
+      <div className="max-w-7xl mx-auto pt-8 border-t border-[#1F1F24] flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+          <p className="text-sm text-[#6E6E78]">© 2026 KevPhonesGC. Todos los derechos reservados.</p>
+          <div className="flex items-center gap-4">
+            <Link href="/aviso-legal" className="text-sm text-[#6E6E78] hover:text-[#B98AFF] transition-colors">Aviso legal</Link>
+            <Link href="/privacidad" className="text-sm text-[#6E6E78] hover:text-[#B98AFF] transition-colors">Privacidad</Link>
+            <Link href="/cookies" className="text-sm text-[#6E6E78] hover:text-[#B98AFF] transition-colors">Cookies</Link>
+          </div>
+        </div>
         <p className="text-sm text-[#6E6E78] font-medium">Canarias</p>
       </div>
     </footer>
