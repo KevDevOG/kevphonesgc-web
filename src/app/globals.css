@@ -16,6 +16,7 @@
   --animate-glow-pulse: glowPulse 4s ease-in-out infinite;
   --animate-backdrop-fade: backdropFade 0.25s ease-out forwards;
   --animate-modal-entrance: modalEntrance 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-quote-step-enter: quoteStepEnter 0.25s ease-out forwards;
 }
 
 @keyframes float {
@@ -62,6 +63,17 @@
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes quoteStepEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

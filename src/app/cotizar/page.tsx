@@ -212,13 +212,10 @@ export default async function CotizarPage({
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
+    <div className="flex flex-col min-h-screen bg-[#050506] pb-20 md:pb-0">
       <PublicHeader />
-      <main className="flex-1 pt-12 md:pt-24 pb-12 px-4">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold text-white mb-2 text-center">Tasa tu iPhone</h1>
-          <p className="text-zinc-400 text-center mb-8">Obtén una valoración orientativa en pocos pasos.</p>
-          
+      <main className="flex-1 pt-4 md:pt-10 pb-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1440px] mx-auto w-full">
           <IphoneQuoteFlow 
             models={models} 
             quoteMode={mode}
