@@ -50,28 +50,27 @@ export function PublicStockSection({ devices, whatsappPhone, contactEnabled }: P
   })
 
   return (
-    <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-      <div className="flex flex-col items-center text-center mb-12">
+    <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
+      <div className="flex flex-col items-center text-center mb-16">
         <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-4 flex items-center justify-center relative">
           Catálogo
-          <span className="absolute -inset-1 bg-[#9867db]/20 blur-xl rounded-full opacity-50 z-0"></span>
+          <span className="absolute -inset-1 bg-purple-900/20 blur-xl rounded-full opacity-50 z-0 pointer-events-none"></span>
         </h2>
-        <p className="text-lg text-[#A8A8B0] max-w-2xl relative z-10">
-          Cada unidad es única. {devices.length} disponibles ahora.
+        <p className="text-lg text-zinc-400 max-w-2xl relative z-10 font-light">
+          Cada unidad es única. <span className="text-white font-medium">{devices.length}</span> disponibles ahora.
         </p>
-        <div className="w-12 h-1 bg-gradient-to-r from-transparent via-[#9867db] to-transparent mt-6 mx-auto rounded-full" />
       </div>
 
-      <div className="flex w-full overflow-x-auto no-scrollbar justify-start sm:justify-center mb-10 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-2 min-w-max">
+      <div className="flex w-full overflow-x-auto no-scrollbar justify-start sm:justify-center mb-12 pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex gap-2 min-w-max p-1.5 bg-[#0B0B0E] border border-[#1F1F24] rounded-full shadow-sm">
           {categories.map(category => (
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#9867db] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0B0D] ${
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050506] ${
                 activeCategory === category
-                  ? 'bg-[#9867db]/15 border border-[#9867db]/40 text-[#d7baff] shadow-[0_0_15px_rgba(152,103,219,0.2)]'
-                  : 'bg-[#131313]/60 border border-[#1F1F24] text-[#A8A8B0] hover:text-white hover:border-[#9867db]/40'
+                  ? 'bg-purple-900/30 text-purple-300 border border-purple-700/50 shadow-[0_0_15px_rgba(147,51,234,0.15)]'
+                  : 'bg-transparent border border-transparent text-zinc-400 hover:text-white hover:bg-[#111114]'
               }`}
             >
               {category}
@@ -81,7 +80,7 @@ export function PublicStockSection({ devices, whatsappPhone, contactEnabled }: P
       </div>
 
       {filteredDevices.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
           {filteredDevices.map(device => (
             <PublicStockCard 
               key={device.id} 
@@ -91,12 +90,15 @@ export function PublicStockSection({ devices, whatsappPhone, contactEnabled }: P
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20 bg-[#0B0B0D] border border-[#1F1F24] rounded-3xl text-center px-4">
-          <span className="material-symbols-outlined text-5xl text-[#6E6E78] mb-6">inventory_2</span>
-          <h3 className="text-xl font-bold text-white mb-2">
-            Ahora mismo no tenemos dispositivos disponibles.
+        <div className="flex flex-col items-center justify-center py-24 bg-[#050506] border border-[#1F1F24] rounded-3xl text-center px-4 relative overflow-hidden">
+          <div className="absolute inset-0 bg-purple-900/5 blur-[80px] rounded-full pointer-events-none"></div>
+          <svg className="w-12 h-12 text-zinc-600 mb-6 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+          <h3 className="text-xl font-medium text-white mb-2 relative z-10">
+            No tenemos dispositivos disponibles
           </h3>
-          <p className="text-[#A8A8B0]">
+          <p className="text-zinc-500 relative z-10">
             Estamos renovando el stock constantemente. Vuelve a consultarlo pronto.
           </p>
         </div>

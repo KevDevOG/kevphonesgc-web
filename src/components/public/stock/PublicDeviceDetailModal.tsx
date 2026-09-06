@@ -97,18 +97,18 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/95 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-[#000000]/80 backdrop-blur-sm overflow-y-auto animate-backdrop-fade"
       onClick={safeClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
       <div 
-        className="relative w-full max-w-5xl bg-[#0B0B0D] border border-[#1F1F24] rounded-3xl overflow-hidden flex flex-col md:flex-row my-auto shadow-2xl"
+        className="relative w-full max-w-[1000px] bg-[#050506] border border-[#1F1F24] rounded-[24px] overflow-hidden flex flex-col md:flex-row shadow-2xl my-auto animate-modal-entrance"
         onClick={e => e.stopPropagation()}
       >
         <button 
-          className="absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center text-white bg-black/50 hover:bg-[#1F1F24] border border-[#1F1F24] rounded-full transition-colors"
+          className="absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center text-zinc-400 bg-[#0A0A0C]/80 hover:bg-[#1F1F24] hover:text-white border border-[#1F1F24] rounded-full transition-all duration-200"
           onClick={safeClose}
           aria-label="Cerrar"
         >
@@ -116,28 +116,29 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
         </button>
 
         {/* Left Column: Photos */}
-        <div className="w-full md:w-1/2 flex flex-col border-b md:border-b-0 md:border-r border-[#1F1F24] bg-[#131313]">
-          <div className="w-full aspect-square relative flex items-center justify-center p-8 bg-[#0B0B0D]">
+        <div className="w-full md:w-1/2 flex flex-col border-b md:border-b-0 md:border-r border-[#1F1F24] bg-[#0A0A0C]">
+          <div className="w-full aspect-square relative flex items-center justify-center p-8 lg:p-16">
+            <div className="absolute inset-0 bg-purple-900/5 blur-[70px] rounded-full scale-50 pointer-events-none"></div>
             {allPhotos.length > 0 ? (
               <img 
                 src={allPhotos[mainPhotoIndex].url}
                 alt={`${device.model_name} foto`}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain relative z-10"
               />
             ) : (
-              <div className="w-32 h-32 border-2 border-dashed border-[#1F1F24] rounded-2xl flex items-center justify-center text-[#1F1F24]">
+              <div className="w-32 h-32 border-2 border-dashed border-[#1F1F24] rounded-2xl flex items-center justify-center text-zinc-600 relative z-10">
                 <span className="material-symbols-outlined text-5xl">smartphone</span>
               </div>
             )}
             
-            <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+            <div className="absolute top-6 left-6 z-10 flex flex-col gap-1.5">
               {isSealed && (
-                <span className="px-3 py-1 bg-white/90 backdrop-blur-md text-black text-xs font-bold rounded-full shadow-lg">
+                <span className="px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-white border border-white/10 text-[10px] font-medium rounded-full tracking-wide">
                   Precintado
                 </span>
               )}
               {!isSealed && hasWarranty && (
-                <span className="px-3 py-1 bg-[#9867db]/20 backdrop-blur-md text-[#d7baff] border border-[#9867db]/30 text-xs font-medium rounded-full shadow-lg">
+                <span className="px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-zinc-300 border border-white/10 text-[10px] font-medium rounded-full tracking-wide">
                   Con garantía
                 </span>
               )}
@@ -145,14 +146,14 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
           </div>
           
           {allPhotos.length > 1 && (
-            <div className="flex gap-4 p-4 overflow-x-auto no-scrollbar border-t border-[#1F1F24] bg-[#131313]">
+            <div className="flex gap-2.5 p-5 overflow-x-auto no-scrollbar border-t border-[#1F1F24] bg-[#0A0A0C]">
               {allPhotos.map((photo, idx) => (
                 <button
                   key={photo.id}
                   onClick={() => setMainPhotoIndex(idx)}
-                  className={`shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-colors flex items-center justify-center bg-[#0B0B0D] ${idx === mainPhotoIndex ? 'border-[#9867db]' : 'border-[#1F1F24] hover:border-[#6E6E78]'}`}
+                  className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden border transition-all duration-200 flex items-center justify-center bg-[#050506] ${idx === mainPhotoIndex ? 'border-purple-500/50' : 'border-[#1F1F24] hover:border-zinc-500'}`}
                 >
-                  <img src={photo.url} alt="Thumbnail" className="w-full h-full object-contain p-2" />
+                  <img src={photo.url} alt="Thumbnail" className="w-full h-full object-contain p-1.5" />
                 </button>
               ))}
             </div>
@@ -160,74 +161,75 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
         </div>
 
         {/* Right Column: Info */}
-        <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col max-h-[85vh] overflow-y-auto">
+        <div className="w-full md:w-1/2 p-6 sm:p-10 flex flex-col max-h-[85vh] overflow-y-auto custom-scrollbar bg-[#050506]">
+          
           <div className="mb-8">
-            <h2 id="modal-title" className="text-3xl font-bold text-white mb-2">{device.model_name}</h2>
-            <div className="text-3xl font-bold text-[#9867db]">{formattedPrice || '-'}</div>
-          </div>
-
-          <div className="flex-1">
-            <h3 className="text-sm uppercase tracking-widest text-[#6E6E78] font-bold mb-4">Especificaciones</h3>
-            <ul className="space-y-4">
-              <li className="flex justify-between items-center border-b border-[#1F1F24] pb-2">
-                <span className="text-[#A8A8B0]">Estado</span>
-                <span className="text-white font-medium">{CONDITION_LABELS[device.condition] || device.condition}</span>
-              </li>
-              {device.storage && (
-                <li className="flex justify-between items-center border-b border-[#1F1F24] pb-2">
-                  <span className="text-[#A8A8B0]">Almacenamiento</span>
-                  <span className="text-white font-medium">{device.storage}</span>
-                </li>
-              )}
-              {device.color && (
-                <li className="flex justify-between items-center border-b border-[#1F1F24] pb-2">
-                  <span className="text-[#A8A8B0]">Color</span>
-                  <span className="text-white font-medium">{device.color}</span>
-                </li>
-              )}
-              {device.supports_battery_health && device.battery_health !== null && (
-                <li className="flex justify-between items-center border-b border-[#1F1F24] pb-2">
-                  <span className="text-[#A8A8B0]">Salud de batería</span>
-                  <span className="text-white font-medium">{device.battery_health}%</span>
-                </li>
-              )}
-              {device.supports_cycles && device.battery_cycles !== null && (
-                <li className="flex justify-between items-center border-b border-[#1F1F24] pb-2">
-                  <span className="text-[#A8A8B0]">Ciclos</span>
-                  <span className="text-white font-medium">{device.battery_cycles}</span>
-                </li>
-              )}
-              {device.warranty_until && hasWarranty && (
-                <li className="flex justify-between items-center border-b border-[#1F1F24] pb-2">
-                  <span className="text-[#A8A8B0]">Garantía oficial hasta</span>
-                  <span className="text-white font-medium">
-                    {new Date(device.warranty_until).toLocaleDateString('es-ES')}
-                  </span>
-                </li>
-              )}
-            </ul>
-
-            <h3 className="text-sm uppercase tracking-widest text-[#6E6E78] font-bold mt-8 mb-4">Accesorios y Otros</h3>
-            <div className="flex flex-wrap gap-2">
-              <span className={`px-3 py-1.5 rounded-lg text-sm border ${device.has_box ? 'bg-[#9867db]/10 text-[#d7baff] border-[#9867db]/30' : 'bg-[#131313] text-[#6E6E78] border-[#1F1F24]'}`}>
-                Caja
-              </span>
-              <span className={`px-3 py-1.5 rounded-lg text-sm border ${device.has_cable ? 'bg-[#9867db]/10 text-[#d7baff] border-[#9867db]/30' : 'bg-[#131313] text-[#6E6E78] border-[#1F1F24]'}`}>
-                Cable
-              </span>
-              <span className={`px-3 py-1.5 rounded-lg text-sm border ${device.has_invoice ? 'bg-[#9867db]/10 text-[#d7baff] border-[#9867db]/30' : 'bg-[#131313] text-[#6E6E78] border-[#1F1F24]'}`}>
-                Factura
-              </span>
-              <span className={`px-3 py-1.5 rounded-lg text-sm border ${device.original_parts ? 'bg-[#9867db]/10 text-[#d7baff] border-[#9867db]/30' : 'bg-[#131313] text-[#6E6E78] border-[#1F1F24]'}`}>
-                Piezas originales
-              </span>
-              <span className={`px-3 py-1.5 rounded-lg text-sm border ${device.fully_functional ? 'bg-[#9867db]/10 text-[#d7baff] border-[#9867db]/30' : 'bg-[#131313] text-[#6E6E78] border-[#1F1F24]'}`}>
-                Funcionamiento completo
-              </span>
+            <h2 id="modal-title" className="text-2xl sm:text-3xl font-semibold text-white mb-2 leading-tight">
+              {device.model_name}
+            </h2>
+            <div className="text-4xl sm:text-5xl font-bold text-white tracking-tight mt-4">
+              {formattedPrice || '-'}
             </div>
           </div>
 
-          <div className="mt-10">
+          <div className="flex-1">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-8">
+              <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Estado</span>
+                <span className="text-sm text-white font-medium">{CONDITION_LABELS[device.condition] || device.condition}</span>
+              </div>
+              
+              {device.storage && (
+                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Almacenamiento</span>
+                  <span className="text-sm text-white font-medium">{device.storage}</span>
+                </div>
+              )}
+              
+              {device.color && (
+                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Color</span>
+                  <span className="text-sm text-white font-medium">{device.color}</span>
+                </div>
+              )}
+              
+              {device.supports_battery_health && device.battery_health !== null && (
+                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Salud de batería</span>
+                  <span className="text-sm text-white font-medium">{device.battery_health}%</span>
+                </div>
+              )}
+
+              {device.supports_cycles && device.battery_cycles !== null && (
+                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Ciclos</span>
+                  <span className="text-sm text-white font-medium">{device.battery_cycles}</span>
+                </div>
+              )}
+
+              {device.warranty_until && hasWarranty && (
+                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Garantía oficial</span>
+                  <span className="text-sm text-white font-medium">
+                    {new Date(device.warranty_until).toLocaleDateString('es-ES')}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="mb-8">
+              <span className="block text-[11px] uppercase tracking-wider text-zinc-500 mb-3">Accesorios y Otros</span>
+              <div className="flex flex-wrap gap-2">
+                <span className={`px-2.5 py-1 rounded-md text-[11px] border font-medium ${device.has_box ? 'bg-white/5 border-white/10 text-white' : 'bg-transparent border-[#1F1F24] text-zinc-500'}`}>Caja</span>
+                <span className={`px-2.5 py-1 rounded-md text-[11px] border font-medium ${device.has_cable ? 'bg-white/5 border-white/10 text-white' : 'bg-transparent border-[#1F1F24] text-zinc-500'}`}>Cable</span>
+                <span className={`px-2.5 py-1 rounded-md text-[11px] border font-medium ${device.has_invoice ? 'bg-white/5 border-white/10 text-white' : 'bg-transparent border-[#1F1F24] text-zinc-500'}`}>Factura</span>
+                <span className={`px-2.5 py-1 rounded-md text-[11px] border font-medium ${device.original_parts ? 'bg-white/5 border-white/10 text-white' : 'bg-transparent border-[#1F1F24] text-zinc-500'}`}>Piezas originales</span>
+                <span className={`px-2.5 py-1 rounded-md text-[11px] border font-medium ${device.fully_functional ? 'bg-white/5 border-white/10 text-white' : 'bg-transparent border-[#1F1F24] text-zinc-500'}`}>Funcionamiento completo</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-2 space-y-3">
             {contactEnabled && whatsappPhone ? (
               <a 
                 href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
@@ -235,7 +237,7 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-4 rounded-xl font-bold bg-[#25D366] text-white hover:bg-[#1DA851] flex items-center justify-center gap-2 transition-colors shadow-lg shadow-[#25D366]/20"
+                className="w-full py-4 rounded-xl font-semibold bg-[#1F8745] text-white hover:bg-[#25A154] flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
               >
                 Preguntar por WhatsApp
               </a>
@@ -243,27 +245,22 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
               <div>
                 <button 
                   disabled
-                  className="w-full py-4 rounded-xl font-bold bg-[#131313] text-[#6E6E78] border border-[#1F1F24] flex items-center justify-center gap-2 cursor-not-allowed"
+                  className="w-full py-4 rounded-xl font-semibold bg-[#111114] text-zinc-600 border border-[#1F1F24] flex items-center justify-center gap-2 cursor-not-allowed"
                 >
-                  Contacto no disponible
+                  Contacto temporalmente no disponible
                 </button>
-                <p className="text-center text-xs text-[#6E6E78] mt-3">
-                  El contacto por WhatsApp no está disponible temporalmente.
-                </p>
               </div>
             )}
 
-            <div className="mt-4 pt-4 border-t border-[#1F1F24]">
-              <Link 
-                href={`/cotizar?mode=trade_in&target=${device.id}`}
-                className="w-full py-4 rounded-xl font-bold bg-transparent text-[#9867db] border border-[#9867db]/30 hover:bg-[#9867db]/10 flex items-center justify-center gap-2 transition-colors"
-                onClick={() => {
-                  document.body.style.overflow = previousOverflowRef.current
-                }}
-              >
-                Entregar mi iPhone como parte de pago
-              </Link>
-            </div>
+            <Link 
+              href={`/cotizar?mode=trade_in&target=${device.id}`}
+              className="w-full py-4 rounded-xl font-medium bg-transparent text-zinc-300 border border-[#1F1F24] hover:bg-[#111114] hover:text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
+              onClick={() => {
+                document.body.style.overflow = previousOverflowRef.current
+              }}
+            >
+              Entregar mi móvil como parte de pago
+            </Link>
           </div>
 
         </div>
