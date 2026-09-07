@@ -520,15 +520,22 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
                   <p className="text-zinc-400">Este modelo no requiere seleccionar salud de batería.</p>
                 </div>
               ) : (
-                <div className="p-8 sm:p-10 bg-[#0B0B0E] border border-[#1F1F24] rounded-[24px] flex flex-col items-center">
-                  <div className="text-center mb-8">
-                    <div className={`text-6xl sm:text-7xl font-bold tracking-tight mb-2 ${batteryTouched ? 'text-white' : 'text-zinc-700'}`}>
-                      {batteryTouched ? batteryHealth : '--'}%
-                    </div>
-                    
-                    <div className={`text-sm sm:text-base font-medium h-6 transition-colors ${batteryTouched ? getBatteryLabel(batteryHealth).color : 'text-transparent'}`}>
-                      {batteryTouched ? getBatteryLabel(batteryHealth).text : 'Mueve el deslizador'}
-                    </div>
+                <div className="p-6 sm:p-8 bg-[#0B0B0E] border border-[#1F1F24] rounded-[24px] flex flex-col items-center max-w-2xl mx-auto w-full">
+                  <div className="text-center h-[90px] sm:h-[100px] flex flex-col justify-end mb-8 sm:mb-10">
+                    {batteryTouched ? (
+                      <>
+                        <div className="text-5xl sm:text-6xl font-semibold tracking-tight text-white mb-2 leading-none">
+                          {batteryHealth}%
+                        </div>
+                        <div className={`text-sm sm:text-base font-medium transition-colors ${getBatteryLabel(batteryHealth).color}`}>
+                          {getBatteryLabel(batteryHealth).text}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-sm sm:text-base font-medium text-zinc-500">
+                        Desliza para indicar la salud
+                      </div>
+                    )}
                   </div>
 
                   <div className="w-full relative">
@@ -542,9 +549,9 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
                         setBatteryHealth(parseInt(e.target.value, 10))
                         setValidationError('')
                       }}
-                      className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-purple-500 hover:accent-purple-400 transition-all [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg"
+                      className={`w-full h-2 sm:h-2.5 bg-[linear-gradient(90deg,#ef4444_0%,#f97316_35%,#f59e0b_60%,#84cc16_80%,#22c55e_100%)] rounded-full appearance-none cursor-pointer transition-all ${!batteryTouched ? '[&::-webkit-slider-thumb]:opacity-0 [&::-moz-range-thumb]:opacity-0' : '[&::-webkit-slider-thumb]:opacity-100 [&::-moz-range-thumb]:opacity-100'} [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:sm:w-7 [&::-webkit-slider-thumb]:sm:h-7 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-[2px] [&::-webkit-slider-thumb]:border-[#0B0B0E] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:sm:w-7 [&::-moz-range-thumb]:sm:h-7 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-[2px] [&::-moz-range-thumb]:border-[#0B0B0E] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md`}
                     />
-                    <div className="flex justify-between mt-4 text-xs text-zinc-500 font-medium">
+                    <div className="flex justify-between mt-2.5 text-xs text-zinc-500 font-medium">
                       <span>0%</span>
                       <span>100%</span>
                     </div>

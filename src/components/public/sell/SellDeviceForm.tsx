@@ -22,13 +22,18 @@ function getTrustedMimeType(file: File): string {
 }
 
 export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
-  const [step, setStep] = useState(0) // 0: Category, 1: Device, 2: Condition, 3: Data, 4: Photos
+  // Step 1: Tipo, Step 2: Modelo, Step 3: Capacidad, Step 4: Color, Step 5: Estado, Step 6: Datos, Step 7: Fotos, Step 8: Revisar
+  const [step, setStep] = useState(1) 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState('')
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
+  
+  // Validation error state for progressive validation
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   // Form State
+  const [deviceType, setDeviceType] = useState('iphone')
   const [modelId, setModelId] = useState('')
   const [storage, setStorage] = useState('')
   const [color, setColor] = useState('')
@@ -102,7 +107,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
           if (payload.device.officialWarrantyUntil) setOfficialWarrantyUntil(payload.device.officialWarrantyUntil)
 
           setIsPrefilled(true)
-          setStep(1) // Skip category selection if prefilled
+          setStep(5) // Start at Step 5 when prefilled
         }
       }
 
@@ -137,15 +142,82 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
     setFullyFunctional(true)
     setBlocked(false)
     setOfficialWarrantyUntil('')
-    setStep(0)
+    setStep(1)
   }
 
   const selectedModel = models.find(m => m.id === modelId)
   const availableStorages = variants.filter(v => v.model_id === modelId && v.variant_type === 'storage')
   const availableColors = variants.filter(v => v.model_id === modelId && v.variant_type === 'color')
 
-  const handleNext = () => setStep(s => s + 1)
-  const handleBack = () => setStep(s => s - 1)
+  const goNext = () => {
+    setValidationError(null)
+    setSubmitError(null)
+
+    if (step === 1) {
+      if (!deviceType) {
+        setValidationError('Por favor, selecciona qué quieres vender.')
+        return
+      }
+    } else if (step === 2) {
+      if (!modelId) {
+        setValidationError('Por favor, selecciona un modelo.')
+        return
+      }
+    } else if (step === 3) {
+      if (availableStorages.length > 0 && !storage) {
+        setValidationError('Por favor, selecciona la capacidad.')
+        return
+      }
+    } else if (step === 4) {
+      if (availableColors.length > 0 && !color) {
+        setValidationError('Por favor, selecciona un color.')
+        return
+      }
+    } else if (step === 5) {
+      if (selectedModel?.supports_battery_health && deviceCondition !== 'sealed') {
+        const bh = parseInt(batteryHealth, 10)
+        if (isNaN(bh) || bh < 0 || bh > 100) {
+          setValidationError('Por favor, indica una salud de batería válida (0-100).')
+          return
+        }
+      }
+      if (selectedModel?.supports_cycles && batteryCycles !== '') {
+        const bc = parseInt(batteryCycles, 10)
+        if (isNaN(bc) || bc < 0) {
+          setValidationError('Los ciclos de batería no son válidos.')
+          return
+        }
+      }
+    } else if (step === 6) {
+      if (!customerName.trim()) {
+        setValidationError('Por favor, indica tu nombre.')
+        return
+      }
+      if (!customerPhone.trim()) {
+        setValidationError('Por favor, indica tu teléfono de contacto.')
+        return
+      }
+      if (!acceptedPrivacy) {
+        setValidationError('Debes aceptar la política de privacidad para continuar.')
+        return
+      }
+    } else if (step === 7) {
+      const requiredTypes = ['front_off', 'front_on', 'back', 'right_side', 'left_side', 'top', 'bottom']
+      const hasAllRequired = requiredTypes.every(t => requiredPhotos[t])
+      if (!hasAllRequired) {
+        setValidationError('Por favor, sube las 7 fotos obligatorias antes de continuar.')
+        return
+      }
+    }
+
+    setStep(s => s + 1)
+  }
+
+  const goBack = () => {
+    setValidationError(null)
+    setSubmitError(null)
+    setStep(s => Math.max(1, s - 1))
+  }
 
   const handleSubmit = async () => {
     if (!customerPhone || !customerName) {
@@ -312,404 +384,653 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
     }
   }
 
+  // Helper for option buttons
+  const optionCardClass = (active: boolean) => 
+    `py-3 px-4 min-h-[48px] rounded-xl border text-sm font-medium transition-all text-left flex items-center justify-between ${
+      active 
+        ? 'bg-purple-900/10 border-purple-500 text-purple-300 shadow-[0_0_15px_rgba(147,51,234,0.15)]' 
+        : 'bg-[#050506] border-[#1F1F24] text-zinc-300 hover:border-zinc-500 hover:bg-[#111114]'
+    }`
+
+  const btnClass = (active: boolean, match: boolean) =>
+    `flex-1 py-3 px-4 rounded-xl text-sm font-medium transition-all border ${
+      active === match
+        ? 'bg-purple-900/10 border-purple-500 text-purple-300 shadow-[0_0_15px_rgba(147,51,234,0.15)]'
+        : 'bg-[#050506] border-[#1F1F24] text-zinc-400 hover:border-zinc-500 hover:bg-[#111114]'
+    }`
+
+  // Battery health label helper
+  const getBatteryLabel = (bh: number) => {
+    if (bh < 80) return { text: "Necesita cambiarse", color: "text-red-400" }
+    if (bh < 85) return { text: "Poca vida útil", color: "text-amber-500" }
+    if (bh < 90) return { text: "Buena, con desgaste de uso", color: "text-amber-400" }
+    if (bh < 95) return { text: "Buena salud", color: "text-emerald-400" }
+    return { text: "Excelente salud", color: "text-emerald-500" }
+  }
+
+  // --- SUCCESS VIEW ---
   if (isSuccess) {
     return (
-      <div className="text-center py-20 px-4 bg-zinc-900/30 rounded-3xl border border-zinc-800/50 mt-8">
-        <div className="w-20 h-20 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="w-full h-full flex flex-col items-center justify-center min-h-[50vh] animate-in fade-in">
+        <div className="w-20 h-20 bg-purple-900/20 border border-purple-500/30 rounded-full flex items-center justify-center mb-6">
+          <svg className="w-10 h-10 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-3xl font-semibold mb-4">Solicitud enviada</h2>
-        <p className="text-zinc-300 text-lg mb-3 max-w-md mx-auto">
-          Hemos recibido los datos y las fotos de tu dispositivo. Revisaremos la solicitud y nos pondremos en contacto contigo.
+        <h2 className="text-3xl text-white font-bold mb-4">Solicitud enviada</h2>
+        <p className="text-zinc-400 max-w-md text-center mb-4 leading-relaxed font-light">
+          Hemos recibido los datos y las fotos de tu dispositivo. La valoración final se confirmará después de la revisión física.
         </p>
-        <p className="text-zinc-500 text-sm mb-10 max-w-sm mx-auto">
-          La valoración final se confirmará después de revisar el dispositivo en persona.
-        </p>
-        <Link href="/" className="inline-block bg-white text-black px-8 py-4 rounded-xl font-medium hover:bg-zinc-200 transition-colors">
+        <Link href="/" className="mt-8 px-8 py-4 bg-[#050506] hover:bg-[#111114] border border-[#1F1F24] text-zinc-300 font-medium rounded-xl transition-colors">
           Volver al inicio
         </Link>
       </div>
     )
   }
 
-  // Step 0: Category
-  if (step === 0) {
-    return (
-      <div className="space-y-4">
-        <h2 className="text-xl font-medium mb-6">¿Qué dispositivo quieres vender?</h2>
-        
-        <button onClick={() => setStep(1)} className="w-full text-left p-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 transition-colors flex items-center justify-between group">
-          <div>
-            <div className="text-lg font-medium text-white mb-1">iPhone</div>
-            <div className="text-sm text-zinc-400">Vender mi iPhone usado o precintado</div>
-          </div>
-          <div className="text-purple-400 transform group-hover:translate-x-1 transition-transform">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-        </button>
-
-        <button disabled className="w-full text-left p-6 rounded-2xl border border-zinc-800/50 bg-zinc-900/20 opacity-60 flex items-center justify-between cursor-not-allowed">
-          <div>
-            <div className="text-lg font-medium text-white mb-1">PS5</div>
-            <div className="text-sm text-zinc-500">Próximamente</div>
-          </div>
-        </button>
-
-        <button disabled className="w-full text-left p-6 rounded-2xl border border-zinc-800/50 bg-zinc-900/20 opacity-60 flex items-center justify-between cursor-not-allowed">
-          <div>
-            <div className="text-lg font-medium text-white mb-1">Nintendo Switch</div>
-            <div className="text-sm text-zinc-500">Próximamente</div>
-          </div>
-        </button>
-      </div>
-    )
-  }
-
-  // Steps Header
-  const stepsList = ['Dispositivo', 'Estado', 'Datos', 'Fotos']
-  const currentStepIndex = step - 1
+  const batteryHealthNum = parseInt(batteryHealth, 10)
 
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-10 overflow-x-auto pb-4 scrollbar-none">
-        {stepsList.map((s, i) => (
-          <React.Fragment key={s}>
-            <div className={`flex items-center gap-2 text-sm font-medium whitespace-nowrap transition-colors ${currentStepIndex >= i ? 'text-purple-400' : 'text-zinc-600'}`}>
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border transition-colors ${currentStepIndex >= i ? 'border-purple-400 bg-purple-400/10' : 'border-zinc-700 bg-zinc-900/50'}`}>
-                {i + 1}
-              </div>
-              {s}
+    <div className="w-full flex flex-col lg:flex-row gap-6 lg:gap-12 items-start lg:h-[calc(100dvh-140px)]">
+      
+      {/* LEFT SIDEBAR (Desktop only) */}
+      <div className="w-full lg:w-[32%] xl:w-[28%] shrink-0">
+        <div className="mb-8">
+          <p className="text-purple-400 text-sm font-semibold tracking-wider mb-2">VENTA</p>
+          <h1 className="text-4xl lg:text-5xl font-bold text-white tracking-tight">
+            Vende tu iPhone
+          </h1>
+        </div>
+
+        <div className="mb-6 lg:mb-12">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-sm font-medium text-zinc-400 uppercase tracking-widest">Paso {step} de 8</span>
+          </div>
+          <div className="flex gap-2">
+            {[1,2,3,4,5,6,7,8].map(i => (
+              <div 
+                key={i} 
+                className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
+                  i < step ? 'bg-purple-600' : i === step ? 'bg-purple-400' : 'bg-[#1F1F24]'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="hidden lg:block space-y-6">
+          <div className="p-5 rounded-2xl bg-[#0B0B0E] border border-[#1F1F24] flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-purple-900/20 flex items-center justify-center shrink-0">
+              <span className="text-xl">🤝</span>
             </div>
-            {i < stepsList.length - 1 && <div className={`w-8 md:w-12 h-[2px] rounded-full transition-colors ${currentStepIndex > i ? 'bg-purple-400/50' : 'bg-zinc-800'}`} />}
-          </React.Fragment>
-        ))}
+            <div>
+              <p className="text-white font-medium">Trato directo</p>
+              <p className="text-sm text-zinc-500">Sin intermediarios</p>
+            </div>
+          </div>
+          <div className="p-5 rounded-2xl bg-[#0B0B0E] border border-[#1F1F24] flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-purple-900/20 flex items-center justify-center shrink-0">
+              <span className="text-xl">🇮🇨</span>
+            </div>
+            <div>
+              <p className="text-white font-medium">Atención en Canarias</p>
+              <p className="text-sm text-zinc-500">Servicio local de confianza</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="relative">
+      <div className="hidden lg:block w-px bg-[#1F1F24] self-stretch" />
+
+      {/* RIGHT PANEL CONTENT */}
+      <div className="flex-1 min-w-0 flex flex-col h-full lg:overflow-hidden pb-8 lg:pb-0">
+        
+        {/* PREFILL BANNER */}
         {isPrefilled && (
-          <div className="mb-6 p-4 bg-purple-900/20 border border-purple-500/30 rounded-xl flex items-center justify-between animate-in fade-in">
+          <div className="mb-6 p-4 bg-purple-900/10 border border-purple-500/20 rounded-[16px] flex items-center justify-between flex-none">
             <div>
-              <p className="text-purple-300 font-medium mb-1">Datos importados desde tu valoración</p>
-              <p className="text-zinc-400 text-sm">Revisa que la información sea correcta antes de enviar la solicitud.</p>
+              <p className="text-purple-300 font-medium mb-1 text-sm">Datos importados desde tu valoración</p>
+              <p className="text-zinc-400 text-xs">Revisa la información antes de enviar tu solicitud.</p>
             </div>
             <button 
               onClick={handleClearPrefill}
-              className="text-xs text-zinc-400 hover:text-white px-3 py-1.5 bg-zinc-900 rounded-lg transition-colors border border-zinc-700 hover:border-zinc-500"
+              className="text-xs text-zinc-400 hover:text-white px-3 py-2 bg-[#0B0B0E] rounded-lg transition-colors border border-[#1F1F24] hover:border-zinc-500"
             >
               Empezar de cero
             </button>
           </div>
         )}
 
-        {prefillTradeInTarget && (
-          <div className="mb-6 p-6 bg-zinc-900 border border-[#9867db]/30 rounded-2xl flex flex-col items-center shadow-lg text-center animate-in fade-in">
-            <h2 className="text-sm uppercase tracking-widest text-[#6E6E78] font-bold mb-2">Parte de pago para</h2>
-            <p className="text-xl font-medium text-white mb-1">
-              {prefillTradeInTarget.modelName}
-              {(prefillTradeInTarget.storage || prefillTradeInTarget.color) && (
-                <span className="text-zinc-400">
-                  {' · '}
-                  {[prefillTradeInTarget.storage, prefillTradeInTarget.color].filter(Boolean).join(' / ')}
-                </span>
-              )}
-            </p>
-            <p className="text-2xl font-bold text-[#9867db] mb-4">{prefillTradeInTarget.listingPrice} €</p>
-            <p className="text-sm text-zinc-400 max-w-md mx-auto">
-              Enviaremos tu solicitud para revisar tu iPhone y confirmar la diferencia final.
-            </p>
-          </div>
-        )}
-
-        {step === 1 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-3">Modelo</label>
-              <select
-                value={modelId}
-                onChange={(e) => {
-                  setModelId(e.target.value)
-                  setStorage('')
-                  setColor('')
-                }}
-                className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none focus:border-purple-500/80 focus:ring-1 focus:ring-purple-500/50 transition-all appearance-none"
-              >
-                <option value="">Selecciona un modelo</option>
-                {models.map(m => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {availableStorages.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-3">Almacenamiento</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {availableStorages.map(v => (
-                    <button
-                      key={v.value}
-                      onClick={() => setStorage(v.value)}
-                      className={`p-4 text-sm font-medium rounded-xl border transition-all ${storage === v.value ? 'bg-purple-500/10 border-purple-500 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.15)]' : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-800'}`}
-                    >
-                      {v.value}
-                    </button>
-                  ))}
-                </div>
+        <div key={step} className="animate-quote-step-enter flex flex-col flex-1 min-h-0">
+          
+          {/* STEP 1: Tipo */}
+          {step === 1 && (
+            <>
+              <div className="flex-none mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Qué dispositivo quieres vender?</h2>
               </div>
-            )}
-
-            {availableColors.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-3">Color</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {availableColors.map(v => (
-                    <button
-                      key={v.value}
-                      onClick={() => setColor(v.value)}
-                      className={`p-4 text-sm font-medium rounded-xl border transition-all ${color === v.value ? 'bg-purple-500/10 border-purple-500 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.15)]' : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-800'}`}
-                    >
-                      {v.value}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-4">Estado general</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  { id: 'sealed', label: 'Precintado', desc: 'Nuevo sin abrir' },
-                  { id: 'like_new', label: 'Como nuevo', desc: 'Impecable, sin marcas' },
-                  { id: 'good', label: 'Buen estado', desc: 'Marcas ligeras de uso' },
-                  { id: 'marked', label: 'Con marcas', desc: 'Golpes o roces visibles' }
-                ].map(c => (
-                  <button
-                    key={c.id}
-                    onClick={() => setDeviceCondition(c.id)}
-                    className={`p-5 rounded-xl border text-left transition-all ${deviceCondition === c.id ? 'bg-purple-500/10 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.15)]' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800'}`}
-                  >
-                    <div className={`font-medium ${deviceCondition === c.id ? 'text-purple-300' : 'text-white'}`}>{c.label}</div>
-                    <div className={`text-sm mt-1 ${deviceCondition === c.id ? 'text-purple-400/70' : 'text-zinc-500'}`}>{c.desc}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {deviceCondition !== 'sealed' && (
-              <>
-                {selectedModel?.supports_battery_health && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-400 mb-2">Salud batería (%)</label>
-                      <input
-                        type="number"
-                        min="0" max="100"
-                        value={batteryHealth}
-                        onChange={e => setBatteryHealth(e.target.value)}
-                        className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none focus:border-purple-500/80 focus:ring-1 focus:ring-purple-500/50 transition-all"
-                        placeholder="Ej: 95"
-                      />
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 space-y-4">
+                <button onClick={() => setDeviceType('iphone')} className={optionCardClass(deviceType === 'iphone')}>
+                  <div>
+                    <span className="text-lg font-medium text-white block mb-1">iPhone</span>
+                    <span className="text-sm text-zinc-400">Vender mi iPhone usado o precintado</span>
+                  </div>
+                  {deviceType === 'iphone' && (
+                    <div className="w-5 h-5 rounded-full bg-purple-500 text-white flex items-center justify-center">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
                     </div>
+                  )}
+                </button>
+                <button disabled className="w-full text-left p-4 rounded-xl border border-[#1F1F24] bg-[#050506]/50 opacity-50 flex items-center justify-between cursor-not-allowed">
+                  <div>
+                    <div className="text-lg font-medium text-white mb-1">PS5</div>
+                    <div className="text-sm text-zinc-500">Próximamente</div>
+                  </div>
+                </button>
+                <button disabled className="w-full text-left p-4 rounded-xl border border-[#1F1F24] bg-[#050506]/50 opacity-50 flex items-center justify-between cursor-not-allowed">
+                  <div>
+                    <div className="text-lg font-medium text-white mb-1">Nintendo Switch</div>
+                    <div className="text-sm text-zinc-500">Próximamente</div>
+                  </div>
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* STEP 2: Modelo */}
+          {step === 2 && (
+            <>
+              <div className="flex-none mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Qué modelo tienes?</h2>
+                <p className="text-zinc-400">Elige el modelo exacto de tu iPhone.</p>
+              </div>
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 pb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+                  {models.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => {
+                        setModelId(m.id)
+                        setStorage('')
+                        setColor('')
+                      }}
+                      className={optionCardClass(modelId === m.id)}
+                    >
+                      <span className={modelId === m.id ? 'text-white' : 'text-zinc-300'}>{m.name}</span>
+                      {modelId === m.id && (
+                        <div className="w-5 h-5 rounded-full bg-purple-500 text-white flex items-center justify-center ml-2 shrink-0">
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* STEP 3: Capacidad */}
+          {step === 3 && (
+            <>
+              <div className="flex-none mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Qué capacidad tiene?</h2>
+                <p className="text-zinc-400">Capacidades disponibles para {selectedModel?.name}.</p>
+              </div>
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 pb-4">
+                {availableStorages.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {availableStorages.map(v => (
+                      <button
+                        key={v.value}
+                        onClick={() => setStorage(v.value)}
+                        className={optionCardClass(storage === v.value)}
+                      >
+                        <span className={storage === v.value ? 'text-white' : 'text-zinc-300'}>{v.value}</span>
+                        {storage === v.value && (
+                          <div className="w-5 h-5 rounded-full bg-purple-500 text-white flex items-center justify-center ml-2 shrink-0">
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-[#0B0B0E] border border-[#1F1F24] rounded-xl text-zinc-400">
+                    Este modelo no requiere seleccionar capacidad.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* STEP 4: Color */}
+          {step === 4 && (
+            <>
+              <div className="flex-none mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿De qué color es?</h2>
+                <p className="text-zinc-400">Colores disponibles para {selectedModel?.name}.</p>
+              </div>
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 pb-4">
+                {availableColors.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {availableColors.map(v => (
+                      <button
+                        key={v.value}
+                        onClick={() => setColor(v.value)}
+                        className={optionCardClass(color === v.value)}
+                      >
+                        <span className={color === v.value ? 'text-white' : 'text-zinc-300'}>{v.value}</span>
+                        {color === v.value && (
+                          <div className="w-5 h-5 rounded-full bg-purple-500 text-white flex items-center justify-center ml-2 shrink-0">
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-[#0B0B0E] border border-[#1F1F24] rounded-xl text-zinc-400">
+                    Este modelo no requiere seleccionar color.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* STEP 5: Estado */}
+          {step === 5 && (
+            <>
+              <div className="flex-none mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿En qué estado está tu iPhone?</h2>
+              </div>
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 space-y-8 pb-4">
+                
+                <div>
+                  <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold border-b border-[#1F1F24] pb-2 mb-4">Estado general</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                    {[
+                      { id: 'sealed', label: 'Precintado' },
+                      { id: 'like_new', label: 'Como nuevo' },
+                      { id: 'good', label: 'Buen estado' },
+                      { id: 'marked', label: 'Con marcas' }
+                    ].map(c => (
+                      <button
+                        key={c.id}
+                        onClick={() => setDeviceCondition(c.id)}
+                        className={optionCardClass(deviceCondition === c.id)}
+                      >
+                        <span>{c.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {deviceCondition !== 'sealed' && (
+                  <>
+                    {selectedModel?.supports_battery_health && (
+                      <div className="animate-quote-step-enter">
+                        <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold border-b border-[#1F1F24] pb-2 mb-4">Salud de batería (%)</h3>
+                        <div className="p-6 sm:p-8 bg-[#0B0B0E] border border-[#1F1F24] rounded-[24px] flex flex-col items-center max-w-2xl mx-auto w-full">
+                          <div className="text-center h-[90px] sm:h-[100px] flex flex-col justify-end mb-8 sm:mb-10">
+                            {batteryHealth !== '' ? (
+                              <>
+                                <div className="text-5xl sm:text-6xl font-semibold tracking-tight text-white mb-2 leading-none">
+                                  {batteryHealth}%
+                                </div>
+                                <div className={`text-sm sm:text-base font-medium transition-colors ${getBatteryLabel(batteryHealthNum).color}`}>
+                                  {getBatteryLabel(batteryHealthNum).text}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-sm sm:text-base font-medium text-zinc-500">
+                                Desliza para indicar la salud
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="w-full relative">
+                            <input 
+                              type="range" 
+                              min="0" 
+                              max="100" 
+                              value={batteryHealth !== '' ? batteryHealth : 50}
+                              onChange={(e) => {
+                                setBatteryHealth(e.target.value)
+                                setValidationError(null)
+                              }}
+                              className={`w-full h-2 sm:h-2.5 bg-[linear-gradient(90deg,#ef4444_0%,#f97316_35%,#f59e0b_60%,#84cc16_80%,#22c55e_100%)] rounded-full appearance-none cursor-pointer transition-all ${batteryHealth === '' ? '[&::-webkit-slider-thumb]:opacity-0 [&::-moz-range-thumb]:opacity-0' : '[&::-webkit-slider-thumb]:opacity-100 [&::-moz-range-thumb]:opacity-100'} [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:sm:w-7 [&::-webkit-slider-thumb]:sm:h-7 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-[2px] [&::-webkit-slider-thumb]:border-[#0B0B0E] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:sm:w-7 [&::-moz-range-thumb]:sm:h-7 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-[2px] [&::-moz-range-thumb]:border-[#0B0B0E] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md`}
+                            />
+                            <div className="flex justify-between mt-2.5 text-xs text-zinc-500 font-medium">
+                              <span>0%</span>
+                              <span>100%</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {selectedModel?.supports_cycles && (
-                      <div>
-                        <label className="block text-sm font-medium text-zinc-400 mb-2">Ciclos</label>
+                      <div className="animate-quote-step-enter">
+                        <label className="block text-zinc-300 text-sm mb-2">Ciclos de batería (Opcional)</label>
                         <input
                           type="number"
                           min="0"
+                          className="w-full bg-[#050506] border border-[#1F1F24] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50"
+                          placeholder="Ej: 120"
                           value={batteryCycles}
                           onChange={e => setBatteryCycles(e.target.value)}
-                          className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none focus:border-purple-500/80 focus:ring-1 focus:ring-purple-500/50 transition-all"
-                          placeholder="Ej: 120"
                         />
                       </div>
                     )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-5">
+                        <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold border-b border-[#1F1F24] pb-2">Accesorios</h3>
+                        
+                        <div>
+                          <label className="block text-zinc-300 text-sm mb-3">¿Tienes la caja original?</label>
+                          <div className="flex gap-2">
+                            <button onClick={() => setHasBox(true)} className={btnClass(hasBox, true)}>Sí</button>
+                            <button onClick={() => setHasBox(false)} className={btnClass(hasBox, false)}>No</button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-zinc-300 text-sm mb-3">¿Tienes el cable?</label>
+                          <div className="flex gap-2">
+                            <button onClick={() => setHasCable(true)} className={btnClass(hasCable, true)}>Sí</button>
+                            <button onClick={() => setHasCable(false)} className={btnClass(hasCable, false)}>No</button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-zinc-300 text-sm mb-3">¿Tienes factura?</label>
+                          <div className="flex gap-2">
+                            <button onClick={() => setHasInvoice(true)} className={btnClass(hasInvoice, true)}>Sí</button>
+                            <button onClick={() => setHasInvoice(false)} className={btnClass(hasInvoice, false)}>No</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-5">
+                        <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold border-b border-[#1F1F24] pb-2">Funcionamiento</h3>
+                        
+                        <div>
+                          <label className="block text-zinc-300 text-sm mb-3">¿Piezas son originales?</label>
+                          <div className="flex gap-2">
+                            <button onClick={() => setOriginalParts(true)} className={btnClass(originalParts, true)}>Sí</button>
+                            <button onClick={() => setOriginalParts(false)} className={btnClass(originalParts, false)}>No</button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-zinc-300 text-sm mb-3">¿Funciona correctamente?</label>
+                          <div className="flex gap-2">
+                            <button onClick={() => setFullyFunctional(true)} className={btnClass(fullyFunctional, true)}>Sí</button>
+                            <button onClick={() => setFullyFunctional(false)} className={btnClass(fullyFunctional, false)}>No</button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-zinc-300 text-sm mb-3">¿Está libre de bloqueos?</label>
+                          <div className="flex gap-2">
+                            <button onClick={() => setBlocked(false)} className={btnClass(blocked, false)}>Sí</button>
+                            <button onClick={() => setBlocked(true)} className={btnClass(blocked, true)}>No</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="space-y-5">
+                  <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold border-b border-[#1F1F24] pb-2">Garantía oficial</h3>
+                  <div>
+                    <div className="flex gap-2">
+                      <button onClick={() => setOfficialWarrantyUntil(officialWarrantyUntil || new Date().toISOString().split('T')[0])} className={btnClass(!!officialWarrantyUntil, true)}>Sí</button>
+                      <button onClick={() => setOfficialWarrantyUntil('')} className={btnClass(!!officialWarrantyUntil, false)}>No</button>
+                    </div>
+                  </div>
+                  
+                  {!!officialWarrantyUntil && (
+                    <div className="animate-quote-step-enter">
+                      <label className="block text-zinc-300 text-sm mb-2">Fecha de fin de garantía</label>
+                      <input 
+                        type="date"
+                        className="w-full bg-[#050506] border border-[#1F1F24] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 [color-scheme:dark]"
+                        value={officialWarrantyUntil}
+                        onChange={e => setOfficialWarrantyUntil(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </>
+          )}
+
+          {/* STEP 6: Tus datos */}
+          {step === 6 && (
+            <>
+              <div className="flex-none mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Cómo podemos contactar contigo?</h2>
+              </div>
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 space-y-6 pb-4">
+                <div>
+                  <label className="block text-zinc-300 text-sm mb-2">Nombre completo *</label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={e => setCustomerName(e.target.value)}
+                    className="w-full bg-[#050506] border border-[#1F1F24] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50"
+                    placeholder="Tu nombre y apellidos"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-300 text-sm mb-2">Teléfono *</label>
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={e => setCustomerPhone(e.target.value)}
+                    className="w-full bg-[#050506] border border-[#1F1F24] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50"
+                    placeholder="+34 600 00 00 00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-300 text-sm mb-2">Ubicación (Opcional)</label>
+                  <input
+                    type="text"
+                    value={customerLocation}
+                    onChange={e => setCustomerLocation(e.target.value)}
+                    className="w-full bg-[#050506] border border-[#1F1F24] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50"
+                    placeholder="Ciudad o municipio"
+                  />
+                </div>
+                <div>
+                  <label className="block text-zinc-300 text-sm mb-2">Notas adicionales (Opcional)</label>
+                  <textarea
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    className="w-full bg-[#050506] border border-[#1F1F24] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 min-h-[120px] resize-y"
+                    placeholder="¿Algo más que debamos saber?"
+                  />
+                </div>
+                <div className="pt-2">
+                  <label className="flex items-start gap-4 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      checked={acceptedPrivacy} 
+                      onChange={e => setAcceptedPrivacy(e.target.checked)} 
+                      className="accent-purple-500 w-5 h-5 mt-0.5 rounded border-zinc-800" 
+                    />
+                    <span className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors leading-relaxed">
+                      He leído y acepto la <Link href="/privacidad" className="text-purple-400 hover:underline" target="_blank">política de privacidad</Link>.
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* STEP 7: Fotos */}
+          {step === 7 && (
+            <>
+              <div className="flex-none mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Enséñanos el estado del iPhone</h2>
+                <p className="text-zinc-400">Necesitamos estas fotos para revisar correctamente el dispositivo.</p>
+              </div>
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 pb-4">
+                <GuidedPhotoUpload
+                  requiredPhotos={requiredPhotos}
+                  extraPhotos={extraPhotos}
+                  disabled={isSubmitting}
+                  onRequiredChange={(slot, photo) => setRequiredPhotos(p => ({ ...p, [slot]: photo }))}
+                  onExtraAdd={(photo) => setExtraPhotos(p => [...p, photo])}
+                  onExtraRemove={(index) => setExtraPhotos(p => p.filter((_, i) => i !== index))}
+                />
+              </div>
+            </>
+          )}
+
+          {/* STEP 8: Revisar y enviar */}
+          {step === 8 && (
+            <>
+              <div className="flex-none mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Revisa tu solicitud</h2>
+              </div>
+              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 space-y-6 pb-4">
+                
+                {prefillTradeInTarget && (
+                  <div className="p-6 bg-[#0B0B0E] border border-purple-500/30 rounded-[20px]">
+                    <h3 className="text-xs uppercase tracking-widest text-purple-400 font-bold mb-2">Parte de pago para</h3>
+                    <p className="text-lg font-medium text-white">
+                      {prefillTradeInTarget.modelName}
+                      {(prefillTradeInTarget.storage || prefillTradeInTarget.color) && (
+                        <span className="text-zinc-400">
+                          {' · '}
+                          {[prefillTradeInTarget.storage, prefillTradeInTarget.color].filter(Boolean).join(' / ')}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-purple-400 font-bold mt-1">{prefillTradeInTarget.listingPrice} €</p>
                   </div>
                 )}
 
-                <div>
-                  <label className="block text-sm font-medium text-zinc-400 mb-4">Accesorios incluidos</label>
-                  <div className="flex flex-wrap gap-6">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <input type="checkbox" checked={hasBox} onChange={e => setHasBox(e.target.checked)} className="accent-purple-500 w-5 h-5 rounded-md bg-zinc-900 border-zinc-800" />
-                      <span className="text-zinc-300 group-hover:text-white transition-colors">Caja</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <input type="checkbox" checked={hasCable} onChange={e => setHasCable(e.target.checked)} className="accent-purple-500 w-5 h-5 rounded-md bg-zinc-900 border-zinc-800" />
-                      <span className="text-zinc-300 group-hover:text-white transition-colors">Cable</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <input type="checkbox" checked={hasInvoice} onChange={e => setHasInvoice(e.target.checked)} className="accent-purple-500 w-5 h-5 rounded-md bg-zinc-900 border-zinc-800" />
-                      <span className="text-zinc-300 group-hover:text-white transition-colors">Factura</span>
-                    </label>
+                <div className="p-6 bg-[#0B0B0E] border border-[#1F1F24] rounded-[20px] space-y-6">
+                  <div>
+                    <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold mb-2">Dispositivo</h3>
+                    <p className="text-white">{selectedModel?.name}</p>
+                    <p className="text-sm text-zinc-400">
+                      {[storage, color].filter(Boolean).join(' · ')}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold mb-2">Estado</h3>
+                    <p className="text-white capitalize">{deviceCondition.replace('_', ' ')}</p>
+                    {deviceCondition !== 'sealed' && batteryHealth && (
+                      <p className="text-sm text-zinc-400">Batería: {batteryHealth}% {batteryCycles ? `(${batteryCycles} ciclos)` : ''}</p>
+                    )}
+                  </div>
+                  
+                  {deviceCondition !== 'sealed' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold mb-2">Incluye</h3>
+                        <ul className="text-sm text-zinc-300 space-y-1">
+                          <li>Caja: {hasBox ? 'Sí' : 'No'}</li>
+                          <li>Cable: {hasCable ? 'Sí' : 'No'}</li>
+                          <li>Factura: {hasInvoice ? 'Sí' : 'No'}</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold mb-2">Funcionamiento</h3>
+                        <ul className="text-sm text-zinc-300 space-y-1">
+                          <li>Original: {originalParts ? 'Sí' : 'No'}</li>
+                          <li>Funciona: {fullyFunctional ? 'Sí' : 'No'}</li>
+                          <li>Bloqueado: {blocked ? 'Sí' : 'No'}</li>
+                          {officialWarrantyUntil && <li>Garantía: Sí</li>}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold mb-2">Tus datos</h3>
+                    <p className="text-white">{customerName}</p>
+                    <p className="text-sm text-zinc-400">{customerPhone}</p>
+                    {customerLocation && <p className="text-sm text-zinc-400">{customerLocation}</p>}
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold mb-2">Fotos</h3>
+                    <p className="text-white text-sm">7 fotos obligatorias completas</p>
+                    {extraPhotos.length > 0 && (
+                      <p className="text-sm text-zinc-400">+{extraPhotos.length} fotos extra</p>
+                    )}
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-2">
-                  <label className="flex items-start gap-4 cursor-pointer p-5 bg-zinc-900/40 border border-zinc-800/80 hover:border-zinc-700 rounded-xl transition-colors">
-                    <input type="checkbox" checked={!originalParts} onChange={e => setOriginalParts(!e.target.checked)} className="accent-purple-500 mt-1 w-5 h-5" />
-                    <div>
-                      <span className="text-base font-medium text-zinc-200 block mb-1">Piezas reemplazadas</span>
-                      <span className="text-sm text-zinc-500 leading-snug block">Marca esta opción si el dispositivo tiene piezas no originales (pantalla, batería, etc).</span>
-                    </div>
-                  </label>
-                  <label className="flex items-start gap-4 cursor-pointer p-5 bg-zinc-900/40 border border-zinc-800/80 hover:border-zinc-700 rounded-xl transition-colors">
-                    <input type="checkbox" checked={!fullyFunctional} onChange={e => setFullyFunctional(!e.target.checked)} className="accent-purple-500 mt-1 w-5 h-5" />
-                    <div>
-                      <span className="text-base font-medium text-zinc-200 block mb-1">Tiene algún fallo</span>
-                      <span className="text-sm text-zinc-500 leading-snug block">Marca esta opción si falla FaceID, cámaras, altavoz, vibración o micrófonos.</span>
-                    </div>
-                  </label>
-                </div>
-              </>
-            )}
+              </div>
+            </>
+          )}
 
-            <div>
-              <label className="flex items-start gap-4 cursor-pointer p-5 border border-red-900/30 bg-red-900/10 hover:bg-red-900/20 rounded-xl transition-colors">
-                <input type="checkbox" checked={blocked} onChange={e => setBlocked(e.target.checked)} className="accent-red-500 mt-1 w-5 h-5" />
-                <div>
-                  <span className="text-base font-medium text-red-300 block">¿Está bloqueado por operadora o iCloud?</span>
-                </div>
-              </label>
+          {/* Validation Error Message */}
+          {validationError && step < 8 && (
+            <div className="mt-4 p-4 bg-red-900/10 border border-red-500/20 rounded-[14px] text-red-400 text-sm font-medium flex-none">
+              {validationError}
             </div>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Garantía oficial hasta (Opcional)</label>
-              <input
-                type="date"
-                value={officialWarrantyUntil}
-                onChange={e => setOfficialWarrantyUntil(e.target.value)}
-                className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none focus:border-purple-500/80 focus:ring-1 focus:ring-purple-500/50 transition-all [color-scheme:dark]"
-              />
+          {/* Submit Error Message */}
+          {submitError && !isSubmitting && (
+            <div className="mt-4 p-4 bg-red-900/10 border border-red-500/20 rounded-[14px] text-red-400 text-sm font-medium flex-none">
+              {submitError}
             </div>
-          </div>
-        )}
+          )}
 
-        {step === 3 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Nombre completo *</label>
-              <input
-                type="text"
-                value={customerName}
-                onChange={e => setCustomerName(e.target.value)}
-                className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none focus:border-purple-500/80 focus:ring-1 focus:ring-purple-500/50 transition-all"
-                placeholder="Tu nombre y apellidos"
-              />
+          {/* BOTTOM NAVIGATION */}
+          {!isSubmitting && (
+            <div className="flex-none flex items-center gap-4 mt-6 pt-6 border-t border-[#1F1F24]">
+              {step > 1 && (
+                <button
+                  onClick={goBack}
+                  className="px-6 py-4 rounded-xl text-zinc-400 font-medium hover:text-white transition-colors flex items-center gap-2"
+                >
+                  <span>←</span> Atrás
+                </button>
+              )}
+              
+              <div className="flex-1" />
+              
+              {step < 8 ? (
+                <button
+                  onClick={goNext}
+                  className="px-8 py-4 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-colors shadow-lg active:scale-[0.98]"
+                >
+                  Siguiente
+                </button>
+              ) : (
+                <button
+                  onClick={handleSubmit}
+                  className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all shadow-[0_0_20px_rgba(147,51,234,0.15)] active:scale-[0.98]"
+                >
+                  Enviar solicitud
+                </button>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Teléfono *</label>
-              <input
-                type="tel"
-                value={customerPhone}
-                onChange={e => setCustomerPhone(e.target.value)}
-                className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none focus:border-purple-500/80 focus:ring-1 focus:ring-purple-500/50 transition-all"
-                placeholder="+34 600 00 00 00"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Ubicación (Opcional)</label>
-              <input
-                type="text"
-                value={customerLocation}
-                onChange={e => setCustomerLocation(e.target.value)}
-                className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none focus:border-purple-500/80 focus:ring-1 focus:ring-purple-500/50 transition-all"
-                placeholder="Ciudad o municipio"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-2">Notas adicionales (Opcional)</label>
-              <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                className="w-full p-4 bg-zinc-900 border border-zinc-800 rounded-xl text-white outline-none focus:border-purple-500/80 focus:ring-1 focus:ring-purple-500/50 transition-all min-h-[120px] resize-y"
-                placeholder="¿Algo más que debamos saber sobre el dispositivo?"
-              />
-            </div>
-            <div className="pt-2">
-              <label className="flex items-start gap-4 cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  checked={acceptedPrivacy} 
-                  onChange={e => setAcceptedPrivacy(e.target.checked)} 
-                  className="accent-purple-500 w-5 h-5 mt-0.5 rounded border-zinc-800" 
-                />
-                <span className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors leading-relaxed">
-                  He leído y acepto la política de privacidad. Consiento el tratamiento de mis datos para la valoración del dispositivo.
-                </span>
-              </label>
-            </div>
-          </div>
-        )}
+          )}
 
-        {step === 4 && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <GuidedPhotoUpload
-              requiredPhotos={requiredPhotos}
-              extraPhotos={extraPhotos}
-              disabled={isSubmitting}
-              onRequiredChange={(slot, photo) => setRequiredPhotos(p => ({ ...p, [slot]: photo }))}
-              onExtraAdd={(photo) => setExtraPhotos(p => [...p, photo])}
-              onExtraRemove={(index) => setExtraPhotos(p => p.filter((_, i) => i !== index))}
-            />
-          </div>
-        )}
-
-        {/* Lock overlay when submitting */}
-        {isSubmitting && (
-          <div className="absolute inset-0 z-10 bg-[#0a0a0a]/80 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center -mx-4 px-4">
-            <div className="bg-zinc-900/90 border border-zinc-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm w-full text-center">
-              <div className="w-12 h-12 border-[3px] border-purple-500/30 border-t-purple-500 rounded-full animate-spin mb-6" />
-              <div className="text-lg font-medium text-white mb-2">{submitStatus}</div>
-              <p className="text-sm text-zinc-400">Por favor, no cierres esta ventana.</p>
+          {/* Submitting Overlay */}
+          {isSubmitting && (
+            <div className="flex-none mt-6 pt-6 border-t border-[#1F1F24]">
+              <div className="bg-[#0B0B0E] border border-[#1F1F24] p-6 rounded-2xl flex flex-col items-center w-full text-center">
+                <div className="w-8 h-8 border-[3px] border-purple-500/30 border-t-purple-500 rounded-full animate-spin mb-4" />
+                <div className="text-white font-medium mb-1">{submitStatus}</div>
+                <p className="text-xs text-zinc-400">Por favor, no cierres esta ventana.</p>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {submitError && !isSubmitting && (
-        <div className="mt-8 p-4 bg-red-900/20 border border-red-900/50 text-red-400 text-sm rounded-xl text-center font-medium animate-in fade-in">
-          {submitError}
         </div>
-      )}
-
-      <div className="mt-12 flex gap-4 pt-6 border-t border-zinc-800/50 pb-8">
-        <button
-          onClick={handleBack}
-          disabled={isSubmitting}
-          className="px-6 py-4 rounded-xl font-medium text-white bg-zinc-800 hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Atrás
-        </button>
-        
-        {step < 4 ? (
-          <button
-            onClick={handleNext}
-            disabled={
-              (step === 1 && (!modelId || (availableStorages.length > 0 && !storage) || (availableColors.length > 0 && !color))) ||
-              (step === 3 && (!customerName || !customerPhone || !acceptedPrivacy)) ||
-              isSubmitting
-            }
-            className="flex-1 px-6 py-4 rounded-xl font-semibold text-black bg-white hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Siguiente paso
-          </button>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={Object.values(requiredPhotos).filter(Boolean).length < 7 || isSubmitting}
-            className="flex-1 px-6 py-4 rounded-xl font-semibold text-white bg-purple-600 hover:bg-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(147,51,234,0.3)] hover:shadow-[0_0_30px_rgba(147,51,234,0.5)] disabled:shadow-none"
-          >
-            Enviar solicitud
-          </button>
-        )}
       </div>
     </div>
   )
