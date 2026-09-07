@@ -134,36 +134,37 @@ export function QuoteGlobalAdjustmentsAdmin({ rules }: QuoteGlobalAdjustmentsAdm
   }
 
   return (
-    <div className="space-y-8 pb-12">
-      <div className="pt-8 border-t border-[#1F1F24]">
-        <h2 className="font-bold text-4xl tracking-wide mb-2" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Descuentos globales</h2>
-        <p className="text-[#A8A8B0]">Configura cuánto se descuenta del precio base ideal cuando el iPhone no cumple las condiciones ideales.</p>
+    <div className="flex flex-col gap-6 mt-8">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-2xl font-bold text-white tracking-tight pt-8 border-t border-[#1F1F24]">Descuentos globales</h2>
       </div>
 
-      <div className="bg-[#9867db]/10 border border-[#9867db]/20 rounded-2xl p-6 mb-8">
-        <h3 className="font-bold text-white text-lg flex items-center mb-2">
-          <span className="material-symbols-outlined mr-2 text-[#9867db]">info</span>
-          Información de descuentos
-        </h3>
-        <p className="text-[#A8A8B0] text-sm leading-relaxed">
-          Estos descuentos se aplican por defecto a todos los modelos. El intervalo de valoración siempre mantiene 30 € de diferencia.
-        </p>
+      <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-xl p-4 flex gap-4 items-start">
+        <span className="material-symbols-outlined text-[#d7baff]">info</span>
+        <div className="flex flex-col gap-1">
+          <p className="text-[13px] text-zinc-400 font-medium">
+            Se aplican por defecto a todos los modelos.
+          </p>
+          <p className="text-[13px] text-zinc-400 font-medium">
+            El intervalo final mantiene 30 € de diferencia.
+          </p>
+        </div>
       </div>
 
       {message && (
-        <div className={`p-4 rounded-xl text-sm ${message.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'} border sticky top-16 z-40 backdrop-blur-md`}>
+        <div className={`p-4 rounded-xl text-[13px] font-bold sticky top-[72px] z-40 backdrop-blur-md shadow-lg ${message.type === 'success' ? 'bg-[#7a32d4]/10 border border-[#7a32d4]/20 text-[#d7baff]' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
           {message.text}
         </div>
       )}
 
-      <div className="space-y-8">
+      <div className="flex flex-col gap-6">
         {GROUPS.map(group => (
-          <div key={group.type} className="bg-[#131313] border border-[#1F1F24] rounded-2xl overflow-hidden">
-            <div className="bg-[#0B0B0D] border-b border-[#1F1F24] px-6 py-4">
-              <h4 className="font-bold text-white text-lg">{group.title}</h4>
+          <div key={group.type} className="bg-[#0B0B0E] border border-[#1F1F24] rounded-xl overflow-hidden flex flex-col">
+            <div className="bg-[#121217] border-b border-[#1F1F24] px-4 py-3 flex items-center justify-between">
+              <h4 className="font-bold text-[15px] text-white">{group.title}</h4>
             </div>
             
-            <div className="divide-y divide-[#1F1F24]">
+            <div className="flex flex-col divide-y divide-[#1F1F24]">
               {group.items.map(item => {
                 const id = `${group.type}_${item.key}`
                 const val = discounts[id] ?? ''
@@ -171,53 +172,55 @@ export function QuoteGlobalAdjustmentsAdmin({ rules }: QuoteGlobalAdjustmentsAdm
                 const isLoading = loadingKey === id
 
                 return (
-                  <div key={item.key} className="p-4 sm:p-6 flex flex-col lg:flex-row lg:items-center gap-4 hover:bg-[#1A1A1F] transition-colors">
+                  <div key={item.key} className="flex flex-col sm:flex-row sm:items-center gap-4 px-4 py-3 hover:bg-[#121217]/50 transition-colors">
                     {/* Label Area */}
-                    <div className="flex-1">
-                      <span className="font-medium text-white block mb-1">{item.label}</span>
+                    <div className="flex-1 flex flex-col">
+                      <span className="font-semibold text-[14px] text-white">{item.label}</span>
                       {item.ideal && (
-                        <span className="text-xs text-[#9867db]">Condición ideal: normalmente 0 €</span>
+                        <span className="text-[11px] font-bold text-[#d7baff] uppercase tracking-wider mt-1">Condición ideal (Normalmente 0 €)</span>
                       )}
                     </div>
                     
                     {/* Controls Area */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                      
+                    <div className="flex flex-row items-center gap-4 sm:gap-6 justify-between sm:justify-end">
                       {/* Active Toggle */}
-                      <div className="flex items-center gap-3 order-2 sm:order-1 sm:w-32">
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            className="sr-only"
+                            checked={isActive}
+                            onChange={() => setActiveStates(prev => ({ ...prev, [id]: !isActive }))}
+                          />
+                          <div className={`block w-10 h-6 rounded-full transition-colors ${isActive ? 'bg-[#7a32d4]' : 'bg-[#1F1F24] group-hover:bg-[#2a2a30]'}`}></div>
+                          <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${isActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                        </div>
+                        <span className="text-[13px] font-semibold text-zinc-500 w-12">{isActive ? 'Activo' : 'Inactivo'}</span>
+                      </label>
+
+                      {/* Input & Save */}
+                      <div className="flex items-center gap-2">
+                        <div className="relative w-24">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-bold text-[14px]">€</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={val}
+                            onChange={(e) => setDiscounts(prev => ({ ...prev, [id]: e.target.value }))}
+                            placeholder="0.00"
+                            className="w-full bg-[#121217] border border-[#1F1F24] rounded-lg pl-8 pr-3 py-1.5 text-white font-bold text-[14px] focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </div>
+
                         <button
-                          type="button"
-                          onClick={() => setActiveStates(prev => ({ ...prev, [id]: !isActive }))}
-                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none ${isActive ? 'bg-[#9867db]' : 'bg-[#1F1F24]'}`}
+                          onClick={() => handleSave(group.type, item.key)}
+                          disabled={isLoading}
+                          className="px-4 py-1.5 rounded-lg font-bold text-[13px] text-[#d7baff] bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 transition-all disabled:opacity-50"
                         >
-                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+                          {isLoading ? '...' : 'Guardar'}
                         </button>
-                        <span className="text-sm text-[#A8A8B0] min-w-[60px]">{isActive ? 'Activo' : 'Inactivo'}</span>
                       </div>
-
-                      {/* Input */}
-                      <div className="relative w-full sm:w-32 order-1 sm:order-2 shrink-0">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={val}
-                          onChange={(e) => setDiscounts(prev => ({ ...prev, [id]: e.target.value }))}
-                          placeholder="0.00"
-                          className="w-full bg-[#0B0B0D] border border-[#1F1F24] rounded-xl pl-4 pr-10 py-2.5 text-right text-white focus:outline-none focus:border-[#9867db] transition-colors placeholder:text-[#4A4A52] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#4A4A52] pointer-events-none">€</span>
-                      </div>
-
-                      {/* Save Button */}
-                      <button
-                        onClick={() => handleSave(group.type, item.key)}
-                        disabled={isLoading}
-                        className="order-3 shrink-0 px-4 py-2.5 rounded-xl font-bold text-sm text-[#050505] bg-[#9867db] hover:bg-[#a67ae0] transition-colors disabled:opacity-50 text-center"
-                      >
-                        {isLoading ? '...' : 'Guardar'}
-                      </button>
-
                     </div>
                   </div>
                 )

@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 import { updateClientAction, deleteClientAction } from '@/actions/clients'
+import Link from 'next/link'
 
 type Client = {
   id: string
@@ -33,69 +34,66 @@ export function ClientList({ clients }: { clients: Client[] }) {
   const totalVendedores = clients.filter(c => c.sales_to_business_count > 0).length
 
   return (
-    <AdminPageShell>
+    <div className="flex flex-col gap-6 lg:gap-8 w-full max-w-7xl mx-auto pb-12">
       <AdminPageHeader 
         title="Clientes" 
-        subtitle="Consulta y administra tus clientes." 
+        subtitle="Historial de personas que han comprado o vendido contigo." 
       />
 
-      <section className="grid grid-cols-2 gap-3 mb-8">
-        <div className="col-span-2 bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex justify-between items-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#7a32d4]/20 to-transparent pointer-events-none"></div>
-          <div className="relative z-10">
-            <p className="text-[14px] font-semibold text-[#A8A8B0] mb-1 uppercase">Total clientes</p>
-            <p className="text-[48px] font-extrabold text-[#F7F7F7] leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif', letterSpacing: '-0.02em' }}>
-              {totalClients}
-            </p>
-          </div>
-          <span className="material-symbols-outlined text-[48px] text-[#d7baff] relative z-10" style={{ fontVariationSettings: "'FILL' 0" }}>groups</span>
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-[#7a32d4]/5 border border-[#7a32d4]/30 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#7a32d4]"></div>
+          <p className="text-[13px] font-bold text-[#d7baff] uppercase tracking-wider mb-2">Total clientes</p>
+          <p className="text-4xl font-extrabold text-white tracking-tight">{totalClients}</p>
+          <span className="material-symbols-outlined absolute right-4 bottom-4 text-[48px] text-[#7a32d4]/20 pointer-events-none">groups</span>
         </div>
 
-        <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col justify-between h-32">
-          <p className="text-[14px] font-semibold text-[#A8A8B0] uppercase">Compradores</p>
-          <p className="text-[28px] font-extrabold text-[#B98AFF] leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-            {totalCompradores}
-          </p>
+        <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col justify-between">
+          <p className="text-[13px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Compradores</p>
+          <p className="text-3xl font-extrabold text-[#d7baff] tracking-tight">{totalCompradores}</p>
         </div>
 
-        <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col justify-between h-32">
-          <p className="text-[14px] font-semibold text-[#A8A8B0] uppercase">Vendedores</p>
-          <p className="text-[28px] font-extrabold text-[#F7F7F7] leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-            {totalVendedores}
-          </p>
-        </div>
-      </section>
-
-      <section>
-        <div className="relative group">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#A8A8B0] group-focus-within:text-[#d7baff] transition-colors">search</span>
-          <input 
-            type="text" 
-            placeholder="Buscar por nombre o teléfono" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#101014] border border-[#1F1F24] rounded-lg py-3 pl-12 pr-4 text-[16px] text-[#F7F7F7] placeholder:text-[#A8A8B0] focus:outline-none focus:border-[#d7baff] focus:ring-1 focus:ring-[#d7baff] transition-all shadow-sm shadow-black/50"
-          />
+        <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col justify-between">
+          <p className="text-[13px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Vendedores</p>
+          <p className="text-3xl font-extrabold text-white tracking-tight">{totalVendedores}</p>
         </div>
       </section>
 
       <section className="flex flex-col gap-4">
+        <div className="relative">
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-[20px]">search</span>
+          <input 
+            type="text" 
+            placeholder="Buscar por nombre, teléfono o ubicación" 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full md:w-96 bg-[#121217] border border-[#1F1F24] rounded-xl py-2.5 pl-12 pr-4 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all"
+          />
+        </div>
+
         {filteredClients.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center py-8 px-4 gap-4 bg-[#0B0B0D] rounded-lg border border-[#1F1F24] border-dashed">
-            <span className="material-symbols-outlined text-4xl text-[#A8A8B0]">group_off</span>
-            <p className="text-[16px] text-[#A8A8B0]">
+          <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-12 flex flex-col items-center justify-center text-center gap-3">
+            <span className="material-symbols-outlined text-[48px] text-zinc-700">group_off</span>
+            <p className="text-[15px] font-bold text-white">
               {searchTerm 
                 ? "No se encontraron clientes que coincidan con la búsqueda." 
-                : "No hay clientes registrados. Los clientes aparecerán automáticamente al registrar compras o ventas."}
+                : "No hay clientes registrados."}
             </p>
+            {!searchTerm && (
+              <p className="text-[13px] font-medium text-zinc-500 max-w-sm">
+                Los clientes aparecerán automáticamente al registrar compras o ventas.
+              </p>
+            )}
           </div>
         ) : (
-          filteredClients.map(client => (
-            <ClientItem key={client.id} client={client} />
-          ))
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredClients.map(client => (
+              <ClientItem key={client.id} client={client} />
+            ))}
+          </div>
         )}
       </section>
-    </AdminPageShell>
+    </div>
   )
 }
 
@@ -115,12 +113,12 @@ function ClientItem({ client }: { client: Client }) {
     try {
       const res = await updateClientAction(client.id, formData)
       if (!res.success) {
-        setError(res.error || 'No se pudo actualizar el cliente. Inténtalo de nuevo.')
+        setError(res.error || 'No se pudo actualizar el cliente.')
       } else {
         setIsEditing(false)
       }
     } catch (err) {
-      setError('No se pudo actualizar el cliente. Inténtalo de nuevo.')
+      setError('Ocurrió un error al actualizar.')
     } finally {
       setIsPending(false)
     }
@@ -134,10 +132,10 @@ function ClientItem({ client }: { client: Client }) {
     try {
       const res = await deleteClientAction(client.id)
       if (!res.success) {
-        setError(res.error || 'No se pudo eliminar el cliente. Inténtalo de nuevo.')
+        setError(res.error || 'No se pudo eliminar el cliente.')
       }
     } catch (err) {
-      setError('No se pudo eliminar el cliente. Inténtalo de nuevo.')
+      setError('Ocurrió un error al eliminar.')
     } finally {
       setIsPending(false)
     }
@@ -145,39 +143,39 @@ function ClientItem({ client }: { client: Client }) {
 
   if (isEditing) {
     return (
-      <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-lg p-4 flex flex-col gap-4">
-        <h4 className="text-[16px] font-bold text-[#F7F7F7] uppercase tracking-wider border-b border-[#1F1F24] pb-2">Editar cliente</h4>
+      <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col gap-4">
+        <h4 className="text-[14px] font-bold text-white uppercase tracking-wider border-b border-[#1F1F24] pb-3">Editar cliente</h4>
         {error && (
-          <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] text-[14px] p-3 rounded-lg">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[13px] font-bold p-3 rounded-xl">
             {error}
           </div>
         )}
         <form onSubmit={handleEdit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] font-semibold text-[#A8A8B0]">Nombre</label>
-            <input required name="name" defaultValue={client.name} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[12px] font-semibold text-zinc-400">Nombre</label>
+            <input required name="name" defaultValue={client.name} className="w-full bg-[#121217] text-white border border-[#1F1F24] rounded-xl px-3 py-2 text-[14px] focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" />
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] font-semibold text-[#A8A8B0]">Teléfono</label>
-            <input required name="phone" defaultValue={client.phone} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[12px] font-semibold text-zinc-400">Teléfono</label>
+            <input required name="phone" defaultValue={client.phone} className="w-full bg-[#121217] text-white border border-[#1F1F24] rounded-xl px-3 py-2 text-[14px] focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" />
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] font-semibold text-[#A8A8B0]">Ubicación (opcional)</label>
-            <input name="location" defaultValue={client.location || ''} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[12px] font-semibold text-zinc-400">Ubicación (opcional)</label>
+            <input name="location" defaultValue={client.location || ''} className="w-full bg-[#121217] text-white border border-[#1F1F24] rounded-xl px-3 py-2 text-[14px] focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" />
           </div>
           <div className="flex justify-end gap-2 mt-2">
             <button 
               type="button" 
               onClick={() => { setIsEditing(false); setError(null); }}
               disabled={isPending}
-              className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-[#121217] border border-[#1F1F24] text-white rounded-xl text-[13px] font-bold hover:bg-[#1F1F24] transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
             <button 
               type="submit" 
               disabled={isPending}
-              className="bg-gradient-to-r from-[#7a32d4] to-[#6e02d2] border border-[#d7baff] text-[#131313] font-bold text-[14px] px-4 py-2 rounded-lg hover:brightness-110 transition-all disabled:opacity-50 disabled:hover:brightness-100"
+              className="px-4 py-2 bg-[#7a32d4]/10 border border-[#7a32d4]/30 text-[#d7baff] hover:bg-[#7a32d4]/20 rounded-xl text-[13px] font-bold transition-all disabled:opacity-50"
             >
               {isPending ? 'Guardando...' : 'Guardar cambios'}
             </button>
@@ -189,13 +187,15 @@ function ClientItem({ client }: { client: Client }) {
 
   if (isDeleting) {
     return (
-      <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-lg p-4 flex flex-col gap-4 relative">
-        <h4 className="text-[16px] font-bold text-[#ffb4ab] uppercase tracking-wider border-b border-[#93000a]/30 pb-2">¿Eliminar este cliente?</h4>
-        <p className="text-[14px] text-[#A8A8B0]">Solo se podrá eliminar si no tiene compras o ventas asociadas.</p>
-        <p className="text-[12px] text-[#A8A8B0] font-semibold">Las operaciones históricas nunca se eliminarán.</p>
+      <div className="bg-[#0B0B0E] border border-red-500/30 rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500/50"></div>
+        <h4 className="text-[15px] font-bold text-red-400">¿Eliminar este cliente?</h4>
+        <p className="text-[13px] font-medium text-zinc-400 leading-relaxed">
+          Solo se podrá eliminar si no tiene compras o ventas asociadas. Las operaciones históricas nunca se eliminarán.
+        </p>
         
         {error && (
-          <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] text-[14px] p-3 rounded-lg">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[13px] font-bold p-3 rounded-xl">
             {error}
           </div>
         )}
@@ -205,16 +205,16 @@ function ClientItem({ client }: { client: Client }) {
             type="button" 
             onClick={() => { setIsDeleting(false); setError(null); }}
             disabled={isPending}
-            className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+            className="px-4 py-2.5 bg-[#121217] border border-[#1F1F24] text-white rounded-xl text-[13px] font-bold hover:bg-[#1F1F24] transition-colors disabled:opacity-50"
           >
             Cancelar
           </button>
           <button 
             type="submit" 
             disabled={isPending}
-            className="bg-[#93000a] hover:bg-[#690005] text-[#ffb4ab] font-bold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50 border border-[#ffb4ab]/30"
+            className="px-4 py-2.5 bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 font-bold text-[13px] rounded-xl transition-colors disabled:opacity-50"
           >
-            {isPending ? 'Eliminando...' : 'Eliminar definitivamente'}
+            {isPending ? 'Eliminando...' : 'Sí, eliminar'}
           </button>
         </form>
       </div>
@@ -222,73 +222,71 @@ function ClientItem({ client }: { client: Client }) {
   }
 
   return (
-    <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-lg p-4 flex flex-col gap-2 relative">
-      <div className="flex justify-between items-start w-full">
-        <div className="flex flex-col">
-          <span className="text-[24px] font-bold text-[#F7F7F7]" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+    <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col justify-between hover:border-[#7a32d4]/30 transition-colors group">
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex flex-col gap-1 pr-4">
+          <h3 className="text-[16px] font-bold text-white leading-tight">
             {client.name}
-          </span>
-          <span className="text-[16px] text-[#A8A8B0] flex items-center gap-1 mt-1">
-            <span className="material-symbols-outlined text-lg">call</span> {client.phone}
-          </span>
-        </div>
-        
-        <div className="flex items-start gap-2">
+          </h3>
+          <div className="flex items-center gap-1.5 text-zinc-400">
+            <span className="material-symbols-outlined text-[14px]">call</span>
+            <span className="text-[13px] font-medium">{client.phone}</span>
+          </div>
           {client.location && (
-            <div className="bg-[#101014] border border-[#1F1F24] rounded px-2 py-1 flex items-center gap-1">
-              <span className="material-symbols-outlined text-[#A8A8B0] text-sm">location_on</span>
-              <span className="text-[14px] font-semibold text-[#A8A8B0]">{client.location}</span>
+            <div className="flex items-center gap-1.5 text-zinc-500 mt-0.5">
+              <span className="material-symbols-outlined text-[14px]">location_on</span>
+              <span className="text-[12px] font-medium">{client.location}</span>
             </div>
           )}
-          <div className="relative">
-            <button 
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="text-[#A8A8B0] hover:text-[#d7baff] transition-colors p-1 rounded hover:bg-[#1c1b1b]"
-            >
-              <span className="material-symbols-outlined">more_vert</span>
-            </button>
-            {menuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}></div>
-                <div className="absolute right-0 top-8 w-40 bg-[#1c1b1b] border border-[#1F1F24] rounded-lg shadow-xl z-50 py-1 overflow-hidden">
-                  <a href={`/admin/clientes/${client.id}`} className="block px-4 py-2 text-sm text-[#F7F7F7] hover:bg-[#353534]">Ver detalle</a>
-                  <button 
-                    onClick={() => { setMenuOpen(false); setIsEditing(true); }}
-                    className="block w-full text-left px-4 py-2 text-sm text-[#F7F7F7] hover:bg-[#353534]"
-                  >
-                    Editar
-                  </button>
-                  <button 
-                    onClick={() => { setMenuOpen(false); setIsDeleting(true); }}
-                    className="block w-full text-left px-4 py-2 text-sm text-[#ffb4ab] hover:bg-[#353534]"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+        </div>
+        
+        <div className="relative shrink-0">
+          <button 
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-white bg-[#121217] border border-[#1F1F24] rounded-full transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">more_vert</span>
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}></div>
+              <div className="absolute right-0 top-10 w-36 bg-[#121217] border border-[#1F1F24] rounded-xl shadow-2xl z-50 py-1.5 overflow-hidden">
+                <Link href={`/admin/clientes/${client.id}`} className="flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1F1F24] transition-colors">
+                  <span className="material-symbols-outlined text-[16px]">visibility</span>
+                  Ver detalle
+                </Link>
+                <button 
+                  onClick={() => { setMenuOpen(false); setIsEditing(true); }}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1F1F24] transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">edit</span>
+                  Editar
+                </button>
+                <div className="h-px bg-[#1F1F24] my-1"></div>
+                <button 
+                  onClick={() => { setMenuOpen(false); setIsDeleting(true); }}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24] transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                  Eliminar
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="flex gap-3 mt-2 pt-3 border-t border-[#131313]">
-        <div className="flex-1 flex flex-col gap-1">
-          <span className="text-[14px] font-semibold text-[#A8A8B0]">Te ha vendido</span>
-          <span className="text-[16px] text-[#F7F7F7]">{client.sales_to_business_count}</span>
-        </div>
-        <div className="flex-1 flex flex-col gap-1">
-          <span className="text-[14px] font-semibold text-[#A8A8B0]">Te ha comprado</span>
-          <span className="text-[16px] text-[#F7F7F7]">{client.purchases_count}</span>
-        </div>
-      </div>
+      <div className="h-px bg-[#1F1F24] w-full mb-4"></div>
 
-      <div className="flex gap-2 mt-2">
-        {client.purchases_count > 0 && (
-          <span className="bg-[#7247b0]/20 text-[#d7baff] text-xs px-2 py-1 rounded font-semibold border border-[#7247b0]/30">Comprador</span>
-        )}
-        {client.sales_to_business_count > 0 && (
-          <span className="bg-[#4b4454]/30 text-[#cdc2d6] text-xs px-2 py-1 rounded font-semibold border border-[#4b4454]/40">Vendedor</span>
-        )}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col">
+          <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-0.5">Ventas a KevPhones</span>
+          <span className="text-[15px] font-bold text-white">{client.sales_to_business_count}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[11px] font-bold text-[#d7baff] uppercase tracking-wider mb-0.5">Compras a KevPhones</span>
+          <span className="text-[15px] font-bold text-[#d7baff]">{client.purchases_count}</span>
+        </div>
       </div>
     </div>
   )

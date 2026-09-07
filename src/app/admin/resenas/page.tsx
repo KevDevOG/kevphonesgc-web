@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { ReviewsManagement } from '@/components/admin/reviews/ReviewsManagement'
 import { AdminReview } from '@/components/admin/reviews/ReviewForm'
+import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,14 +52,16 @@ export default async function AdminReviewsPage() {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 pb-32">
-      {errorMsg ? (
-        <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffdad6] p-4 rounded-xl text-center">
-          {errorMsg}
-        </div>
-      ) : (
-        <ReviewsManagement reviews={reviews} />
-      )}
-    </div>
+    <AdminPageShell>
+      <div className="w-full max-w-6xl mx-auto pb-24">
+        {errorMsg ? (
+          <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffdad6] p-4 rounded-xl text-center">
+            {errorMsg}
+          </div>
+        ) : (
+          <ReviewsManagement reviews={reviews} />
+        )}
+      </div>
+    </AdminPageShell>
   )
 }

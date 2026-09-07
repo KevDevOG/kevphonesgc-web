@@ -33,7 +33,10 @@ export function SellDeviceForm({ device }: { device: Device }) {
   }
 
   const formatPrice = (val: number) => {
-    return new Intl.NumberFormat('es-ES').format(val) + ' €'
+    return new Intl.NumberFormat("es-ES", {
+      style: "currency",
+      currency: "EUR"
+    }).format(val)
   }
 
   const operationProfit = (Number(finalPrice) || 0) - Number(device.purchase_price)
@@ -60,64 +63,47 @@ export function SellDeviceForm({ device }: { device: Device }) {
   const todayStr = new Date().toISOString().split('T')[0]
 
   return (
-    <>
-      <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-lg p-4 flex flex-col gap-2 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[#7a32d4]/10 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2"></div>
-        <div className="flex justify-between items-start z-10">
-          <div>
-            <h3 className="text-[24px] font-bold text-[#F7F7F7] uppercase" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>{device.device_models?.name}</h3>
-            <p className="text-[16px] text-[#A8A8B0] mt-1">{[device.storage, device.color].filter(Boolean).join(' · ')}</p>
-            <p className="text-[14px] text-[#A8A8B0]/70 font-mono mt-1">IMEI {maskImei(device.imei_serial)}</p>
-          </div>
-          <div className="bg-[#101014] border border-[#1F1F24] rounded px-2 py-1 flex items-center gap-1">
-            <span className="material-symbols-outlined text-[16px] text-[#A8A8B0]">inventory_2</span>
-            <span className="text-[12px] font-semibold text-[#A8A8B0] uppercase">Stock</span>
-          </div>
-        </div>
-        <div className="h-px bg-[#1F1F24] w-full my-2 z-10"></div>
-        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 z-10">
-          <div className="flex flex-col">
-            <span className="text-[12px] font-semibold text-[#A8A8B0] uppercase tracking-widest">Precio de compra</span>
-            <span className="text-[18px] text-[#F7F7F7]">{formatPrice(device.purchase_price)}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[12px] font-semibold text-[#A8A8B0] uppercase tracking-widest">Precio de publicación</span>
-            <span className="text-[18px] text-[#F7F7F7]">{formatPrice(device.listing_price)}</span>
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <h3 className="text-[24px] font-bold text-[#F7F7F7] uppercase border-l-4 border-[#7a32d4] pl-3" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Datos de la venta</h3>
+    <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+      
+      {/* LEFT: FORM */}
+      <div className="w-full lg:flex-[1.2] flex flex-col gap-6">
+        <h2 className="text-xl font-bold text-white mb-2">Datos de la venta</h2>
         
         {error && (
-          <div className="bg-[#93000a] text-[#ffdad6] p-3 rounded-lg border border-[#690005]">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-4 rounded-xl font-medium">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} id="sellForm" className="space-y-4 bg-[#0B0B0D] border border-[#1F1F24] p-4 rounded-lg">
-          <div className="flex flex-col gap-1">
-            <label className="text-[14px] font-semibold text-[#A8A8B0]" htmlFor="buyerName">Nombre del comprador</label>
-            <input className="bg-[#101014] border border-[#1F1F24] rounded p-3 text-[16px] text-[#F7F7F7] placeholder:text-[#A8A8B0] focus:outline-none focus:border-[#7a32d4] transition-all" id="buyerName" name="buyerName" placeholder="Ej. Juan Pérez" type="text" required />
-          </div>
+        <form onSubmit={handleSubmit} id="sellForm" className="flex flex-col gap-6 bg-[#0B0B0E] border border-[#1F1F24] p-6 rounded-2xl">
           
-          <div className="flex flex-col gap-1">
-            <label className="text-[14px] font-semibold text-[#A8A8B0]" htmlFor="buyerPhone">Teléfono</label>
-            <input className="bg-[#101014] border border-[#1F1F24] rounded p-3 text-[16px] text-[#F7F7F7] placeholder:text-[#A8A8B0] focus:outline-none focus:border-[#7a32d4] transition-all" id="buyerPhone" name="buyerPhone" placeholder="Ej. 600 000 000" type="tel" required />
+          <div className="flex flex-col gap-4">
+            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Comprador</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-zinc-400" htmlFor="buyerName">Nombre</label>
+                <input className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" id="buyerName" name="buyerName" placeholder="Ej. Juan Pérez" type="text" required />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-zinc-400" htmlFor="buyerPhone">Teléfono</label>
+                <input className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" id="buyerPhone" name="buyerPhone" placeholder="Ej. 600 000 000" type="tel" required />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-semibold text-zinc-400" htmlFor="buyerLocation">Ubicación (opcional)</label>
+              <input className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" id="buyerLocation" name="buyerLocation" placeholder="Ej. Telde" type="text" />
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[14px] font-semibold text-[#A8A8B0]" htmlFor="buyerLocation">Ubicación del comprador (opcional)</label>
-            <input className="bg-[#101014] border border-[#1F1F24] rounded p-3 text-[16px] text-[#F7F7F7] placeholder:text-[#A8A8B0] focus:outline-none focus:border-[#7a32d4] transition-all" id="buyerLocation" name="buyerLocation" placeholder="Ej. Telde" type="text" />
-          </div>
+          <div className="h-px bg-[#1F1F24] w-full"></div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-[14px] font-semibold text-[#A8A8B0]" htmlFor="finalPrice">Precio final de venta (€)</label>
-              <div className="relative">
+          <div className="flex flex-col gap-4">
+            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Venta</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-zinc-400" htmlFor="finalPrice">Precio final (€)</label>
                 <input 
-                  className="w-full bg-[#101014] border border-[#1F1F24] rounded py-3 pl-3 pr-8 text-[16px] text-[#B98AFF] focus:outline-none focus:border-[#7a32d4] transition-all" 
+                  className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] font-bold text-[#d7baff] focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" 
                   id="finalPrice" 
                   name="finalPrice" 
                   step="0.01" 
@@ -126,81 +112,99 @@ export function SellDeviceForm({ device }: { device: Device }) {
                   onChange={(e) => setFinalPrice(e.target.value)}
                   required 
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A8A8B0] text-[16px]">€</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-semibold text-zinc-400" htmlFor="saleDate">Fecha</label>
+                <input className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all [color-scheme:dark]" id="saleDate" name="saleDate" type="date" defaultValue={todayStr} required />
               </div>
             </div>
-            
-            <div className="flex flex-col gap-1">
-              <label className="text-[14px] font-semibold text-[#A8A8B0]" htmlFor="saleDate">Fecha de venta</label>
-              <input className="bg-[#101014] border border-[#1F1F24] rounded p-3 text-[16px] text-[#F7F7F7] placeholder:text-[#A8A8B0] focus:outline-none focus:border-[#7a32d4] transition-all" id="saleDate" name="saleDate" type="date" defaultValue={todayStr} required />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-semibold text-zinc-400" htmlFor="saleLocation">Lugar de venta (opcional)</label>
+              <input className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" id="saleLocation" name="saleLocation" placeholder="Ej. Las Palmas" type="text" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[13px] font-semibold text-zinc-400" htmlFor="observations">Observaciones (opcional)</label>
+              <textarea className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all resize-none" id="observations" name="observations" placeholder="Añade algún detalle adicional sobre la venta." rows={3}></textarea>
             </div>
           </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-[14px] font-semibold text-[#A8A8B0]" htmlFor="saleLocation">Lugar de venta (opcional)</label>
-            <input className="bg-[#101014] border border-[#1F1F24] rounded p-3 text-[16px] text-[#F7F7F7] placeholder:text-[#A8A8B0] focus:outline-none focus:border-[#7a32d4] transition-all" id="saleLocation" name="saleLocation" placeholder="Ej. Las Palmas" type="text" />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-[14px] font-semibold text-[#A8A8B0]" htmlFor="observations">Observaciones (opcional)</label>
-            <textarea className="bg-[#101014] border border-[#1F1F24] rounded p-3 text-[16px] text-[#F7F7F7] placeholder:text-[#A8A8B0] focus:outline-none focus:border-[#7a32d4] transition-all resize-none" id="observations" name="observations" placeholder="Añade algún detalle adicional sobre la venta." rows={3}></textarea>
-          </div>
         </form>
-      </section>
+      </div>
 
-      <section className="bg-[#101014] border border-[#1F1F24] rounded-lg p-4 flex flex-col gap-2 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#101014] to-[#0B0B0D] opacity-50 z-0 pointer-events-none"></div>
-        <h4 className="text-[14px] font-semibold text-[#A8A8B0] uppercase tracking-widest z-10 border-b border-[#1F1F24] pb-2 mb-2">Resumen Financiero</h4>
-        <div className="flex justify-between items-center z-10">
-          <span className="text-[16px] text-[#A8A8B0]">Precio de compra</span>
-          <span className="text-[16px] text-[#F7F7F7] font-mono">{formatPrice(device.purchase_price)}</span>
-        </div>
-        <div className="flex justify-between items-center z-10">
-          <span className="text-[16px] text-[#A8A8B0]">Precio de publicación</span>
-          <span className="text-[16px] text-[#F7F7F7] font-mono">{formatPrice(device.listing_price)}</span>
-        </div>
-        <div className="flex justify-between items-center z-10">
-          <span className="text-[16px] text-[#A8A8B0]">Precio final de venta</span>
-          <span className="text-[16px] text-[#F7F7F7] font-mono">{formatPrice(Number(finalPrice) || 0)}</span>
-        </div>
-        <div className="h-px w-full bg-[#1F1F24] my-1 z-10"></div>
-        <div className="flex justify-between items-center z-10 mt-1">
-          <span className="text-[24px] font-bold text-[#F7F7F7] uppercase" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Beneficio real</span>
-          <span className={`text-[28px] font-extrabold ${operationProfit >= 0 ? 'text-[#B98AFF]' : 'text-[#ffb4ab]'}`} style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-            {formatPrice(operationProfit)}
-          </span>
-        </div>
-      </section>
+      {/* RIGHT: SUMMARY & ACTIONS */}
+      <div className="w-full lg:flex-[0.8] flex flex-col gap-6 sticky top-20">
+        
+        <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-6">
+          
+          {/* Device Context */}
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between items-start">
+              <h3 className="text-lg font-bold text-white">{device.device_models?.name}</h3>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#22c55e]/10 text-[#22c55e]">
+                En stock
+              </span>
+            </div>
+            <p className="text-sm text-zinc-400 font-medium">
+              {[device.storage, device.color].filter(Boolean).join(' · ')}
+            </p>
+            <p className="text-[11px] font-mono text-zinc-500">IMEI {maskImei(device.imei_serial)}</p>
+          </div>
 
-      <section className="flex flex-col gap-4 pt-2 border-t border-[#1F1F24]">
-        <p className="text-[14px] text-[#A8A8B0] leading-relaxed text-center flex items-center justify-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">info</span>
-          Al confirmar, el dispositivo se marcará como vendido y dejará de mostrarse en el stock público.
-        </p>
-        <div className="flex flex-col sm:flex-row-reverse gap-2 w-full mt-2">
-          <button 
-            type="submit" 
-            form="sellForm"
-            disabled={isSubmitting}
-            className="w-full sm:w-auto flex-1 bg-gradient-to-r from-[#7a32d4] to-[#6e02d2] hover:brightness-110 disabled:opacity-50 text-white text-[14px] font-bold uppercase tracking-wider py-4 px-6 rounded shadow-lg transition-all active:scale-[0.98] flex justify-center items-center gap-2 border border-[#d7baff]/20"
-          >
-            {isSubmitting ? 'Registrando venta...' : (
-              <>
-                <span className="material-symbols-outlined text-[20px]">check_circle</span>
-                Confirmar venta
-              </>
-            )}
-          </button>
-          <button 
-            type="button" 
-            disabled={isSubmitting}
-            onClick={() => router.push(`/admin/stock/${device.id}`)}
-            className="w-full sm:w-auto flex-1 bg-transparent border border-[#4b4454] hover:border-[#7a32d4] hover:text-[#eddcff] disabled:opacity-50 text-[#A8A8B0] text-[14px] font-bold uppercase tracking-wider py-4 px-6 rounded transition-all active:scale-[0.98]"
-          >
-            Cancelar
-          </button>
+          <div className="h-px bg-[#1F1F24] w-full"></div>
+
+          {/* Financial Summary */}
+          <div className="flex flex-col gap-4">
+            <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Resumen financiero</h4>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-zinc-400">Precio de compra</span>
+              <span className="text-sm font-semibold text-zinc-300">{formatPrice(device.purchase_price)}</span>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-zinc-400">Precio de publicación</span>
+              <span className="text-sm font-semibold text-zinc-300">{formatPrice(device.listing_price)}</span>
+            </div>
+            
+            <div className="flex justify-between items-center pt-2 border-t border-[#1F1F24]/50">
+              <span className="text-sm font-medium text-zinc-300">Precio final</span>
+              <span className="text-base font-bold text-white">{formatPrice(Number(finalPrice) || 0)}</span>
+            </div>
+            
+            <div className="flex flex-col gap-1 pt-2">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Beneficio real</span>
+              <span className={`text-3xl font-extrabold ${operationProfit >= 0 ? 'text-[#d7baff]' : 'text-red-400'}`}>
+                {operationProfit > 0 ? '+' : ''}{formatPrice(operationProfit)}
+              </span>
+            </div>
+          </div>
         </div>
-      </section>
-    </>
+
+        {/* Submit Actions */}
+        <div className="flex flex-col gap-3">
+          <p className="text-[11px] text-zinc-500 leading-relaxed text-center px-4">
+            Al confirmar, el dispositivo se marcará como vendido y dejará de mostrarse en el stock público.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button 
+              type="button" 
+              disabled={isSubmitting}
+              onClick={() => router.push(`/admin/stock/${device.id}`)}
+              className="flex-1 bg-transparent hover:bg-[#1F1F24] border border-[#1F1F24] text-white text-sm font-semibold py-3.5 px-4 rounded-xl transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              form="sellForm"
+              disabled={isSubmitting}
+              className="flex-1 bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] text-sm font-bold py-3.5 px-4 rounded-xl transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
+            >
+              {isSubmitting ? 'Registrando...' : 'Confirmar venta'}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
   )
 }

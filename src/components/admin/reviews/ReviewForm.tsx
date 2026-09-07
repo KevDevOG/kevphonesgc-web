@@ -76,28 +76,30 @@ export function ReviewForm({ initialData, onClose }: ReviewFormProps) {
     })
   }
 
-  const inputClass = "w-full bg-[#131313] border border-[#1F1F24] rounded-sm text-[#F7F7F7] p-3 focus:outline-none focus:ring-2 focus:ring-[#9867db]/20 focus:border-[#9867db] transition-all"
-  const labelClass = "block text-sm font-semibold text-[#A8A8B0] mb-2"
+  const inputClass = "w-full bg-[#121217] border border-[#1F1F24] rounded-xl text-white px-4 py-2.5 text-[14px] focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all placeholder:text-zinc-500"
+  const labelClass = "block text-[13px] font-semibold text-zinc-400 mb-1.5"
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden my-auto">
-        <div className="flex justify-between items-center p-6 border-b border-[#1F1F24]">
-          <h2 className="text-xl font-bold text-white">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl w-full max-w-xl shadow-2xl my-auto flex flex-col relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-1.5 h-full bg-[#7a32d4]"></div>
+        <div className="flex justify-between items-center p-5 border-b border-[#1F1F24]">
+          <h2 className="text-[16px] font-bold text-white tracking-tight pl-2">
             {initialData ? 'Editar reseña' : 'Nueva reseña'}
           </h2>
           <button 
+            type="button"
             onClick={onClose}
-            className="text-[#A8A8B0] hover:text-white transition-colors"
+            className="w-8 h-8 flex items-center justify-center bg-[#121217] hover:bg-[#1F1F24] border border-[#1F1F24] rounded-lg text-zinc-400 hover:text-white transition-colors"
           >
-            <span className="material-symbols-outlined">close</span>
+            <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label className={labelClass}>Nombre del cliente *</label>
+        <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col">
+              <label className={labelClass}>Nombre</label>
               <input 
                 type="text" 
                 value={authorName}
@@ -108,8 +110,8 @@ export function ReviewForm({ initialData, onClose }: ReviewFormProps) {
               />
             </div>
             
-            <div>
-              <label className={labelClass}>Reseña *</label>
+            <div className="flex flex-col">
+              <label className={labelClass}>Reseña</label>
               <textarea 
                 value={reviewText}
                 onChange={e => setReviewText(e.target.value)}
@@ -118,14 +120,14 @@ export function ReviewForm({ initialData, onClose }: ReviewFormProps) {
                 rows={4}
                 className={inputClass} 
               />
-              <div className="text-right text-xs text-[#6E6E78] mt-1">
+              <div className="text-right text-[12px] font-medium text-zinc-500 mt-1">
                 {reviewText.length}/1000
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className={labelClass}>Origen *</label>
+              <div className="flex flex-col">
+                <label className={labelClass}>Origen</label>
                 <select 
                   value={source}
                   onChange={e => setSource(e.target.value as ReviewSource)}
@@ -137,7 +139,7 @@ export function ReviewForm({ initialData, onClose }: ReviewFormProps) {
                 </select>
               </div>
               
-              <div>
+              <div className="flex flex-col">
                 <label className={labelClass}>Valoración</label>
                 <select 
                   value={rating}
@@ -155,16 +157,16 @@ export function ReviewForm({ initialData, onClose }: ReviewFormProps) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="flex flex-col">
                 <label className={labelClass}>Fecha de la reseña</label>
                 <input 
                   type="date" 
                   value={reviewDate}
                   onChange={e => setReviewDate(e.target.value)}
-                  className={inputClass} 
+                  className={`${inputClass} [color-scheme:dark]`} 
                 />
               </div>
-              <div>
+              <div className="flex flex-col">
                 <label className={labelClass}>Orden</label>
                 <input 
                   type="number" 
@@ -177,37 +179,45 @@ export function ReviewForm({ initialData, onClose }: ReviewFormProps) {
               </div>
             </div>
 
-            <div className="flex gap-6 pt-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={featured}
-                  onChange={e => setFeatured(e.target.checked)}
-                  className="rounded border-[#1F1F24] bg-[#131313] text-[#9867db] focus:ring-[#9867db]" 
-                />
-                <span className="text-sm font-semibold text-white">Destacada</span>
+            <div className="flex flex-wrap gap-6 pt-2">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="relative">
+                  <input 
+                    type="checkbox" 
+                    checked={featured}
+                    onChange={e => setFeatured(e.target.checked)}
+                    className="sr-only" 
+                  />
+                  <div className={`block w-10 h-6 rounded-full transition-colors ${featured ? 'bg-[#7a32d4]' : 'bg-[#1F1F24] group-hover:bg-[#2a2a30]'}`}></div>
+                  <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${featured ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                </div>
+                <span className="text-[13px] font-semibold text-white">Destacada</span>
               </label>
               
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={active}
-                  onChange={e => setActive(e.target.checked)}
-                  className="rounded border-[#1F1F24] bg-[#131313] text-[#9867db] focus:ring-[#9867db]" 
-                />
-                <span className="text-sm font-semibold text-white">Activa</span>
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div className="relative">
+                  <input 
+                    type="checkbox" 
+                    checked={active}
+                    onChange={e => setActive(e.target.checked)}
+                    className="sr-only" 
+                  />
+                  <div className={`block w-10 h-6 rounded-full transition-colors ${active ? 'bg-[#7a32d4]' : 'bg-[#1F1F24] group-hover:bg-[#2a2a30]'}`}></div>
+                  <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${active ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                </div>
+                <span className="text-[13px] font-semibold text-white">Activa</span>
               </label>
             </div>
           </div>
 
           {error && (
-            <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffdad6] p-3 rounded text-sm text-center">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl text-[13px] font-bold text-center">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="bg-[#143c1a]/20 border border-[#143c1a] text-[#a5f3ad] p-3 rounded text-sm text-center">
+            <div className="bg-[#7a32d4]/10 border border-[#7a32d4]/20 text-[#d7baff] p-3 rounded-xl text-[13px] font-bold text-center">
               {success}
             </div>
           )}
@@ -217,16 +227,16 @@ export function ReviewForm({ initialData, onClose }: ReviewFormProps) {
               type="button"
               onClick={onClose}
               disabled={isPending}
-              className="px-4 py-2 text-sm font-semibold text-[#A8A8B0] hover:text-white transition-colors"
+              className="px-5 py-2.5 bg-[#121217] hover:bg-[#1F1F24] border border-[#1F1F24] text-white rounded-xl text-[14px] font-bold transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="px-6 py-2 bg-[#9867db] hover:bg-[#8552c6] text-white font-bold rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-5 py-2.5 bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-[14px] rounded-xl transition-all disabled:opacity-50 flex items-center gap-2"
             >
-              {isPending && <span className="material-symbols-outlined animate-spin text-sm">sync</span>}
+              {isPending && <span className="material-symbols-outlined animate-spin text-[16px]">sync</span>}
               Guardar
             </button>
           </div>

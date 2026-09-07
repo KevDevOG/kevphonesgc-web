@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateBusinessSettingsAction, UpdateBusinessSettingsInput } from '@/actions/business-settings'
+import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 
 type BusinessSettings = {
   business_name: string
@@ -63,177 +64,207 @@ export function BusinessSettingsForm({ settings }: { settings: BusinessSettings 
     })
   }
 
-  const inputClass = "w-full bg-[#101014] border border-[#1F1F24] rounded-sm text-[#F7F7F7] p-3 focus:outline-none focus:ring-2 focus:ring-[#d7baff]/20 focus:border-[#d7baff] transition-all"
-  const labelClass = "block text-sm font-semibold text-[#A8A8B0] uppercase tracking-wider mb-2"
+  const inputClass = "w-full bg-[#121217] border border-[#1F1F24] rounded-xl text-white px-4 py-2.5 text-[14px] focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all placeholder:text-zinc-600"
+  const labelClass = "block text-[13px] font-bold text-zinc-400 mb-1.5"
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 pb-32">
-      <div className="flex flex-col gap-2 mb-6">
-        <h1 className="text-3xl font-bold text-white" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Configuración</h1>
-        <p className="text-[#A8A8B0]">Gestiona los datos públicos y de contacto de KevPhonesGC.</p>
-      </div>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6 lg:gap-8 w-full max-w-6xl mx-auto">
+      <AdminPageHeader 
+        title="Configuración" 
+        subtitle="Gestiona los datos públicos y de contacto de KevPhonesGC." 
+      />
 
-      {/* SECTION 1: Negocio */}
-      <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 md:p-6 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-1 h-full bg-[#7a32d4]"></div>
-        <h3 className="text-sm font-semibold text-[#A8A8B0] uppercase tracking-wider mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">store</span> Negocio
-        </h3>
-        
-        <div>
-          <label className={labelClass}>Nombre del negocio *</label>
-          <input 
-            type="text" 
-            value={businessName}
-            onChange={e => setBusinessName(e.target.value)}
-            maxLength={100}
-            required
-            className={inputClass} 
-          />
-        </div>
-      </section>
-
-      {/* SECTION 2: Contacto */}
-      <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 md:p-6 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-1 h-full bg-[#7a32d4]"></div>
-        <h3 className="text-sm font-semibold text-[#A8A8B0] uppercase tracking-wider mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">forum</span> Contacto
-        </h3>
-        
-        <div className="space-y-6">
-          <div>
-            <label className={labelClass}>Número de WhatsApp</label>
-            <input 
-              type="tel" 
-              value={whatsappPhone}
-              onChange={e => setWhatsappPhone(e.target.value)}
-              className={inputClass} 
-            />
-            <p className="text-xs text-[#A8A8B0] mt-2">Formato internacional, solo números. Ejemplo: 34600560853</p>
-          </div>
-
-          <div className="flex justify-between items-center py-2 border-t border-[#1F1F24] pt-4">
-            <div className="flex flex-col gap-1 pr-4">
-              <span className="text-[#e5e2e1] text-sm font-semibold">Contacto por WhatsApp activo</span>
-              <span className="text-[#A8A8B0] text-xs">Si está desactivado, los botones públicos de contacto podrán ocultarse o deshabilitarse.</span>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+        {/* LEFT COLUMN */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
+          
+          {/* SECTION: Negocio */}
+          <section className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 md:p-6 flex flex-col gap-5">
+            <h3 className="text-[16px] font-extrabold text-white tracking-tight flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px] text-[#7a32d4]">store</span>
+              Negocio
+            </h3>
+            
+            <div className="flex flex-col gap-1">
+              <label className={labelClass}>Nombre del negocio *</label>
               <input 
-                type="checkbox" 
-                checked={contactEnabled}
-                onChange={e => setContactEnabled(e.target.checked)}
-                className="sr-only peer toggle-checkbox" 
+                type="text" 
+                value={businessName}
+                onChange={e => setBusinessName(e.target.value)}
+                maxLength={100}
+                required
+                className={inputClass} 
               />
-              <div className="w-11 h-6 bg-[#353534] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all toggle-label transition-colors peer-checked:bg-[#7a32d4]"></div>
-            </label>
-          </div>
+              <p className="text-[12px] font-medium text-zinc-500 mt-1 pl-1">Nombre público mostrado en la web.</p>
+            </div>
+          </section>
+
+          {/* SECTION: Contacto */}
+          <section className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 md:p-6 flex flex-col gap-5">
+            <h3 className="text-[16px] font-extrabold text-white tracking-tight flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px] text-[#7a32d4]">forum</span>
+              Contacto
+            </h3>
+            
+            <div className="flex flex-col gap-1">
+              <label className={labelClass}>Número de WhatsApp</label>
+              <input 
+                type="tel" 
+                value={whatsappPhone}
+                onChange={e => setWhatsappPhone(e.target.value)}
+                className={inputClass} 
+              />
+              <p className="text-[12px] font-medium text-zinc-500 mt-1 pl-1">Formato internacional, solo números. Ejemplo: 34600560853</p>
+            </div>
+          </section>
+
+          {/* SECTION: Página pública */}
+          <section className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 md:p-6 flex flex-col gap-5">
+            <div className="flex flex-col gap-1 border-b border-[#1F1F24] pb-4">
+              <h3 className="text-[16px] font-extrabold text-white tracking-tight flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px] text-[#7a32d4]">web</span>
+                Página pública
+              </h3>
+              <p className="text-[13px] font-medium text-zinc-500">Estos textos se utilizan en la web pública.</p>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className={labelClass}>Título principal</label>
+              <input 
+                type="text" 
+                value={heroTitle}
+                onChange={e => setHeroTitle(e.target.value)}
+                maxLength={150}
+                className={inputClass} 
+              />
+              <div className="flex justify-between items-center mt-1 pl-1">
+                <p className="text-[12px] font-medium text-zinc-500">Texto principal del hero.</p>
+                <p className="text-[12px] font-medium text-zinc-500">{heroTitle.length} / 150</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1 mt-2">
+              <label className={labelClass}>Subtítulo principal</label>
+              <textarea 
+                value={heroSubtitle}
+                onChange={e => setHeroSubtitle(e.target.value)}
+                maxLength={300}
+                rows={3}
+                className={inputClass} 
+              />
+              <div className="flex justify-between items-center mt-1 pl-1">
+                <p className="text-[12px] font-medium text-zinc-500">Texto secundario bajo el título.</p>
+                <p className="text-[12px] font-medium text-zinc-500">{heroSubtitle.length} / 300</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1 mt-2">
+              <label className={labelClass}>Texto de envíos</label>
+              <textarea 
+                value={shippingText}
+                onChange={e => setShippingText(e.target.value)}
+                maxLength={500}
+                rows={3}
+                className={inputClass} 
+              />
+              <div className="flex justify-between items-center mt-1 pl-1">
+                <p className="text-[12px] font-medium text-zinc-500">Información pública sobre entregas y envíos.</p>
+                <p className="text-[12px] font-medium text-zinc-500">{shippingText.length} / 500</p>
+              </div>
+            </div>
+          </section>
+
         </div>
-      </section>
 
-      {/* SECTION 3: Redes sociales */}
-      <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 md:p-6 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-1 h-full bg-[#7a32d4]"></div>
-        <h3 className="text-sm font-semibold text-[#A8A8B0] uppercase tracking-wider mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">tag</span> Redes sociales
-        </h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className={labelClass}>Instagram</label>
-            <input 
-              type="url" 
-              placeholder="https://instagram.com/..."
-              value={instagramUrl}
-              onChange={e => setInstagramUrl(e.target.value)}
-              className={inputClass} 
-            />
+        {/* RIGHT COLUMN */}
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          
+          {/* SECTION: Redes sociales */}
+          <section className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 md:p-6 flex flex-col gap-5">
+            <h3 className="text-[16px] font-extrabold text-white tracking-tight flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px] text-[#7a32d4]">tag</span>
+              Redes sociales
+            </h3>
+            
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className={labelClass}>Instagram</label>
+                <input 
+                  type="url" 
+                  placeholder="https://instagram.com/..."
+                  value={instagramUrl}
+                  onChange={e => setInstagramUrl(e.target.value)}
+                  className={inputClass} 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className={labelClass}>TikTok</label>
+                <input 
+                  type="url" 
+                  placeholder="https://tiktok.com/..."
+                  value={tiktokUrl}
+                  onChange={e => setTiktokUrl(e.target.value)}
+                  className={inputClass} 
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className={labelClass}>Wallapop</label>
+                <input 
+                  type="url" 
+                  placeholder="https://www.wallapop.com/user/..."
+                  value={wallapopUrl}
+                  onChange={e => setWallapopUrl(e.target.value)}
+                  className={inputClass} 
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* SECTION: Estado del contacto */}
+          <section className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 md:p-6 flex flex-col">
+            <div className="flex justify-between items-center gap-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-[14px] font-bold text-white">Contacto por WhatsApp activo</span>
+                <span className="text-[12px] font-medium text-zinc-500">Controla si los botones públicos de contacto están disponibles.</span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input 
+                  type="checkbox" 
+                  checked={contactEnabled}
+                  onChange={e => setContactEnabled(e.target.checked)}
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-[#1F1F24] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-[20px] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#7a32d4]"></div>
+              </label>
+            </div>
+          </section>
+
+          {/* SAVE / MESSAGES */}
+          <div className="flex flex-col gap-4 mt-auto">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-[13px] font-bold text-center">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="bg-[#7a32d4]/10 border border-[#7a32d4]/20 text-[#d7baff] p-4 rounded-xl text-[13px] font-bold text-center">
+                {success}
+              </div>
+            )}
+
+            <button 
+              type="submit" 
+              disabled={isPending}
+              className="w-full bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-[15px] py-4 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isPending && <span className="material-symbols-outlined animate-spin text-[20px]">sync</span>}
+              Guardar configuración
+            </button>
           </div>
-          <div>
-            <label className={labelClass}>TikTok</label>
-            <input 
-              type="url" 
-              placeholder="https://tiktok.com/..."
-              value={tiktokUrl}
-              onChange={e => setTiktokUrl(e.target.value)}
-              className={inputClass} 
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Wallapop</label>
-            <input 
-              type="url" 
-              placeholder="https://www.wallapop.com/user/..."
-              value={wallapopUrl}
-              onChange={e => setWallapopUrl(e.target.value)}
-              className={inputClass} 
-            />
-          </div>
+
         </div>
-      </section>
-
-      {/* SECTION 4: Página pública */}
-      <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 md:p-6 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-1 h-full bg-[#7a32d4]"></div>
-        <h3 className="text-sm font-semibold text-[#A8A8B0] uppercase tracking-wider mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">web</span> Página pública
-        </h3>
-        
-        <p className="text-xs text-[#A8A8B0] mb-6">Nota: Si dejas estos campos vacíos, la página web podría seguir utilizando los textos por defecto actuales hasta que se aplique una futura actualización visual.</p>
-
-        <div className="space-y-4">
-          <div>
-            <label className={labelClass}>Título principal</label>
-            <input 
-              type="text" 
-              value={heroTitle}
-              onChange={e => setHeroTitle(e.target.value)}
-              maxLength={150}
-              className={inputClass} 
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Subtítulo principal</label>
-            <textarea 
-              value={heroSubtitle}
-              onChange={e => setHeroSubtitle(e.target.value)}
-              maxLength={300}
-              rows={3}
-              className={inputClass} 
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Texto de envíos</label>
-            <textarea 
-              value={shippingText}
-              onChange={e => setShippingText(e.target.value)}
-              maxLength={500}
-              rows={3}
-              className={inputClass} 
-            />
-          </div>
-        </div>
-      </section>
-
-      {error && (
-        <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffdad6] p-4 rounded text-sm text-center">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="bg-[#143c1a]/20 border border-[#143c1a] text-[#a5f3ad] p-4 rounded text-sm text-center">
-          {success}
-        </div>
-      )}
-
-      <button 
-        type="submit" 
-        disabled={isPending}
-        style={{ background: 'linear-gradient(135deg, #d7baff 0%, #B98AFF 100%)' }}
-        className="w-full text-[#440087] font-bold py-4 rounded transition-all hover:opacity-90 active:scale-[0.98] shadow-lg shadow-[#d7baff]/10 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isPending ? 'Guardando...' : 'Guardar configuración'}
-      </button>
+      </div>
     </form>
   )
 }

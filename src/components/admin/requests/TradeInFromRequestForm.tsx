@@ -148,17 +148,16 @@ export function TradeInFromRequestForm({ request, tradeInContext }: { request: S
     )
   }
 
-  const inputClass = "w-full bg-[#131313] text-white border border-[#1F1F24] rounded-lg p-3 text-sm focus:outline-none focus:border-[#9867db] transition-colors"
-  const labelClass = "block text-xs font-medium text-[#6E6E78] mb-1 uppercase tracking-wider"
+  const inputClass = "w-full bg-[#121217] text-white border border-[#1F1F24] rounded-xl px-4 py-2.5 text-[14px] focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all placeholder:text-zinc-500"
+  const labelClass = "block text-[13px] font-semibold text-zinc-400 mb-1.5"
 
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full md:w-auto px-6 py-2.5 text-[#440087] font-bold rounded-lg transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 shadow-sm"
-        style={{ background: 'linear-gradient(135deg, #d7baff 0%, #B98AFF 100%)' }}
+        className="w-full md:w-auto px-6 py-3 bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2"
       >
-        <span className="material-symbols-outlined text-[18px]">sync_alt</span>
+        <span className="material-symbols-outlined text-[20px]">sync_alt</span>
         Completar parte de pago
       </button>
     )
@@ -170,47 +169,48 @@ export function TradeInFromRequestForm({ request, tradeInContext }: { request: S
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pb-28 md:pb-32 bg-black/80 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 w-full max-w-4xl my-auto shadow-2xl relative">
+      <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 md:p-8 w-full max-w-5xl my-auto shadow-2xl relative">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#9867db]">sync_alt</span>
+          <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#d7baff]">sync_alt</span>
             Completar parte de pago (Trade-In)
           </h2>
-          <button onClick={() => setIsOpen(false)} className="text-[#A8A8B0] hover:text-white transition-colors" disabled={submitting}>
-            <span className="material-symbols-outlined">close</span>
+          <button onClick={() => setIsOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-[#121217] border border-[#1F1F24] text-zinc-400 hover:text-white hover:bg-[#1F1F24] transition-colors" disabled={submitting}>
+            <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-xl text-sm border bg-red-500/10 border-red-500/20 text-red-500">
+          <div className="mb-6 p-4 rounded-xl text-[14px] font-bold border bg-red-500/10 border-red-500/20 text-red-400">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-8">
           
           {/* TWO SIDES PREVIEW */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
             {/* INCOMING DEVICE */}
-            <div className="bg-[#131313] border border-[#1F1F24] rounded-lg p-5 flex flex-col justify-between">
+            <div className="bg-[#121217] border border-[#1F1F24] rounded-xl p-6 flex flex-col justify-between">
               <div>
-                <h3 className="text-xs font-semibold text-[#A8A8B0] uppercase tracking-wider mb-3">
+                <h3 className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-3">
                   Dispositivo que entrega el cliente
                 </h3>
-                <div className="text-base font-medium text-white mb-1">
+                <div className="text-[18px] font-bold text-white mb-2">
                   {request.device_models?.name || 'Dispositivo'} {request.storage ? `· ${request.storage}` : ''}
                 </div>
-                <div className="text-sm text-[#A8A8B0] space-y-1">
-                  {request.color && <div>{request.color}</div>}
-                  {request.battery_health && <div>Batería {request.battery_health} %</div>}
-                  {request.device_condition && <div>{conditionLabels[request.device_condition] || request.device_condition}</div>}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {request.color && <span className="px-2 py-0.5 bg-[#1F1F24] text-zinc-300 text-xs rounded font-medium">{request.color}</span>}
+                  {request.battery_health && <span className="px-2 py-0.5 bg-[#1F1F24] text-zinc-300 text-xs rounded font-medium">Batería {request.battery_health}%</span>}
+                  {request.device_condition && <span className="px-2 py-0.5 bg-[#1F1F24] text-zinc-300 text-xs rounded font-medium">{conditionLabels[request.device_condition] || request.device_condition}</span>}
                 </div>
               </div>
               
               {request.estimated_min !== null && request.estimated_max !== null && (
-                <div className="mt-4 pt-4 border-t border-[#1F1F24]">
-                  <div className="text-xs text-[#A8A8B0] mb-1">Valoración mostrada:</div>
-                  <div className="text-lg font-bold text-[#d7baff]">
+                <div className="mt-2 pt-4 border-t border-[#1F1F24]">
+                  <div className="text-xs text-zinc-500 mb-1 font-semibold">Valoración mostrada al cliente:</div>
+                  <div className="text-[18px] font-bold text-[#d7baff]">
                     {formatMoney(request.estimated_min)} – {formatMoney(request.estimated_max)}
                   </div>
                 </div>
@@ -218,26 +218,26 @@ export function TradeInFromRequestForm({ request, tradeInContext }: { request: S
             </div>
 
             {/* TARGET STOCK DEVICE */}
-            <div className="bg-[#131313] border border-[#1F1F24] rounded-lg p-5 flex flex-col justify-between">
+            <div className="bg-[#121217] border border-[#1F1F24] rounded-xl p-6 flex flex-col justify-between">
               <div>
-                <h3 className="text-xs font-semibold text-[#A8A8B0] uppercase tracking-wider mb-3">
+                <h3 className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-3">
                   Dispositivo que se lleva
                 </h3>
-                <div className="text-base font-medium text-white mb-1">
+                <div className="text-[18px] font-bold text-white mb-2">
                   {tradeInContext.targetDevice?.modelName || 'Dispositivo'} {tradeInContext.targetDevice?.storage ? `· ${tradeInContext.targetDevice.storage}` : ''}
                 </div>
-                <div className="text-sm text-[#A8A8B0]">
-                  {tradeInContext.targetDevice?.color && <div>{tradeInContext.targetDevice.color}</div>}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {tradeInContext.targetDevice?.color && <span className="px-2 py-0.5 bg-[#1F1F24] text-zinc-300 text-xs rounded font-medium">{tradeInContext.targetDevice.color}</span>}
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-[#1F1F24]">
-                <div className="text-xs text-[#A8A8B0] mb-1">Precio mostrado al cotizar:</div>
-                <div className="text-lg font-bold text-white">
+              <div className="mt-2 pt-4 border-t border-[#1F1F24]">
+                <div className="text-xs text-zinc-500 mb-1 font-semibold">Precio mostrado al cotizar:</div>
+                <div className="text-[18px] font-bold text-white">
                   {formatMoney(tradeInContext.targetListingPriceSnapshot)}
                 </div>
                 {tradeInContext.targetDevice?.listingPrice !== tradeInContext.targetListingPriceSnapshot && (
-                  <div className="text-xs text-amber-500 mt-1">
+                  <div className="text-xs font-bold text-amber-500 mt-1">
                     Precio actual en stock: {formatMoney(tradeInContext.targetDevice?.listingPrice || 0)}
                   </div>
                 )}
@@ -246,39 +246,43 @@ export function TradeInFromRequestForm({ request, tradeInContext }: { request: S
           </div>
 
           {/* FINANCIAL INPUTS */}
-          <div className="bg-[#9867db]/10 border border-[#9867db]/30 rounded-xl p-6">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
+          <div className="bg-[#7a32d4]/5 border border-[#7a32d4]/30 rounded-2xl p-6 md:p-8 relative overflow-hidden">
+             <div className="absolute top-0 left-0 w-1.5 h-full bg-[#7a32d4]"></div>
+             
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
                
-               <div>
-                  <label className="block text-sm font-semibold text-[#d7baff] mb-2">
-                    Precio final de compra (A favor del cliente) *
+               <div className="flex flex-col gap-2">
+                  <label className="text-[13px] font-bold text-[#d7baff]">
+                    Valor final del dispositivo recibido *
                   </label>
+                  <p className="text-xs text-[#d7baff]/70 mb-1">El valor en € que pagamos por el móvil del cliente.</p>
                   <div className="relative">
-                    <span className="absolute left-4 top-[14px] text-white/50 font-bold">€</span>
+                    <span className="absolute left-4 top-[15px] text-zinc-400 font-bold">€</span>
                     <input 
                       type="number" 
                       step="0.01" 
                       min="0" 
                       required 
-                      className="w-full bg-[#131313] text-white border border-[#9867db]/40 rounded-lg p-3 pl-9 text-lg font-bold focus:outline-none focus:border-[#d7baff] transition-colors"
+                      className="w-full bg-[#121217] text-white border border-[#7a32d4]/30 rounded-xl py-3 pl-10 pr-4 text-xl font-bold focus:outline-none focus:border-[#d7baff] focus:ring-1 focus:ring-[#d7baff] transition-colors"
                       value={purchasePrice}
                       onChange={(e) => setPurchasePrice(e.target.value)}
                     />
                   </div>
                </div>
 
-               <div>
-                  <label className="block text-sm font-semibold text-[#d7baff] mb-2">
-                    Precio final de venta (A favor de KevPhonesGC) *
+               <div className="flex flex-col gap-2">
+                  <label className="text-[13px] font-bold text-[#d7baff]">
+                    Precio final del dispositivo vendido *
                   </label>
+                  <p className="text-xs text-[#d7baff]/70 mb-1">El precio en € por el que vendemos nuestro móvil.</p>
                   <div className="relative">
-                    <span className="absolute left-4 top-[14px] text-white/50 font-bold">€</span>
+                    <span className="absolute left-4 top-[15px] text-zinc-400 font-bold">€</span>
                     <input 
                       type="number" 
                       step="0.01" 
                       min="0" 
                       required 
-                      className="w-full bg-[#131313] text-white border border-[#9867db]/40 rounded-lg p-3 pl-9 text-lg font-bold focus:outline-none focus:border-[#d7baff] transition-colors"
+                      className="w-full bg-[#121217] text-white border border-[#7a32d4]/30 rounded-xl py-3 pl-10 pr-4 text-xl font-bold focus:outline-none focus:border-[#d7baff] focus:ring-1 focus:ring-[#d7baff] transition-colors"
                       value={finalSalePrice}
                       onChange={(e) => setFinalSalePrice(e.target.value)}
                     />
@@ -289,14 +293,14 @@ export function TradeInFromRequestForm({ request, tradeInContext }: { request: S
 
              {/* LIVE SETTLEMENT PREVIEW */}
              {(purchasePrice && finalSalePrice) && (
-               <div className="mt-6 pt-6 border-t border-[#9867db]/30 flex flex-col items-center">
-                 <div className="text-sm font-semibold text-[#A8A8B0] uppercase tracking-widest mb-2">
+               <div className="mt-8 pt-6 border-t border-[#7a32d4]/20 flex flex-col items-center z-10 relative">
+                 <div className="text-[11px] font-bold text-[#d7baff] uppercase tracking-widest mb-2">
                    {settlement > 0 ? 'Cliente paga' : settlement < 0 ? 'KevPhonesGC paga al cliente' : 'Sin diferencia'}
                  </div>
-                 <div className={`text-4xl font-extrabold ${settlement > 0 ? 'text-white' : settlement < 0 ? 'text-amber-400' : 'text-[#A8A8B0]'}`}>
+                 <div className={`text-5xl font-extrabold tracking-tight ${settlement > 0 ? 'text-white' : settlement < 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
                    {formatMoney(Math.abs(settlement))}
                  </div>
-                 <div className="text-xs text-[#A8A8B0] mt-2">
+                 <div className="text-xs text-[#d7baff]/60 mt-3 font-medium text-center">
                    Importe informativo. La contabilidad se deriva de los precios individuales ingresados arriba.
                  </div>
                </div>
@@ -305,42 +309,41 @@ export function TradeInFromRequestForm({ request, tradeInContext }: { request: S
 
           {/* OTHER ADMIN REQUIRED FIELDS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div className="flex flex-col gap-1.5">
               <label className={labelClass}>Fecha de la transacción *</label>
-              <input type="date" name="transaction_date" required defaultValue={new Date().toISOString().split('T')[0]} className={inputClass} />
+              <input type="date" name="transaction_date" required defaultValue={new Date().toISOString().split('T')[0]} className={`${inputClass} [color-scheme:dark]`} />
             </div>
-            <div>
+            <div className="flex flex-col gap-1.5">
               <label className={labelClass}>Lugar de la transacción (Opcional)</label>
-              <input type="text" name="transaction_location" className={inputClass} />
+              <input type="text" name="transaction_location" className={inputClass} placeholder="Ej. Las Palmas" />
             </div>
-            <div>
+            <div className="flex flex-col gap-1.5">
               <label className={labelClass}>Precio de venta (Nuevo dispositivo ingresado) *</label>
               <input type="number" step="0.01" min="0" name="incoming_listing_price" required className={inputClass} placeholder="A qué precio lo venderemos..." />
             </div>
-            <div>
+            <div className="flex flex-col gap-1.5">
               <label className={labelClass}>IMEI / Número de serie (Dispositivo entrante)</label>
-              <input type="text" name="imei_serial" className={inputClass} />
+              <input type="text" name="imei_serial" className={inputClass} placeholder="Introduce IMEI o Serie" />
             </div>
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 flex flex-col gap-1.5">
               <label className={labelClass}>Notas internas / Observaciones de la venta</label>
-              <textarea name="internal_notes" rows={2} defaultValue={request.notes ? `Notas de la solicitud: ${request.notes}` : ''} className={inputClass}></textarea>
+              <textarea name="internal_notes" rows={2} defaultValue={request.notes ? `Notas de la solicitud: ${request.notes}` : ''} className={`${inputClass} resize-none`}></textarea>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-[#1F1F24] flex gap-3">
+          <div className="pt-2 flex flex-col-reverse md:flex-row gap-3 md:justify-end">
             <button 
               type="button"
               onClick={() => setIsOpen(false)}
               disabled={submitting}
-              className="flex-1 px-4 py-3 bg-[#131313] border border-[#1F1F24] text-white rounded-lg text-sm font-medium hover:bg-[#1F1F24] transition-colors"
+              className="w-full md:w-auto px-6 py-3 bg-[#121217] border border-[#1F1F24] text-white rounded-xl text-[14px] font-bold hover:bg-[#1F1F24] transition-colors"
             >
               Cancelar
             </button>
             <button 
               type="submit" 
               disabled={submitting || !purchasePrice || !finalSalePrice}
-              className="flex-1 text-[#440087] font-bold py-3 rounded-lg transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #d7baff 0%, #B98AFF 100%)' }}
+              className="w-full md:w-auto px-6 py-3 bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-[14px] rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {submitting ? 'Guardando...' : 'Completar parte de pago'}
             </button>

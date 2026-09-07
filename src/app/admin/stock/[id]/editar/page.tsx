@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import { EditDeviceForm } from '@/components/admin/stock/EditDeviceForm'
+import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 
 export const metadata = {
   title: 'Editar Dispositivo - Admin'
@@ -55,29 +56,22 @@ export default async function EditDevicePage({ params }: PageProps) {
     .select('model_id, color, storage_path')
 
   return (
-    <>
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-      <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
-      
-      <div className="bg-[#131313] text-[#F7F7F7] font-body-md min-h-screen flex flex-col pb-24" style={{ fontFamily: 'Inter, sans-serif' }}>
-        <header className="bg-[#131313] border-b border-[#1F1F24] w-full top-0 sticky z-50">
-          <div className="flex items-center justify-between px-4 py-2 w-full max-w-[1280px] mx-auto">
-            <a href={`/admin/stock/${device.id}`} className="text-[#d7baff] hover:bg-[#353534] transition-colors rounded-full p-2 active:opacity-80">
-              <span className="material-symbols-outlined">arrow_back</span>
-            </a>
-            <h1 className="text-[24px] font-bold uppercase tracking-tighter text-[#d7baff]" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>KevPhonesGC Admin</h1>
-            <div className="w-10"></div>
-          </div>
+    <AdminPageShell>
+      <div className="flex flex-col gap-6 lg:gap-8 w-full max-w-6xl mx-auto">
+        <header className="flex flex-col gap-2">
+          <a href={`/admin/stock/${device.id}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-400 hover:text-white transition-colors w-fit mb-2">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Volver al dispositivo
+          </a>
+          <h1 className="text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-none">
+            Editar dispositivo
+          </h1>
+          <p className="text-sm text-zinc-400">
+            Modifica los datos de esta unidad.
+          </p>
         </header>
-        
-        <main className="flex-grow px-4 py-4 md:max-w-2xl md:mx-auto w-full space-y-8 pb-8">
-          <div>
-            <h2 className="text-[32px] font-extrabold text-[#F7F7F7] uppercase tracking-wide" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Editar Dispositivo</h2>
-            <p className="text-[16px] text-[#A8A8B0] mt-2">Modifica los datos del dispositivo seleccionado.</p>
-          </div>
-          <EditDeviceForm device={device} models={models || []} variants={variants || []} catalogImages={catalogImages || []} />
-        </main>
+        <EditDeviceForm device={device} models={models || []} variants={variants || []} catalogImages={catalogImages || []} />
       </div>
-    </>
+    </AdminPageShell>
   )
 }

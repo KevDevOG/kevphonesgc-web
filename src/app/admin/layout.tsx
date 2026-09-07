@@ -5,22 +5,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <>
       <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-      <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
       
-      {/* GLOBAL BRAND HEADER (z-50) */}
-      <header className="bg-[#131313] fixed top-0 w-full z-50 border-b border-[#1F1F24] flex justify-between items-center px-4 md:px-8 h-14 left-0">
-        <div className="flex items-center gap-2 text-[#d7baff] max-w-[1280px] mx-auto w-full">
-          <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
-          <h1 className="font-bold text-[24px]" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>KevPhonesGC Admin</h1>
+      {/* MOBILE TOP HEADER */}
+      <header className="lg:hidden bg-[#0B0B0E]/95 backdrop-blur-md fixed top-0 w-full z-40 border-b border-[#1F1F24] flex items-center px-4 h-14 left-0">
+        <div className="flex items-center gap-3">
+          <img src="/brand/kevphonesgc-logo.PNG" alt="KevPhonesGC" className="w-8 h-8 rounded-[8px] object-cover" />
+          <div className="flex flex-col justify-center">
+            <span className="font-bold text-white text-[15px] leading-none mb-1 tracking-tight">KevPhonesGC</span>
+            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest leading-none">Admin</span>
+          </div>
         </div>
       </header>
 
-      {/* BACKING BACKGROUND FOR NON-SHELLED PAGES */}
-      <div className="pb-28 pt-14 bg-[#050505] min-h-screen text-[#F7F7F7] font-body-md" style={{ fontFamily: 'Inter, sans-serif' }}>
+      {/* NAVIGATION (Sidebar + Mobile Bottom Nav) */}
+      <AdminBottomNav />
+
+      {/* BACKGROUND AND MAIN CONTENT OFFSET */}
+      <div className="bg-[#050506] min-h-screen text-white font-sans pt-14 pb-20 lg:pt-0 lg:pb-0 lg:pl-[260px]">
         {children}
       </div>
-
-      <AdminBottomNav />
     </>
   )
 }

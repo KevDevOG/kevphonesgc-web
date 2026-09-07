@@ -33,6 +33,12 @@ type Props = {
   catalogImages: CatalogImage[]
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  'iphone': 'iPhone',
+  'ps5': 'PlayStation 5',
+  'nintendo_switch': 'Nintendo Switch'
+}
+
 export default function ModelManagement({ models, colorVariants, catalogImages }: Props) {
   const [searchTerm, setSearchTerm] = useState('')
   const [processing, setProcessing] = useState<string | null>(null) // '{modelId}-{color}' format
@@ -159,87 +165,132 @@ export default function ModelManagement({ models, colorVariants, catalogImages }
 
   return (
     <AdminPageShell>
-      <AdminPageHeader 
-        title="Modelos" 
-        subtitle="Gestiona las imágenes utilizadas en el catálogo." 
-      />
+      <div className="flex flex-col gap-6 lg:gap-8 w-full max-w-6xl mx-auto pb-24">
+        <div className="flex flex-col gap-2">
+          <AdminPageHeader 
+            title="Modelos" 
+            subtitle="Gestiona las imágenes utilizadas en el catálogo." 
+          />
+          <p className="text-[14px] text-zinc-500 font-medium -mt-4">
+            Cada color puede tener su propia imagen de catálogo.
+          </p>
+        </div>
 
-      <div className="mt-6 mb-4 px-4 sm:px-6">
-        <input 
-          type="text" 
-          placeholder="Buscar modelo..." 
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          className="w-full bg-[#1c1b1b] text-white border border-[#333] rounded-xl px-4 py-3 outline-none focus:border-[#d7baff] transition-colors"
-        />
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center w-full">
+          <div className="relative w-full max-w-[480px]">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-[20px]">search</span>
+            <input 
+              type="text" 
+              placeholder="Buscar modelo..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full bg-[#0B0B0E] text-white border border-[#1F1F24] rounded-xl pl-11 pr-4 py-3 text-[14px] font-medium outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all placeholder:text-zinc-600"
+            />
+          </div>
+        </div>
+
         {errorMsg && (
-          <div className="mt-4 p-4 bg-red-900/50 border border-red-500 rounded-xl text-red-200 text-sm">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-[13px] font-bold">
             {errorMsg}
           </div>
         )}
-      </div>
 
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        className="hidden" 
-        accept="image/jpeg, image/png, image/webp"
-        onChange={handleFileChange}
-      />
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          className="hidden" 
+          accept="image/jpeg, image/png, image/webp"
+          onChange={handleFileChange}
+        />
 
-      <div className="px-4 sm:px-6 pb-28 space-y-10">
-        {Object.entries(groupedModels).map(([category, catModels]) => (
-          <div key={category}>
-            <h3 className="text-xl font-bold text-white mb-4 capitalize">{category.toLowerCase()}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {catModels.map(model => {
-                const colors = colorVariants.filter(cv => cv.model_id === model.id)
-                
-                return (
-                  <div key={model.id} className="bg-[#1c1b1b] border border-[#2A2A2A] rounded-2xl p-5 shadow-lg">
-                    <h4 className="text-lg font-semibold text-[#F7F7F7] mb-4">{model.name}</h4>
-                    
-                    {colors.length === 0 ? (
-                      <p className="text-sm text-[#A8A8B0]">Este modelo no tiene colores activos configurados.</p>
-                    ) : (
-                      <div className="space-y-4">
-                        {colors.map(cv => {
-                          const image = catalogImages.find(ci => ci.model_id === model.id && ci.color === cv.value)
-                          const processKey = `${model.id}-${cv.value}`
-                          const isProcessing = processing === processKey
+        <div className="flex flex-col gap-10">
+          {Object.entries(groupedModels).map(([category, catModels]) => (
+            <div key={category} className="flex flex-col gap-4">
+              <h3 className="text-[18px] font-extrabold text-white uppercase tracking-tight">
+                {CATEGORY_LABELS[category] || category}
+              </h3>
+              
+              <div className="flex flex-col gap-6">
+                {catModels.map(model => {
+                  const colors = colorVariants.filter(cv => cv.model_id === model.id)
+                  const configuredCount = colors.filter(cv => catalogImages.some(ci => ci.model_id === model.id && ci.color === cv.value)).length
+                  
+                  return (
+                    <div key={model.id} className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl overflow-hidden flex flex-col">
+                      <div className="bg-[#121217] border-b border-[#1F1F24] px-4 py-3 flex items-center justify-between">
+                        <h4 className="font-bold text-[15px] text-white">{model.name}</h4>
+                        {colors.length > 0 && (
+                          <span className="text-[12px] font-semibold text-zinc-500">{configuredCount} de {colors.length} imágenes</span>
+                        )}
+                      </div>
+                      
+                      {colors.length === 0 ? (
+                        <div className="px-4 py-4">
+                          <p className="text-[13px] font-medium text-zinc-500">Este modelo no tiene colores activos configurados.</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col divide-y divide-[#1F1F24]">
+                          {/* Desktop Header */}
+                          <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 border-b border-[#1F1F24] bg-[#0B0B0E]">
+                            <div className="col-span-3 text-[12px] font-semibold text-zinc-500 uppercase tracking-wider">Color</div>
+                            <div className="col-span-3 text-[12px] font-semibold text-zinc-500 uppercase tracking-wider">Imagen</div>
+                            <div className="col-span-3 text-[12px] font-semibold text-zinc-500 uppercase tracking-wider">Estado</div>
+                            <div className="col-span-3 text-[12px] font-semibold text-zinc-500 uppercase tracking-wider text-right">Acción</div>
+                          </div>
 
-                          return (
-                            <div key={cv.value} className="flex flex-col bg-[#131313] rounded-xl p-3 border border-[#2A2A2A]">
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium text-[#F7F7F7]">{cv.value}</span>
-                              </div>
-                              
-                              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                                <div className="w-24 h-24 bg-[#0a0a0a] rounded-lg border border-[#2A2A2A] flex items-center justify-center overflow-hidden shrink-0 relative">
+                          {colors.map(cv => {
+                            const image = catalogImages.find(ci => ci.model_id === model.id && ci.color === cv.value)
+                            const processKey = `${model.id}-${cv.value}`
+                            const isProcessing = processing === processKey
+
+                            return (
+                              <div key={cv.value} className="flex flex-col md:grid md:grid-cols-12 gap-4 px-4 py-3 items-start md:items-center hover:bg-[#121217]/50 transition-colors">
+                                {/* Color Name */}
+                                <div className="md:col-span-3 font-bold text-white text-[14px]">
+                                  {cv.value}
+                                </div>
+                                
+                                {/* Thumbnail */}
+                                <div className="md:col-span-3 w-full md:w-auto">
+                                  <div className="w-16 h-16 md:w-16 md:h-16 bg-[#121217] rounded-xl border border-[#1F1F24] flex items-center justify-center overflow-hidden relative">
+                                    {image ? (
+                                      <img 
+                                        src={`${supabaseUrl}/storage/v1/object/public/model-images/${image.storage_path}`} 
+                                        alt={`${model.name} ${cv.value}`}
+                                        className="w-full h-full object-contain p-2"
+                                      />
+                                    ) : (
+                                      <span className="material-symbols-outlined text-[20px] text-zinc-700">image</span>
+                                    )}
+                                    {isProcessing && (
+                                      <div className="absolute inset-0 bg-black/80 flex items-center justify-center backdrop-blur-sm">
+                                        <span className="text-[10px] text-white font-bold uppercase tracking-wider">Subiendo...</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Status */}
+                                <div className="md:col-span-3 flex items-center w-full md:w-auto">
                                   {image ? (
-                                    <img 
-                                      src={`${supabaseUrl}/storage/v1/object/public/model-images/${image.storage_path}`} 
-                                      alt={`${model.name} ${cv.value}`}
-                                      className="w-full h-full object-contain p-2"
-                                    />
+                                    <span className="text-[13px] font-bold text-[#d7baff] flex items-center gap-1.5 bg-[#7a32d4]/10 px-2.5 py-1 rounded-md border border-[#7a32d4]/20">
+                                      <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                                      Configurada
+                                    </span>
                                   ) : (
-                                    <span className="text-xs text-[#A8A8B0] text-center px-2">Sin imagen</span>
-                                  )}
-                                  {isProcessing && (
-                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                      <span className="text-xs text-white font-medium">Subiendo...</span>
-                                    </div>
+                                    <span className="text-[13px] font-semibold text-zinc-500">Sin imagen</span>
                                   )}
                                 </div>
                                 
-                                <div className="flex flex-col gap-2 w-full">
+                                {/* Actions */}
+                                <div className="md:col-span-3 flex items-center gap-2 md:justify-end w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t border-[#1F1F24] md:border-0">
                                   <button
                                     disabled={isProcessing}
                                     onClick={() => {
                                       setActiveUploadContext({ modelId: model.id, color: cv.value })
                                       fileInputRef.current?.click()
                                     }}
-                                    className="bg-[#2A2A2A] hover:bg-[#333] text-white text-xs font-semibold py-2 px-3 rounded-lg transition-colors w-full text-center disabled:opacity-50"
+                                    className="px-4 py-1.5 bg-[#121217] hover:bg-[#1F1F24] text-white text-[13px] font-bold rounded-lg border border-[#1F1F24] transition-colors disabled:opacity-50 flex-1 md:flex-none text-center"
                                   >
                                     {image ? 'Cambiar' : 'Subir imagen'}
                                   </button>
@@ -247,27 +298,32 @@ export default function ModelManagement({ models, colorVariants, catalogImages }
                                     <button
                                       disabled={isProcessing}
                                       onClick={() => handleDelete(model.id, cv.value)}
-                                      className="bg-transparent hover:bg-red-900/30 text-red-400 text-xs font-semibold py-2 px-3 rounded-lg border border-red-900/50 hover:border-red-500/50 transition-colors w-full text-center disabled:opacity-50"
+                                      className="px-3 py-1.5 bg-transparent hover:bg-red-500/10 text-zinc-500 hover:text-red-400 text-[13px] font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center border border-transparent hover:border-red-500/30"
+                                      title="Eliminar imagen"
                                     >
-                                      Eliminar
+                                      <span className="material-symbols-outlined text-[18px]">delete</span>
+                                      <span className="md:hidden ml-1">Eliminar</span>
                                     </button>
                                   )}
                                 </div>
                               </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        ))}
-        {filteredModels.length === 0 && (
-          <p className="text-center text-[#A8A8B0] mt-10">No se encontraron modelos.</p>
-        )}
+          ))}
+          {filteredModels.length === 0 && (
+            <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3">
+              <span className="material-symbols-outlined text-[48px] text-zinc-700">search_off</span>
+              <p className="text-[14px] font-bold text-zinc-500">No se encontraron modelos.</p>
+            </div>
+          )}
+        </div>
       </div>
     </AdminPageShell>
   )

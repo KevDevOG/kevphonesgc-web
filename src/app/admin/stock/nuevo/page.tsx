@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NewDeviceForm } from '@/components/admin/stock/NewDeviceForm'
 import { redirect } from 'next/navigation'
+import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 
 export const metadata = {
   title: 'Añadir dispositivo - KevPhonesGC Admin'
@@ -38,33 +39,22 @@ export default async function NewDevicePage() {
   const sortedVariants = (variants || []).sort((a, b) => a.sort_order - b.sort_order)
 
   return (
-    <>
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-      <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
-      <style suppressHydrationWarning>{`
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-        }
-      `}</style>
-      <div className="min-h-screen bg-[#050505] text-[#F7F7F7] pb-24 font-body-md" style={{ fontFamily: 'Inter, sans-serif' }}>
-        <header className="fixed top-0 w-full z-50 bg-[#0B0B0D] border-b border-[#1F1F24] flex items-center px-4 h-14">
-          <a href="/admin" aria-label="Volver" className="mr-4 text-[#d7baff] active:scale-95 duration-150 p-2 -ml-2 rounded-full hover:bg-[#1c1b1b] transition-colors">
-            <span className="material-symbols-outlined text-[24px]">arrow_back</span>
+    <AdminPageShell>
+      <div className="flex flex-col gap-6 lg:gap-8 w-full max-w-6xl mx-auto">
+        <header className="flex flex-col gap-2">
+          <a href="/admin/stock" className="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-400 hover:text-white transition-colors w-fit mb-2">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Volver a Stock
           </a>
-          <div>
-            <h1 className="font-bold text-2xl text-[#B98AFF] uppercase tracking-tighter" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>KevPhonesGC</h1>
-          </div>
+          <h1 className="text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-none">
+            Añadir dispositivo
+          </h1>
+          <p className="text-sm text-zinc-400">
+            Registra una nueva unidad en stock.
+          </p>
         </header>
-        
-        <main className="pt-20 px-4 max-w-3xl mx-auto space-y-8">
-          <div className="mb-8">
-            <h2 className="font-bold text-3xl mb-2 tracking-wide" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Añadir dispositivo</h2>
-            <p className="text-[#A8A8B0]">Registra una nueva unidad en stock.</p>
-          </div>
-          
-          <NewDeviceForm models={sortedModels} variants={sortedVariants} catalogImages={catalogImages || []} />
-        </main>
+        <NewDeviceForm models={sortedModels} variants={sortedVariants} catalogImages={catalogImages || []} />
       </div>
-    </>
+    </AdminPageShell>
   )
 }

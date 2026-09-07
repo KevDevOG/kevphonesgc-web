@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BusinessSettingsForm } from '@/components/admin/settings/BusinessSettingsForm'
+import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,19 +23,23 @@ export default async function BusinessSettingsPage() {
 
   if (error || !settings) {
     return (
-      <div className="min-h-screen bg-[#050505] p-4 md:p-8 flex items-center justify-center">
-        <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffdad6] p-6 rounded-xl text-center max-w-md">
-          <span className="material-symbols-outlined text-[48px] mb-4 text-[#ffb4ab]">error</span>
-          <h2 className="text-xl font-bold mb-2">Error de configuración</h2>
-          <p>No se encontró la configuración del negocio o hubo un error al cargarla. Por favor, revisa la base de datos.</p>
+      <AdminPageShell>
+        <div className="flex items-center justify-center p-8 pb-32">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-6 rounded-2xl text-center max-w-md">
+            <span className="material-symbols-outlined text-[48px] mb-4">error</span>
+            <h2 className="text-xl font-bold mb-2 tracking-tight">Error de configuración</h2>
+            <p className="text-[14px] font-medium text-red-400/80">No se encontró la configuración del negocio o hubo un error al cargarla. Por favor, revisa la base de datos.</p>
+          </div>
         </div>
-      </div>
+      </AdminPageShell>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#F7F7F7] p-4 md:p-8 max-w-3xl mx-auto pt-8">
-      <BusinessSettingsForm settings={settings} />
-    </div>
+    <AdminPageShell>
+      <div className="w-full max-w-6xl mx-auto pb-24">
+        <BusinessSettingsForm settings={settings} />
+      </div>
+    </AdminPageShell>
   )
 }

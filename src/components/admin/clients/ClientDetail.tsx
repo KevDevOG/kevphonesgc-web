@@ -69,7 +69,7 @@ export function ClientDetail({ client, sales, devices }: Props) {
   const router = useRouter()
   const purchases_count = sales.length
   const purchases_total = sales.reduce((acc, sale) => acc + Number(sale.final_sale_price), 0)
-  
+
   const sales_to_business_count = devices.length
   const paid_to_client_total = devices.reduce((acc, dev) => acc + Number(dev.purchase_price), 0)
 
@@ -83,7 +83,7 @@ export function ClientDetail({ client, sales, devices }: Props) {
     setIsPending(true)
     setError(null)
     const formData = new FormData(e.currentTarget)
-    
+
     try {
       const res = await updateClientAction(client.id, formData)
       if (!res.success) {
@@ -102,7 +102,7 @@ export function ClientDetail({ client, sales, devices }: Props) {
     e.preventDefault()
     setIsPending(true)
     setError(null)
-    
+
     try {
       const res = await deleteClientAction(client.id)
       if (!res.success) {
@@ -119,7 +119,7 @@ export function ClientDetail({ client, sales, devices }: Props) {
 
   return (
     <div className="space-y-8 pb-20">
-      
+
       {/* Edit Modal */}
       {isEditing && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
@@ -144,16 +144,16 @@ export function ClientDetail({ client, sales, devices }: Props) {
                 <input name="location" defaultValue={client.location || ''} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
               </div>
               <div className="flex justify-end gap-3 mt-2">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => { setIsEditing(false); setError(null); }}
                   disabled={isPending}
                   className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                 >
                   Cancelar
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={isPending}
                   className="bg-[#7a32d4] hover:bg-[#6e02d2] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                 >
@@ -178,16 +178,16 @@ export function ClientDetail({ client, sales, devices }: Props) {
               </div>
             )}
             <form onSubmit={handleDelete} className="flex justify-end gap-3 mt-2">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => { setIsDeleting(false); setError(null); }}
                 disabled={isPending}
                 className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isPending}
                 className="bg-[#93000a] hover:bg-[#690005] text-[#ffb4ab] font-bold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50 border border-[#ffb4ab]/30"
               >
@@ -201,7 +201,7 @@ export function ClientDetail({ client, sales, devices }: Props) {
       {/* Client Summary */}
       <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 flex flex-col gap-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-[#7a32d4] opacity-10 blur-3xl rounded-full pointer-events-none"></div>
-        
+
         <div className="z-10 flex justify-between items-start">
           <div>
             <h2 className="text-[32px] font-extrabold text-[#F7F7F7] mb-1 leading-tight tracking-wide" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
@@ -216,16 +216,16 @@ export function ClientDetail({ client, sales, devices }: Props) {
               <span>{client.location || 'No especificada'}</span>
             </div>
           </div>
-          
+
           <div className="flex flex-col gap-2">
-            <button 
+            <button
               onClick={() => setIsEditing(true)}
               className="text-[#A8A8B0] hover:text-[#d7baff] transition-colors p-2 rounded hover:bg-[#1c1b1b] flex items-center justify-center border border-transparent hover:border-[#d7baff]/30"
               title="Editar cliente"
             >
               <span className="material-symbols-outlined">edit</span>
             </button>
-            <button 
+            <button
               onClick={() => setIsDeleting(true)}
               className="text-[#A8A8B0] hover:text-[#ffb4ab] transition-colors p-2 rounded hover:bg-[#1c1b1b] flex items-center justify-center border border-transparent hover:border-[#ffb4ab]/30"
               title="Eliminar cliente"
@@ -234,9 +234,9 @@ export function ClientDetail({ client, sales, devices }: Props) {
             </button>
           </div>
         </div>
-        
-        <button 
-          type="button" 
+
+        <button
+          type="button"
           onClick={() => {
             const num = client.phone.replace(/[^0-9]/g, '')
             if (num) window.open(`https://wa.me/34${num}`, '_blank')
@@ -266,7 +266,7 @@ export function ClientDetail({ client, sales, devices }: Props) {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col justify-center items-center text-center">
           <span className="text-[12px] font-semibold text-[#A8A8B0] uppercase tracking-wider mb-2 leading-tight">Ventas</span>
           <div className="flex gap-4">
@@ -291,7 +291,7 @@ export function ClientDetail({ client, sales, devices }: Props) {
             <p className="text-[#A8A8B0] text-[14px]">Este cliente todavía no ha comprado dispositivos.</p>
           ) : (
             sales.map(sale => (
-              <a 
+              <a
                 key={sale.id}
                 href={`/admin/stock/${sale.devices.id}`}
                 className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col gap-2 relative overflow-hidden group hover:border-[#7a32d4] transition-colors block"
@@ -333,7 +333,7 @@ export function ClientDetail({ client, sales, devices }: Props) {
             <p className="text-[#A8A8B0] text-[14px]">Este cliente todavía no ha vendido dispositivos.</p>
           ) : (
             devices.map(dev => (
-              <a 
+              <a
                 key={dev.id}
                 href={`/admin/stock/${dev.id}`}
                 className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col gap-2 relative overflow-hidden group hover:border-[#7a32d4] transition-colors block"

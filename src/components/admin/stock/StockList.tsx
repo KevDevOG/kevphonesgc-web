@@ -5,6 +5,7 @@ import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 import { deleteDeviceAction } from '@/actions/devices'
 import { updateDeviceSaleAction, cancelDeviceSaleAction } from '@/actions/sales'
+import Link from 'next/link'
 
 type Category = string
 
@@ -135,7 +136,7 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
         setError(res.error || 'No se pudo anular la venta. Inténtalo de nuevo.')
       } else {
         setCancellingSale(null)
-        setView('available') // Optional UX touch, switch view or keep
+        setView('available')
       }
     } catch (err) {
       setError('No se pudo anular la venta. Inténtalo de nuevo.')
@@ -167,83 +168,257 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
   }
 
   return (
-    <AdminPageShell>
+    <div className="flex flex-col gap-6">
       <AdminPageHeader 
         title="Stock" 
         subtitle="Gestiona tus dispositivos disponibles y vendidos." 
         action={
-          <a href="/admin/stock/nuevo" className="inline-flex justify-center items-center gap-2 bg-gradient-to-r from-[#7a32d4] to-[#6e02d2] border border-[#d7baff] text-[#131313] font-bold text-[14px] py-2 px-4 rounded-lg hover:brightness-110 transition-all">
-            <span className="material-symbols-outlined text-[18px]">add</span> Añadir dispositivo
-          </a>
+          <Link href="/admin/stock/nuevo" className="inline-flex justify-center items-center gap-2 bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm py-2.5 px-4 rounded-xl transition-colors w-full lg:w-auto">
+            <span className="material-symbols-outlined text-[20px]">add</span> Añadir dispositivo
+          </Link>
         }
       />
-      {/* Search */}
-      <div className="relative w-full">
-        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A8B0]">search</span>
-        <input 
-          className="w-full bg-[#101014] border border-[#1F1F24] rounded-lg py-3 pl-10 pr-4 text-[#F7F7F7] placeholder-[#A8A8B0] focus:outline-none focus:border-[#d7baff] focus:ring-1 focus:ring-[#d7baff] transition-all" 
-          placeholder="Buscar por modelo o IMEI" 
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
 
       {/* KPI Section */}
-      <section className="grid grid-cols-2 gap-3">
-        <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col justify-between h-32">
-          <p className="text-[14px] font-semibold text-[#A8A8B0] uppercase">Disponibles</p>
-          <p className="text-[32px] font-extrabold text-[#F7F7F7] leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+      <section className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="col-span-1 bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col justify-center">
+          <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Disponibles</p>
+          <p className="text-3xl font-semibold text-white leading-none">
             {availableCount}
           </p>
         </div>
 
-        <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col justify-between h-32">
-          <p className="text-[14px] font-semibold text-[#A8A8B0] uppercase">Capital en stock</p>
-          <p className="text-[28px] font-extrabold text-[#B98AFF] leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
+        <div className="col-span-1 bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col justify-center">
+          <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Vendidos</p>
+          <p className="text-3xl font-semibold text-white leading-none">
+            {soldCount}
+          </p>
+        </div>
+
+        <div className="col-span-2 lg:col-span-1 bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col justify-center">
+          <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Capital en stock</p>
+          <p className="text-3xl font-semibold text-[#d7baff] leading-none">
             {formatPrice(stockCapital)}
           </p>
         </div>
       </section>
 
-      <div className="flex justify-end -mt-1">
-        {view === 'available' ? (
-          <button onClick={() => { setView('sold'); setSearch(''); setOpenMenuId(null); }} className="text-[#d7baff] text-[14px] font-bold hover:underline">
-            Ver vendidos ({soldCount})
+      {/* Filters & Search Toolbar */}
+      <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        
+        {/* Tabs */}
+        <div className="flex bg-[#0B0B0E] border border-[#1F1F24] rounded-xl p-1 w-full lg:w-auto overflow-hidden">
+          <button 
+            onClick={() => { setView('available'); setSearch(''); setOpenMenuId(null); }}
+            className={`flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${view === 'available' ? 'bg-[#7a32d4]/15 text-[#d7baff] shadow-sm' : 'text-zinc-400 hover:text-white'}`}
+          >
+            Disponibles ({availableCount})
           </button>
-        ) : (
-          <button onClick={() => { setView('available'); setSearch(''); setOpenMenuId(null); }} className="text-[#d7baff] text-[14px] font-bold hover:underline">
-            Ver disponibles ({availableCount})
+          <button 
+            onClick={() => { setView('sold'); setSearch(''); setOpenMenuId(null); }}
+            className={`flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${view === 'sold' ? 'bg-[#7a32d4]/15 text-[#d7baff] shadow-sm' : 'text-zinc-400 hover:text-white'}`}
+          >
+            Vendidos ({soldCount})
           </button>
-        )}
-      </div>
+        </div>
 
-      {/* Modals */}
+        {/* Search */}
+        <div className="relative w-full lg:w-[320px]">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-[20px]">search</span>
+          <input 
+            className="w-full bg-[#0B0B0E] border border-[#1F1F24] rounded-xl py-2.5 pl-10 pr-4 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" 
+            placeholder="Buscar por modelo, IMEI..." 
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      </section>
+
+      {/* Device List */}
+      <section className="flex flex-col gap-3 pb-8">
+        {filteredList.length === 0 ? (
+          <div className="text-center py-16 border border-[#1F1F24] rounded-2xl bg-[#0B0B0E]">
+            <p className="text-zinc-500 text-sm font-medium">
+              {view === 'available' ? 'Ahora mismo no hay dispositivos disponibles.' : 'Todavía no hay dispositivos vendidos.'}
+            </p>
+            {view === 'available' && (
+              <Link href="/admin/stock/nuevo" className="inline-block mt-4 text-[#d7baff] font-semibold text-sm hover:underline">
+                + Añadir dispositivo
+              </Link>
+            )}
+          </div>
+        ) : (
+          filteredList.map(device => {
+            const hasImage = device.device_images && device.device_images.length > 0
+            const imgUrl = hasImage && supabaseUrl ? `${supabaseUrl}/storage/v1/object/public/device-images/${device.device_images[0].storage_path}` : null
+
+            return (
+              <div key={device.id} className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-4 lg:p-5 flex flex-col lg:flex-row gap-4 lg:items-center relative group hover:border-[#2a2a30] transition-colors">
+                
+                {/* Mobile: Image + Details Top Row */}
+                <div className="flex gap-4 items-start lg:flex-1 lg:items-center">
+                  <div className="w-16 h-20 lg:w-14 lg:h-16 bg-[#1F1F24] rounded-xl border border-[#2a2a30] overflow-hidden flex-shrink-0 relative">
+                    {imgUrl ? (
+                      <img className="w-full h-full object-cover" src={imgUrl} alt={device.device_models?.name} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                        <span className="material-symbols-outlined text-[20px]">smartphone</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h3 className="text-base lg:text-[17px] leading-tight text-white font-bold truncate">
+                        {device.device_models?.name}
+                      </h3>
+                      <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${view === 'available' ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-[#1F1F24] text-zinc-400'}`}>
+                        {view === 'available' ? 'Disponible' : 'Vendido'}
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs lg:text-[13px] text-zinc-400 truncate mb-1">
+                      {[
+                        device.storage, 
+                        device.color, 
+                        device.battery_health ? `${device.battery_health}%` : null,
+                        conditionMap[device.condition] || null
+                      ].filter(Boolean).join(' · ')}
+                    </p>
+                    
+                    <p className="text-[11px] text-zinc-500 font-mono truncate">
+                      IMEI {maskImei(device.imei_serial)}
+                    </p>
+                  </div>
+                  
+                  {/* Mobile Menu Button */}
+                  <div className="lg:hidden absolute top-4 right-4">
+                    <button 
+                      aria-label="Opciones" 
+                      className="text-zinc-500 hover:text-white transition-colors"
+                      onClick={() => setOpenMenuId(openMenuId === device.id ? null : device.id)}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">more_vert</span>
+                    </button>
+                    {openMenuId === device.id && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
+                        <div className="absolute right-0 top-6 w-48 bg-[#121217] border border-[#1F1F24] rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
+                          <Link href={`/admin/stock/${device.id}`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Ver detalle</Link>
+                          {view === 'available' ? (
+                            <>
+                              <Link href={`/admin/stock/${device.id}/editar`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar dispositivo</Link>
+                              <Link href={`/admin/stock/${device.id}/vender`} className="block px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Vender</Link>
+                              <button onClick={() => { setOpenMenuId(null); setDeletingDevice(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24]">Eliminar</button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => { setOpenMenuId(null); setEditingSale(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar venta</button>
+                              <button onClick={() => { setOpenMenuId(null); setCancellingSale(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24]">Anular venta</button>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Financials & Actions (Desktop Inline / Mobile Stacked) */}
+                <div className="flex items-center justify-between lg:justify-end gap-6 pt-3 lg:pt-0 border-t border-[#1F1F24] lg:border-t-0 mt-2 lg:mt-0">
+                  <div className="flex gap-6">
+                    <div className="flex flex-col lg:items-end">
+                      <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-0.5">Compra</span>
+                      <span className="text-sm font-semibold text-zinc-300">{formatPrice(device.purchase_price)}</span>
+                    </div>
+                    {view === 'available' ? (
+                      <div className="flex flex-col lg:items-end">
+                        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-0.5">Precio / Venta</span>
+                        <span className="text-base font-bold text-white">{formatPrice(device.listing_price)}</span>
+                      </div>
+                    ) : device.sale_data && (
+                      <div className="flex flex-col lg:items-end">
+                        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-0.5">Vendido en</span>
+                        <span className="text-base font-bold text-[#d7baff]">{formatPrice(device.sale_data.final_sale_price)}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Desktop Actions */}
+                  <div className="hidden lg:flex items-center gap-2 relative">
+                    <Link href={`/admin/stock/${device.id}`} className="p-2 text-zinc-500 hover:text-white hover:bg-[#1F1F24] rounded-lg transition-colors" title="Ver detalle">
+                      <span className="material-symbols-outlined text-[20px]">visibility</span>
+                    </Link>
+                    {view === 'available' && (
+                      <Link href={`/admin/stock/${device.id}/vender`} className="p-2 text-[#d7baff] hover:bg-[#7a32d4]/15 hover:text-[#e5d0ff] rounded-lg transition-colors" title="Vender">
+                        <span className="material-symbols-outlined text-[20px]">sell</span>
+                      </Link>
+                    )}
+                    <button 
+                      aria-label="Más opciones" 
+                      className="p-2 text-zinc-500 hover:text-white hover:bg-[#1F1F24] rounded-lg transition-colors"
+                      onClick={() => setOpenMenuId(openMenuId === device.id ? null : device.id)}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">more_vert</span>
+                    </button>
+
+                    {openMenuId === device.id && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
+                        <div className="absolute right-0 top-10 w-48 bg-[#121217] border border-[#1F1F24] rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
+                          {view === 'available' ? (
+                            <>
+                              <Link href={`/admin/stock/${device.id}/editar`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar dispositivo</Link>
+                              <button onClick={() => { setOpenMenuId(null); setDeletingDevice(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24]">Eliminar</button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => { setOpenMenuId(null); setEditingSale(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar venta</button>
+                              <button onClick={() => { setOpenMenuId(null); setCancellingSale(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24]">Anular venta</button>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            )
+          })
+        )}
+      </section>
+
+      {/* MODALS */}
       {deletingDevice && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 w-full max-w-md flex flex-col gap-4">
-            <h3 className="text-[20px] font-bold text-[#ffb4ab] uppercase tracking-wider border-b border-[#93000a]/30 pb-2">¿Eliminar este dispositivo?</h3>
-            <p className="text-[14px] text-[#A8A8B0]">Esta acción eliminará permanentemente el dispositivo y sus fotos del stock.</p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 w-full max-w-md flex flex-col gap-5 shadow-2xl">
+            <div>
+              <h3 className="text-lg font-bold text-white mb-2">Eliminar dispositivo</h3>
+              <p className="text-sm text-zinc-400">Esta acción eliminará permanentemente el dispositivo <span className="font-bold text-zinc-300">{deletingDevice.device_models?.name}</span> y sus fotos del stock. No se puede deshacer.</p>
+            </div>
+            
             {error && (
-              <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] text-[14px] p-3 rounded-lg">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg font-medium">
                 {error}
               </div>
             )}
-            <form onSubmit={handleDeleteDevice} className="flex justify-end gap-3 mt-4">
+            
+            <form onSubmit={handleDeleteDevice} className="flex justify-end gap-3 mt-2">
               <button 
                 type="button" 
                 onClick={() => { setDeletingDevice(null); setError(null); }}
                 disabled={isPending}
-                className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                className="bg-transparent hover:bg-[#1F1F24] text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button 
                 type="submit" 
                 disabled={isPending}
-                className="bg-[#93000a] hover:bg-[#690005] text-[#ffb4ab] font-bold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50 border border-[#ffb4ab]/30"
+                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-bold text-sm px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
               >
-                {isPending ? 'Eliminando...' : 'Eliminar definitivamente'}
+                {isPending ? 'Eliminando...' : 'Eliminar'}
               </button>
             </form>
           </div>
@@ -251,29 +426,33 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
       )}
 
       {cancellingSale && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 w-full max-w-md flex flex-col gap-4">
-            <h3 className="text-[20px] font-bold text-[#ffb4ab] uppercase tracking-wider border-b border-[#93000a]/30 pb-2">¿Anular esta venta?</h3>
-            <p className="text-[14px] text-[#A8A8B0]">El dispositivo volverá a estar disponible en stock y la venta se eliminará del historial.</p>
-            <p className="text-[14px] font-semibold text-[#F7F7F7]">El cliente no se eliminará.</p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 w-full max-w-md flex flex-col gap-5 shadow-2xl">
+            <div>
+              <h3 className="text-lg font-bold text-white mb-2">Anular venta</h3>
+              <p className="text-sm text-zinc-400 mb-2">El dispositivo volverá a estar disponible en stock y la venta se eliminará del historial.</p>
+              <p className="text-sm font-semibold text-zinc-300">El cliente no se eliminará.</p>
+            </div>
+            
             {error && (
-              <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] text-[14px] p-3 rounded-lg">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg font-medium">
                 {error}
               </div>
             )}
-            <form onSubmit={handleCancelSale} className="flex justify-end gap-3 mt-4">
+            
+            <form onSubmit={handleCancelSale} className="flex justify-end gap-3 mt-2">
               <button 
                 type="button" 
                 onClick={() => { setCancellingSale(null); setError(null); }}
                 disabled={isPending}
-                className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                className="bg-transparent hover:bg-[#1F1F24] text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button 
                 type="submit" 
                 disabled={isPending}
-                className="bg-[#93000a] hover:bg-[#690005] text-[#ffb4ab] font-bold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50 border border-[#ffb4ab]/30"
+                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-bold text-sm px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
               >
                 {isPending ? 'Anulando...' : 'Anular venta'}
               </button>
@@ -283,69 +462,72 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
       )}
 
       {editingSale && editingSale.sale_data && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 w-full max-w-lg flex flex-col gap-4 my-auto">
-            <h3 className="text-[20px] font-bold text-[#F7F7F7] uppercase tracking-wider border-b border-[#1F1F24] pb-2">Editar venta</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 w-full max-w-lg flex flex-col gap-6 shadow-2xl my-auto">
+            <h3 className="text-lg font-bold text-white">Editar venta</h3>
             
             {/* Device summary context */}
-            <div className="bg-[#101014] border border-[#1F1F24] rounded-lg p-3 flex flex-col gap-1">
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-[#F7F7F7]">{editingSale.device_models?.name}</span>
-                <span className="text-[12px] text-[#A8A8B0]">IMEI {maskImei(editingSale.imei_serial)}</span>
+            <div className="bg-[#121217] border border-[#1F1F24] rounded-xl p-4 flex flex-col gap-1.5">
+              <div className="flex justify-between items-start">
+                <span className="font-bold text-white">{editingSale.device_models?.name}</span>
+                <span className="text-xs text-zinc-500 font-mono mt-0.5">IMEI {maskImei(editingSale.imei_serial)}</span>
               </div>
-              <span className="text-[13px] text-[#A8A8B0]">
+              <span className="text-[13px] text-zinc-400">
                 {[editingSale.storage, editingSale.color].filter(Boolean).join(' · ')}
               </span>
             </div>
 
             {error && (
-              <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffb4ab] text-[14px] p-3 rounded-lg">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg font-medium">
                 {error}
               </div>
             )}
-            <form onSubmit={handleEditSale} className="flex flex-col gap-4">
-              <div className="space-y-3">
-                <h4 className="text-[14px] font-semibold text-[#A8A8B0] uppercase">Comprador</h4>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[12px] font-semibold text-[#A8A8B0]">Nombre</label>
-                  <input required name="buyerName" defaultValue={editingSale.sale_data.clients.name} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+            
+            <form onSubmit={handleEditSale} className="flex flex-col gap-5">
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Comprador</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[13px] font-semibold text-zinc-400">Nombre</label>
+                    <input required name="buyerName" defaultValue={editingSale.sale_data.clients.name} className="bg-[#121217] border border-[#1F1F24] text-white text-[14px] rounded-xl px-4 py-2.5 outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[13px] font-semibold text-zinc-400">Teléfono</label>
+                    <input required name="buyerPhone" defaultValue={editingSale.sale_data.clients.phone} className="bg-[#121217] border border-[#1F1F24] text-white text-[14px] rounded-xl px-4 py-2.5 outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[12px] font-semibold text-[#A8A8B0]">Teléfono</label>
-                  <input required name="buyerPhone" defaultValue={editingSale.sale_data.clients.phone} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[12px] font-semibold text-[#A8A8B0]">Ubicación (opcional)</label>
-                  <input name="buyerLocation" defaultValue={editingSale.sale_data.clients.location || ''} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-semibold text-zinc-400">Ubicación (opcional)</label>
+                  <input name="buyerLocation" defaultValue={editingSale.sale_data.clients.location || ''} className="bg-[#121217] border border-[#1F1F24] text-white text-[14px] rounded-xl px-4 py-2.5 outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" />
                 </div>
               </div>
 
-              <div className="space-y-3 mt-2">
-                <h4 className="text-[14px] font-semibold text-[#A8A8B0] uppercase">Venta</h4>
+              <div className="space-y-4 pt-1 border-t border-[#1F1F24]/50">
+                <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Venta</h4>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[12px] font-semibold text-[#A8A8B0]">Precio final (€)</label>
-                    <input type="number" step="0.01" min="0" required name="finalPrice" defaultValue={editingSale.sale_data.final_sale_price} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[13px] font-semibold text-zinc-400">Precio final (€)</label>
+                    <input type="number" step="0.01" min="0" required name="finalPrice" defaultValue={editingSale.sale_data.final_sale_price} className="bg-[#121217] border border-[#1F1F24] text-white text-[14px] rounded-xl px-4 py-2.5 outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[12px] font-semibold text-[#A8A8B0]">Fecha de venta</label>
-                    <input type="date" required name="saleDate" defaultValue={editingSale.sale_data.sold_at} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#A8A8B0] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[13px] font-semibold text-zinc-400">Fecha</label>
+                    <input type="date" required name="saleDate" defaultValue={editingSale.sale_data.sold_at} className="bg-[#121217] border border-[#1F1F24] text-white text-[14px] rounded-xl px-4 py-2.5 outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all [color-scheme:dark]" />
                   </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[12px] font-semibold text-[#A8A8B0]">Lugar de venta (opcional)</label>
-                  <input name="saleLocation" defaultValue={editingSale.sale_data.sale_location || ''} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-semibold text-zinc-400">Lugar de venta (opcional)</label>
+                  <input name="saleLocation" defaultValue={editingSale.sale_data.sale_location || ''} className="bg-[#121217] border border-[#1F1F24] text-white text-[14px] rounded-xl px-4 py-2.5 outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[12px] font-semibold text-[#A8A8B0]">Observaciones</label>
-                  <input name="observations" defaultValue={editingSale.sale_data.observations || ''} className="bg-[#1c1b1b] border border-[#1F1F24] text-[#F7F7F7] text-[16px] rounded-lg px-3 py-2 outline-none focus:border-[#7a32d4] focus:ring-1 focus:ring-[#7a32d4]" />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-semibold text-zinc-400">Observaciones</label>
+                  <input name="observations" defaultValue={editingSale.sale_data.observations || ''} className="bg-[#121217] border border-[#1F1F24] text-white text-[14px] rounded-xl px-4 py-2.5 outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" />
                 </div>
               </div>
 
-              <div className="flex justify-between items-center mt-2 border-t border-[#1F1F24] pt-4">
+              <div className="flex justify-between items-center mt-2 pt-4 border-t border-[#1F1F24]/50">
                 <div className="flex flex-col">
-                  <span className="text-[12px] text-[#A8A8B0]">Beneficio real</span>
-                  <span className="text-[16px] font-bold text-[#d7baff]">
+                  <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-0.5">Beneficio</span>
+                  <span className="text-lg font-bold text-[#d7baff]">
                     {formatPrice(editingSale.sale_data.final_sale_price - editingSale.purchase_price)}
                   </span>
                 </div>
@@ -354,16 +536,16 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                     type="button" 
                     onClick={() => { setEditingSale(null); setError(null); }}
                     disabled={isPending}
-                    className="bg-[#353534] hover:bg-[#4b4454] text-[#F7F7F7] font-semibold text-[14px] px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                    className="bg-transparent hover:bg-[#1F1F24] text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
                   >
                     Cancelar
                   </button>
                   <button 
                     type="submit" 
                     disabled={isPending}
-                    className="bg-gradient-to-r from-[#7a32d4] to-[#6e02d2] border border-[#d7baff] text-[#131313] font-bold text-[14px] px-4 py-2 rounded-lg hover:brightness-110 transition-all disabled:opacity-50 disabled:hover:brightness-100"
+                    className="bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
                   >
-                    {isPending ? 'Guardando...' : 'Guardar cambios'}
+                    {isPending ? 'Guardando...' : 'Guardar'}
                   </button>
                 </div>
               </div>
@@ -371,127 +553,6 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
           </div>
         </div>
       )}
-
-      {/* Device List */}
-      <div className="flex flex-col gap-4 pb-8">
-        {filteredList.length === 0 ? (
-          <div className="text-center py-12 border border-[#1F1F24] rounded-xl bg-[#0B0B0D]">
-            <p className="text-[#A8A8B0]">
-              {view === 'available' ? 'No hay dispositivos disponibles.' : 'No hay dispositivos vendidos.'}
-            </p>
-          </div>
-        ) : (
-          filteredList.map(device => {
-            const hasImage = device.device_images && device.device_images.length > 0
-            const imgUrl = hasImage && supabaseUrl ? `${supabaseUrl}/storage/v1/object/public/device-images/${device.device_images[0].storage_path}` : null
-
-            return (
-              <div key={device.id} className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-row gap-4 relative group hover:border-[#d7baff]/50 transition-colors">
-                <div className="w-20 h-24 bg-[#101014] rounded-lg border border-[#1F1F24] overflow-hidden flex-shrink-0 relative">
-                  {imgUrl ? (
-                    <img className="w-full h-full object-cover" src={imgUrl} alt={device.device_models?.name} />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-[#4b4454]">
-                      <span className="material-symbols-outlined">smartphone</span>
-                    </div>
-                  )}
-                  <div className="absolute top-1 left-1 bg-[#431080] text-[#B98AFF] text-[10px] px-1.5 py-0.5 rounded leading-none uppercase font-semibold">
-                    {view === 'available' ? 'Disponible' : 'Vendido'}
-                  </div>
-                </div>
-
-                <div className="flex-col flex-1 min-w-0 flex gap-1 justify-center relative">
-                  <div className="flex justify-between items-start">
-                    <h3 className="text-[20px] leading-tight text-[#F7F7F7] truncate pr-6 font-bold" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-                      {device.device_models?.name}
-                    </h3>
-                    <div className="absolute top-[-4px] right-[-4px]">
-                      <button 
-                        aria-label="Opciones" 
-                        className="text-[#A8A8B0] hover:text-[#d7baff] transition-colors p-1"
-                        onClick={() => setOpenMenuId(openMenuId === device.id ? null : device.id)}
-                      >
-                        <span className="material-symbols-outlined">more_vert</span>
-                      </button>
-                      
-                      {openMenuId === device.id && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
-                          <div className="absolute right-0 top-8 w-48 bg-[#1c1b1b] border border-[#1F1F24] rounded-lg shadow-xl z-50 py-1 overflow-hidden">
-                            <a href={`/admin/stock/${device.id}`} className="block px-4 py-2 text-sm text-[#F7F7F7] hover:bg-[#353534]">Ver detalle</a>
-                            {view === 'available' ? (
-                              <>
-                                <a href={`/admin/stock/${device.id}/editar`} className="block px-4 py-2 text-sm text-[#F7F7F7] hover:bg-[#353534]">Editar dispositivo</a>
-                                <a href={`/admin/stock/${device.id}/vender`} className="block px-4 py-2 text-sm text-[#F7F7F7] hover:bg-[#353534]">Marcar como vendido</a>
-                                <button 
-                                  onClick={() => { setOpenMenuId(null); setDeletingDevice(device); }}
-                                  className="block w-full text-left px-4 py-2 text-sm text-[#ffb4ab] hover:bg-[#353534]"
-                                >
-                                  Eliminar dispositivo
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button 
-                                  onClick={() => { setOpenMenuId(null); setEditingSale(device); }}
-                                  className="block w-full text-left px-4 py-2 text-sm text-[#F7F7F7] hover:bg-[#353534]"
-                                >
-                                  Editar venta
-                                </button>
-                                <button 
-                                  onClick={() => { setOpenMenuId(null); setCancellingSale(device); }}
-                                  className="block w-full text-left px-4 py-2 text-sm text-[#ffb4ab] hover:bg-[#353534]"
-                                >
-                                  Anular venta
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <p className="text-[14px] leading-tight text-[#A8A8B0] truncate">
-                    {[
-                      device.storage, 
-                      device.color, 
-                      device.battery_health ? `${device.battery_health}%` : null,
-                      device.battery_cycles ? `${device.battery_cycles} ciclos` : null
-                    ].filter(Boolean).join(' · ')}
-                  </p>
-                  
-                  <p className="text-[12px] leading-tight text-[#A8A8B0]/70 font-mono truncate mt-1">
-                    IMEI {maskImei(device.imei_serial)}
-                  </p>
-                  
-                  <div className="flex justify-between items-end mt-2 pt-2 border-t border-[#201f1f]">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-[#A8A8B0] uppercase font-semibold">Compra</span>
-                      <span className="text-[14px] text-[#F7F7F7]">{formatPrice(device.purchase_price)}</span>
-                    </div>
-                    {view === 'available' ? (
-                      <div className="flex flex-col items-end">
-                        <span className="text-[10px] text-[#A8A8B0] uppercase font-semibold">Publicación</span>
-                        <span className="text-[18px] text-[#B98AFF] font-bold" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-                          {formatPrice(device.listing_price)}
-                        </span>
-                      </div>
-                    ) : device.sale_data && (
-                      <div className="flex flex-col items-end">
-                        <span className="text-[10px] text-[#A8A8B0] uppercase font-semibold">Venta</span>
-                        <span className="text-[18px] text-[#d7baff] font-bold" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-                          {formatPrice(device.sale_data.final_sale_price)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })
-        )}
-      </div>
-    </AdminPageShell>
+    </div>
   )
 }

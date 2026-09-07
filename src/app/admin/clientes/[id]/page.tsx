@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import { ClientDetail } from '@/components/admin/clients/ClientDetail'
+import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 
 export const metadata = {
   title: 'Detalle de Cliente - Admin KevPhonesGC'
@@ -84,26 +85,10 @@ export default async function ClientDetailPage({ params }: PageProps) {
   })
 
   return (
-    <>
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-      <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
-      
-      <div className="bg-[#131313] text-[#F7F7F7] font-body-md min-h-screen flex flex-col pb-24" style={{ fontFamily: 'Inter, sans-serif' }}>
-        <header className="bg-[#131313] border-b border-[#1F1F24] w-full top-0 sticky z-50">
-          <div className="flex items-center justify-between px-4 py-2 w-full max-w-[1280px] mx-auto">
-            <div className="flex items-center gap-4">
-              <a href="/admin/clientes" className="text-[#d7baff] hover:bg-[#353534] transition-colors rounded-full p-2 active:opacity-80 flex items-center justify-center">
-                <span className="material-symbols-outlined">arrow_back</span>
-              </a>
-              <h1 className="text-[24px] font-bold uppercase tracking-tighter text-[#d7baff]" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>KevPhonesGC Admin</h1>
-            </div>
-          </div>
-        </header>
-        
-        <main className="flex-grow px-4 py-4 md:max-w-2xl md:mx-auto w-full space-y-8 pb-8">
-          <ClientDetail client={client} sales={sortedSales as any} devices={devices as any} />
-        </main>
+    <AdminPageShell>
+      <div className="flex flex-col gap-6 lg:gap-8 w-full max-w-6xl mx-auto">
+        <ClientDetail client={client} sales={sortedSales as any} devices={devices as any} />
       </div>
-    </>
+    </AdminPageShell>
   )
 }
