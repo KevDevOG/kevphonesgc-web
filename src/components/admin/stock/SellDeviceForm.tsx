@@ -11,6 +11,7 @@ type Device = {
   imei_serial: string
   purchase_price: number
   listing_price: number
+  discount_price?: number | null
   status: string
   device_models: {
     category: string
@@ -20,7 +21,8 @@ type Device = {
 
 export function SellDeviceForm({ device }: { device: Device }) {
   const router = useRouter()
-  const [finalPrice, setFinalPrice] = useState<string>(device.listing_price.toString())
+  const defaultSalePrice = device.discount_price ?? device.listing_price
+  const [finalPrice, setFinalPrice] = useState<string>(defaultSalePrice.toString())
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -160,10 +162,23 @@ export function SellDeviceForm({ device }: { device: Device }) {
               <span className="text-sm font-semibold text-zinc-300">{formatPrice(device.purchase_price)}</span>
             </div>
             
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-zinc-400">Precio de publicación</span>
-              <span className="text-sm font-semibold text-zinc-300">{formatPrice(device.listing_price)}</span>
-            </div>
+            {device.discount_price ? (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-400">Precio habitual</span>
+                  <span className="text-sm font-semibold text-zinc-500 line-through">{formatPrice(device.listing_price)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-400">Precio en oferta</span>
+                  <span className="text-sm font-semibold text-[#d7baff]">{formatPrice(device.discount_price)}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-zinc-400">Precio de publicación</span>
+                <span className="text-sm font-semibold text-zinc-300">{formatPrice(device.listing_price)}</span>
+              </div>
+            )}
             
             <div className="flex justify-between items-center pt-2 border-t border-[#1F1F24]/50">
               <span className="text-sm font-medium text-zinc-300">Precio final</span>

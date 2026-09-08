@@ -40,6 +40,7 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
   
   const purchasePriceStr = formData.get('purchase_price') as string
   const listingPriceStr = formData.get('listing_price') as string
+  const discountPriceStr = formData.get('discount_price') as string
   const purchasedAtStr = formData.get('purchased_at') as string
   const purchaseLocation = formData.get('purchase_location') as string || null
   const internalNotes = formData.get('internal_notes') as string || null
@@ -60,6 +61,14 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
   
   if (purchasePrice < 0 || listingPrice < 0) {
     return { error: 'Los precios no pueden ser negativos.' }
+  }
+
+  let discountPrice: number | null = null
+  if (discountPriceStr && discountPriceStr.trim() !== '') {
+    discountPrice = parseFloat(discountPriceStr)
+    if (!Number.isFinite(discountPrice) || discountPrice <= 0 || discountPrice >= listingPrice) {
+      return { error: 'El precio de descuento debe ser mayor a 0 y estrictamente menor que el precio de venta (base).' }
+    }
   }
 
   const { data: model } = await supabase
@@ -147,7 +156,8 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
       p_internal_notes: internalNotes,
       p_seller_name: sellerName,
       p_seller_phone: sellerPhone,
-      p_seller_location: sellerLocation
+      p_seller_location: sellerLocation,
+      p_discount_price: discountPrice
     })
 
   if (deviceError) {
@@ -275,6 +285,7 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
   
   const purchasePriceStr = formData.get('purchase_price') as string
   const listingPriceStr = formData.get('listing_price') as string
+  const discountPriceStr = formData.get('discount_price') as string
   const purchasedAtStr = formData.get('purchased_at') as string
   const purchaseLocation = formData.get('purchase_location') as string || null
   const internalNotes = formData.get('internal_notes') as string || null
@@ -295,6 +306,14 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
   
   if (purchasePrice < 0 || listingPrice < 0) {
     return { error: 'Los precios no pueden ser negativos.' }
+  }
+
+  let discountPrice: number | null = null
+  if (discountPriceStr && discountPriceStr.trim() !== '') {
+    discountPrice = parseFloat(discountPriceStr)
+    if (!Number.isFinite(discountPrice) || discountPrice <= 0 || discountPrice >= listingPrice) {
+      return { error: 'El precio de descuento debe ser mayor a 0 y estrictamente menor que el precio de venta (base).' }
+    }
   }
 
   // 1. Check device status
@@ -409,7 +428,8 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
       p_internal_notes: internalNotes,
       p_seller_name: sellerName,
       p_seller_phone: sellerPhone,
-      p_seller_location: sellerLocation
+      p_seller_location: sellerLocation,
+      p_discount_price: discountPrice
     })
 
   if (deviceError) {

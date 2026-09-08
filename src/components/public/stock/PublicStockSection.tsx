@@ -19,6 +19,7 @@ export type PublicStockItem = {
   fully_functional: boolean
   warranty_until: string | null
   listing_price: number | null
+  discount_price: number | null
   created_at: string
   model_name: string
   brand: string

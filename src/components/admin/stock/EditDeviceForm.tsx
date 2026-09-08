@@ -48,6 +48,7 @@ type Device = {
   purchase_location: string | null
   purchased_at: string
   internal_notes: string | null
+  discount_price?: number | null
   device_models: {
     category: string
   }
@@ -101,6 +102,10 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
   const [batteryHealth, setBatteryHealth] = useState<string>(device.battery_health?.toString() || '')
   const [batteryCycles, setBatteryCycles] = useState<string>(device.battery_cycles?.toString() || '')
   
+  const [listingPrice, setListingPrice] = useState<string>(device.listing_price.toString())
+  const [discountPrice, setDiscountPrice] = useState<string>(device.discount_price ? device.discount_price.toString() : '')
+  const [isOfferActive, setIsOfferActive] = useState<boolean>(!!device.discount_price)
+
   const [images, setImages] = useState<ImageItem[]>([])
   
   const [uploading, setUploading] = useState(false)
@@ -202,11 +207,26 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    
+    // Client-side validation for discount
+    const lp = parseFloat(listingPrice)
+    if (isOfferActive) {
+      const dp = parseFloat(discountPrice)
+      if (isNaN(dp) || dp <= 0 || dp >= lp) {
+        setFormState({ error: 'El precio en oferta debe ser menor que el precio habitual.', success: false })
+        return
+      }
+    }
+
     setUploading(true)
     setFormState(initialState)
     
     try {
       const formData = new FormData(e.currentTarget)
+      
+      if (!isOfferActive) {
+        formData.set('discount_price', '')
+      }
       
       const finalImagePaths: string[] = []
       
@@ -268,6 +288,13 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
   const labelClass = "text-[13px] font-semibold text-zinc-400"
   const sectionClass = "bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-6"
   const sectionTitleClass = "text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2"
+
+  let discountPercentage: number | null = null
+  const lpVal = parseFloat(listingPrice)
+  const dpVal = parseFloat(discountPrice)
+  if (isOfferActive && !isNaN(lpVal) && !isNaN(dpVal) && lpVal > 0 && dpVal < lpVal && dpVal > 0) {
+    discountPercentage = Math.round(((lpVal - dpVal) / lpVal) * 100)
+  }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 lg:gap-8 pb-12">
@@ -435,7 +462,7 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
                 <div className="flex flex-col gap-1.5 relative">
                   <label className={labelClass}>Precio de publicación</label>
                   <span className="absolute left-4 top-[35px] text-zinc-500">€</span>
-                  <input type="number" step="0.01" min="0" name="listing_price" defaultValue={device.listing_price} required className={`${inputClass} pl-8 font-bold text-[#d7baff] border-[#7a32d4]/30 bg-[#7a32d4]/5`} />
+                  <input type="number" step="0.01" min="0" name="listing_price" value={listingPrice} onChange={e => setListingPrice(e.target.value)} required className={`${inputClass} pl-8 font-bold text-[#d7baff] border-[#7a32d4]/30 bg-[#7a32d4]/5`} />
                 </div>
               </div>
               
@@ -454,6 +481,72 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
                 <label className={labelClass}>Notas internas (Opcional)</label>
                 <textarea name="internal_notes" rows={3} defaultValue={device.internal_notes || ''} className={`${inputClass} resize-none`} placeholder="Notas visibles solo para administradores."></textarea>
               </div>
+            </div>
+          </section>
+
+          {/* OFERTA */}
+          <section className={sectionClass}>
+            <div className="flex justify-between items-center">
+              <h3 className={sectionTitleClass}>
+                <span className="material-symbols-outlined text-[16px]">local_offer</span> Oferta
+              </h3>
+              {isOfferActive ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOfferActive(false)
+                    setDiscountPrice('')
+                  }}
+                  className="text-xs font-semibold text-red-400 hover:text-red-300 bg-red-400/10 hover:bg-red-400/20 px-3 py-1 rounded-full transition-colors"
+                >
+                  Quitar oferta
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsOfferActive(true)}
+                  className="text-xs font-semibold text-[#d7baff] hover:text-white bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 px-3 py-1 rounded-full transition-colors"
+                >
+                  Activar oferta
+                </button>
+              )}
+            </div>
+            
+            <p className="text-sm text-zinc-400 -mt-2">
+              Aplica un precio rebajado temporalmente a este dispositivo.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className={labelClass}>Precio habitual</label>
+                <div className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-zinc-400">
+                  {listingPrice || '0'} €
+                </div>
+              </div>
+              
+              {isOfferActive && (
+                <div className="flex flex-col gap-1.5 relative">
+                  <div className="flex justify-between">
+                    <label className={labelClass}>Precio en oferta</label>
+                    {discountPercentage !== null && (
+                      <span className="text-xs font-bold text-green-400 bg-green-400/10 px-2 rounded-md">
+                        -{discountPercentage}%
+                      </span>
+                    )}
+                  </div>
+                  <span className="absolute left-4 top-[35px] text-zinc-500">€</span>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    min="0" 
+                    name="discount_price" 
+                    value={discountPrice}
+                    onChange={(e) => setDiscountPrice(e.target.value)}
+                    required={isOfferActive} 
+                    className={`${inputClass} pl-8 font-bold text-green-400 border-green-400/30 bg-green-400/5`} 
+                  />
+                </div>
+              )}
             </div>
           </section>
 

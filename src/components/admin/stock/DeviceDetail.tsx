@@ -23,6 +23,7 @@ type Device = {
   fully_functional: boolean
   purchase_price: number
   listing_price: number
+  discount_price?: number | null
   purchase_location: string | null
   purchased_at: string
   status: string
@@ -119,7 +120,8 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
     return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(val)
   }
 
-  const potentialProfit = Number(device.listing_price) - Number(device.purchase_price)
+  const effectivePrice = device.discount_price ?? device.listing_price
+  const potentialProfit = Number(effectivePrice) - Number(device.purchase_price)
   
   const formatDate = (dateString: string) => {
     const d = new Date(dateString)
@@ -200,10 +202,29 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
           <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-4">
             {device.status === 'available' ? (
               <>
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Precio de venta</span>
-                  <span className="text-4xl font-semibold text-white">{formatPrice(device.listing_price)}</span>
-                </div>
+                {device.discount_price ? (
+                  <>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Precio habitual</span>
+                      <span className="text-xl font-semibold text-zinc-500 line-through">{formatPrice(device.listing_price)}</span>
+                    </div>
+                    
+                    <div className="flex flex-col mt-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Precio en oferta</span>
+                        <span className="px-2 py-0.5 rounded bg-[#7a32d4]/10 text-[#d7baff] text-[10px] font-bold tracking-wider">
+                          Oferta · -{Math.round(((device.listing_price - device.discount_price) / device.listing_price) * 100)}%
+                        </span>
+                      </div>
+                      <span className="text-4xl font-semibold text-white">{formatPrice(device.discount_price)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Precio de venta</span>
+                    <span className="text-4xl font-semibold text-white">{formatPrice(device.listing_price)}</span>
+                  </div>
+                )}
                 <div className="h-px bg-[#1F1F24] w-full my-2"></div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-semibold text-zinc-400">Precio de compra</span>

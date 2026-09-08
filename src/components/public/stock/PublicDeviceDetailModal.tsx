@@ -84,7 +84,17 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
     }
   }, [onClose])
 
-  const formattedPrice = device.listing_price
+  const effectivePrice = device.discount_price ?? device.listing_price
+  const formattedPrice = effectivePrice
+    ? new Intl.NumberFormat('es-ES', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(effectivePrice)
+    : null
+    
+  const formattedListingPrice = device.listing_price
     ? new Intl.NumberFormat('es-ES', {
         style: 'currency',
         currency: 'EUR',
@@ -92,6 +102,8 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
         maximumFractionDigits: 0
       }).format(device.listing_price)
     : null
+
+
 
   if (!mounted) return null
 
@@ -112,7 +124,9 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
           onClick={safeClose}
           aria-label="Cerrar"
         >
-          <span className="material-symbols-outlined text-xl">close</span>
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
 
         {/* Left Column: Photos */}
@@ -167,9 +181,27 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
             <h2 id="modal-title" className="text-2xl sm:text-3xl font-semibold text-white mb-2 leading-tight">
               {device.model_name}
             </h2>
-            <div className="text-4xl sm:text-5xl font-bold text-white tracking-tight mt-4">
-              {formattedPrice || '-'}
-            </div>
+            {device.discount_price ? (
+              <div className="flex flex-col mt-4">
+                <div className="flex flex-col mb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-0.5">Precio habitual</span>
+                  <span className="text-xl font-semibold text-zinc-500 line-through">{formattedListingPrice}</span>
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[11px] text-zinc-500 uppercase tracking-wider">Precio en oferta</span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] text-[10px] font-bold tracking-wide">
+                      Oferta
+                    </span>
+                  </div>
+                  <span className="text-4xl sm:text-5xl font-bold text-white tracking-tight">{formattedPrice || '-'}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-4xl sm:text-5xl font-bold text-white tracking-tight mt-4">
+                {formattedPrice || '-'}
+              </div>
+            )}
           </div>
 
           <div className="flex-1">
@@ -233,7 +265,7 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
             {contactEnabled && whatsappPhone ? (
               <a 
                 href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
-                  `Hola, estoy interesado en este dispositivo de KevPhonesGC:\n\n${device.model_name}\n${device.storage ? `${device.storage}\n` : ''}${device.color ? `${device.color}\n` : ''}Precio: ${device.listing_price ? `${device.listing_price} €` : 'No disponible'}\n\n¿Sigue disponible?`
+                  `Hola, estoy interesado en este dispositivo de KevPhonesGC:\n\n${device.model_name}\n${device.storage ? `${device.storage}\n` : ''}${device.color ? `${device.color}\n` : ''}Precio: ${effectivePrice ? `${effectivePrice} €` : 'No disponible'}\n\n¿Sigue disponible?`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

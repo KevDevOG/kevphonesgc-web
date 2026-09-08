@@ -4,6 +4,7 @@ import { PublicReviewsSection, PublicReview } from '@/components/public/reviews/
 import { PublicFaqSection } from '@/components/public/faq/PublicFaqSection'
 import { PublicFooter } from '@/components/public/footer/PublicFooter'
 import { PublicHeader } from '@/components/public/PublicHeader'
+import Image from 'next/image'
 import Link from 'next/link'
 
 export default async function Home() {
@@ -88,6 +89,7 @@ export default async function Home() {
       fully_functional,
       warranty_until,
       listing_price,
+      discount_price,
       created_at,
       device_models (
         id,
@@ -187,6 +189,7 @@ export default async function Home() {
         fully_functional: d.fully_functional,
         warranty_until: d.warranty_until,
         listing_price: d.listing_price,
+        discount_price: d.discount_price,
         created_at: d.created_at,
         model_name: dm.name,
         brand: dm.brand,
@@ -216,7 +219,7 @@ export default async function Home() {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
 
-  const heroImage = publicStock.find(d => d.category === 'iphone' && d.catalog_image_url)?.catalog_image_url || null
+
 
   return (
     <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
@@ -278,18 +281,16 @@ export default async function Home() {
             <div className="relative flex justify-center items-center h-[320px] sm:h-[400px] md:h-[500px] animate-fade-in-up" style={{ animationDelay: '200ms' }}>
               <div className="absolute inset-0 bg-purple-600/10 blur-[100px] rounded-full pointer-events-none"></div>
               <div className="absolute inset-0 bg-white/5 blur-[80px] rounded-full pointer-events-none transform scale-75"></div>
-              {heroImage ? (
-                <img 
-                  src={heroImage} 
-                  alt="iPhone stock" 
-                  className="relative z-10 w-[75%] sm:w-[65%] md:w-[85%] max-w-[340px] drop-shadow-2xl animate-float object-contain" 
+              <div className="relative w-[75%] sm:w-[65%] md:w-[85%] max-w-[340px] h-full drop-shadow-2xl">
+                <Image 
+                  src="/iphone-14-pro-max.png"
+                  alt="iPhone 14 Pro Max Deep Purple"
+                  fill
+                  className="object-contain"
+                  priority
+                  sizes="(max-width: 768px) 100vw, 50vw"
                 />
-              ) : (
-                <div className="relative z-10 w-48 h-96 rounded-[3rem] border-[8px] border-[#0B0B0E] bg-black shadow-2xl overflow-hidden flex flex-col animate-float">
-                  <div className="h-6 w-1/2 bg-[#0B0B0E] mx-auto rounded-b-2xl absolute top-0 inset-x-0"></div>
-                  <div className="flex-1 bg-gradient-to-b from-[#111114] to-black"></div>
-                </div>
-              )}
+              </div>
             </div>
             
           </div>
@@ -346,6 +347,108 @@ export default async function Home() {
             whatsappPhone={whatsappPhone}
             contactEnabled={contactEnabled}
           />
+        </section>
+
+        {/* How it Works Section */}
+        <section className="bg-[#050506] border-t border-[#1F1F24] py-20 md:py-32">
+          <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+            <div className="flex flex-col items-center text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
+                Cómo funciona
+              </h2>
+              <p className="text-lg text-zinc-400 max-w-2xl font-light">
+                Compra, vende o valora tu dispositivo en pocos pasos.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+              
+              {/* Card 1 */}
+              <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-3xl p-8 flex flex-col items-start relative overflow-hidden group hover:border-[#383840] transition-colors duration-300">
+                <div className="absolute top-0 right-0 p-8 opacity-5 font-bold text-9xl -mt-10 -mr-6 pointer-events-none text-white">1</div>
+                <h3 className="text-xl font-bold text-white mb-6 relative z-10">Compra un dispositivo</h3>
+                
+                <ul className="flex flex-col gap-4 mb-8 flex-1 w-full relative z-10">
+                  <li className="flex gap-3 items-start">
+                    <span className="text-purple-400 font-bold text-sm mt-0.5">01</span>
+                    <span className="text-sm text-zinc-400">Consulta nuestro stock disponible.</span>
+                  </li>
+                  <li className="flex gap-3 items-start">
+                    <span className="text-purple-400 font-bold text-sm mt-0.5">02</span>
+                    <span className="text-sm text-zinc-400">Revisa el estado y los detalles del dispositivo.</span>
+                  </li>
+                  <li className="flex gap-3 items-start">
+                    <span className="text-purple-400 font-bold text-sm mt-0.5">03</span>
+                    <span className="text-sm text-zinc-400">Contacta con nosotros para cerrar la operación.</span>
+                  </li>
+                </ul>
+                
+                <a href="#stock" className="mt-auto inline-flex items-center gap-2 text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors group-hover:translate-x-1 relative z-10">
+                  Ver stock
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </a>
+              </div>
+
+              {/* Card 2 */}
+              <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-3xl p-8 flex flex-col items-start relative overflow-hidden group hover:border-[#383840] transition-colors duration-300">
+                <div className="absolute top-0 right-0 p-8 opacity-5 font-bold text-9xl -mt-10 -mr-6 pointer-events-none text-white">2</div>
+                <h3 className="text-xl font-bold text-white mb-6 relative z-10">Cotiza tu iPhone</h3>
+                
+                <ul className="flex flex-col gap-4 mb-8 flex-1 w-full relative z-10">
+                  <li className="flex gap-3 items-start">
+                    <span className="text-purple-400 font-bold text-sm mt-0.5">01</span>
+                    <span className="text-sm text-zinc-400">Elige tu modelo y sus características.</span>
+                  </li>
+                  <li className="flex gap-3 items-start">
+                    <span className="text-purple-400 font-bold text-sm mt-0.5">02</span>
+                    <span className="text-sm text-zinc-400">Indica el estado del dispositivo.</span>
+                  </li>
+                  <li className="flex gap-3 items-start">
+                    <span className="text-purple-400 font-bold text-sm mt-0.5">03</span>
+                    <span className="text-sm text-zinc-400">Recibe una valoración orientativa al instante.</span>
+                  </li>
+                </ul>
+                
+                <Link href="/cotizar" className="mt-auto inline-flex items-center gap-2 text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors group-hover:translate-x-1 relative z-10">
+                  Cotizar ahora
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              </div>
+
+              {/* Card 3 */}
+              <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-3xl p-8 flex flex-col items-start relative overflow-hidden group hover:border-[#383840] transition-colors duration-300">
+                <div className="absolute top-0 right-0 p-8 opacity-5 font-bold text-9xl -mt-10 -mr-6 pointer-events-none text-white">3</div>
+                <h3 className="text-xl font-bold text-white mb-6 relative z-10">Vende tu dispositivo</h3>
+                
+                <ul className="flex flex-col gap-4 mb-8 flex-1 w-full relative z-10">
+                  <li className="flex gap-3 items-start">
+                    <span className="text-purple-400 font-bold text-sm mt-0.5">01</span>
+                    <span className="text-sm text-zinc-400">Completa los datos del dispositivo.</span>
+                  </li>
+                  <li className="flex gap-3 items-start">
+                    <span className="text-purple-400 font-bold text-sm mt-0.5">02</span>
+                    <span className="text-sm text-zinc-400">Añade las fotografías solicitadas.</span>
+                  </li>
+                  <li className="flex gap-3 items-start">
+                    <span className="text-purple-400 font-bold text-sm mt-0.5">03</span>
+                    <span className="text-sm text-zinc-400">Revisaremos tu solicitud y te contactaremos.</span>
+                  </li>
+                </ul>
+                
+                <Link href="/vender" className="mt-auto inline-flex items-center gap-2 text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors group-hover:translate-x-1 relative z-10">
+                  Vender dispositivo
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              </div>
+
+            </div>
+          </div>
         </section>
 
         <section id="reviews" className="bg-[#060608] border-t border-[#1F1F24]">

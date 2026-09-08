@@ -125,7 +125,7 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
     }
     const { data: targetDevice, error: targetError } = await publicSupabase
       .from('devices')
-      .select('id, status, listing_price')
+      .select('id, status, listing_price, discount_price')
       .eq('id', input.targetDeviceId)
       .single()
 
@@ -142,7 +142,7 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
     if (!targetDevice || targetDevice.status !== 'available' || typeof targetDevice.listing_price !== 'number' || targetDevice.listing_price < 0) {
       return { ok: false, code: 'configuration_error' }
     }
-    targetListingPrice = targetDevice.listing_price
+    targetListingPrice = targetDevice.discount_price ?? targetDevice.listing_price
   } else {
     if (input.targetDeviceId) {
       return { ok: false, code: 'configuration_error' }

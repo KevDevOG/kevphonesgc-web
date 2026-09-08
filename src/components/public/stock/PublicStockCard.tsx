@@ -6,7 +6,17 @@ interface PublicStockCardProps {
 }
 
 export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
-  const formattedPrice = device.listing_price
+  const effectivePrice = device.discount_price ?? device.listing_price
+  const formattedPrice = effectivePrice
+    ? new Intl.NumberFormat('es-ES', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(effectivePrice)
+    : null
+    
+  const formattedListingPrice = device.listing_price
     ? new Intl.NumberFormat('es-ES', {
         style: 'currency',
         currency: 'EUR',
@@ -14,6 +24,8 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
         maximumFractionDigits: 0
       }).format(device.listing_price)
     : null
+
+
 
   const isPhone = device.category === 'iphone'
   const isNew = device.condition === 'new'
@@ -27,21 +39,21 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
     >
       
       {/* Top Badges */}
-      <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
+      <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 items-start">
+        {device.discount_price && (
+          <span className="px-2.5 py-0.5 bg-[#7a32d4]/20 backdrop-blur-md text-[#d7baff] border border-[#7a32d4]/30 text-[10px] font-bold rounded-full tracking-wide">
+            Oferta
+          </span>
+        )}
         {isNew && (
           <span className="px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-white border border-white/10 text-[10px] font-medium rounded-full tracking-wide">
             Precintado
           </span>
         )}
-        {hasWarranty && !isNew && (
-          <span className="px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-zinc-300 border border-white/10 text-[10px] font-medium rounded-full tracking-wide">
-            Con garantía
-          </span>
-        )}
       </div>
 
       {/* Image Area */}
-      <div className="w-full h-64 bg-[#0A0A0C] flex items-center justify-center p-8 relative overflow-hidden group-hover:bg-[#0C0C0F] transition-colors duration-300">
+      <div className="w-full h-56 sm:h-[240px] bg-[#0A0A0C] flex items-center justify-center p-6 relative overflow-hidden group-hover:bg-[#0C0C0F] transition-colors duration-300">
         <div className="absolute inset-0 bg-purple-900/5 blur-[50px] rounded-full scale-50 group-hover:scale-100 transition-transform duration-700 pointer-events-none opacity-0 group-hover:opacity-100"></div>
         {device.catalog_image_url ? (
           <img 
@@ -60,22 +72,22 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
       </div>
 
       {/* Content Area */}
-      <div className="p-6 flex flex-col flex-1 w-full relative bg-[#050506]">
+      <div className="p-5 flex flex-col flex-1 w-full relative bg-[#050506]">
         
         {/* Device Name */}
-        <h3 className="text-lg font-bold text-white mb-2 leading-tight">
+        <h3 className="text-lg font-bold text-white mb-1 leading-tight">
           {device.model_name}
         </h3>
         
         {/* Specs Line */}
-        <div className="flex flex-wrap items-center gap-1.5 mb-2 text-[13px] text-zinc-400 font-medium">
+        <div className="flex flex-wrap items-center gap-1.5 mb-1.5 text-[13px] text-zinc-400 font-medium">
           {device.storage && <span>{device.storage}</span>}
           {device.storage && device.color && <span className="text-zinc-600">·</span>}
           {device.color && <span>{device.color}</span>}
         </div>
 
         {/* Battery Line */}
-        <div className="mb-6 h-5">
+        <div className="mb-3 h-4">
           {isPhone && device.battery_health !== null && (
             <span className="text-[12px] text-zinc-500 font-medium flex items-center gap-1">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -86,12 +98,31 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
           )}
         </div>
 
+        {hasWarranty && !isNew && (
+          <div className="mb-4 flex items-center">
+            <span className="px-2 py-0.5 bg-[#111114] border border-[#1F1F24] text-zinc-300 text-[10px] font-medium rounded-full tracking-wide">
+              Con garantía
+            </span>
+          </div>
+        )}
+
         {/* BIG Price & Bottom Support */}
-        <div className="mt-auto pt-4 border-t border-[#1F1F24]/50 flex flex-col items-start w-full">
-          <span className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-1">
-            {formattedPrice || '-'}
-          </span>
-          <span className="text-[11px] text-purple-400/80 font-medium tracking-wide uppercase">
+        <div className="mt-auto pt-3 border-t border-[#1F1F24]/50 flex flex-col items-start w-full">
+          {device.discount_price ? (
+            <div className="flex items-baseline gap-2 mb-0.5">
+              <span className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+                {formattedPrice || '-'}
+              </span>
+              <span className="text-sm font-semibold text-zinc-500 line-through">
+                {formattedListingPrice}
+              </span>
+            </div>
+          ) : (
+            <span className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-0.5">
+              {formattedPrice || '-'}
+            </span>
+          )}
+          <span className="text-[11px] text-purple-400/80 font-medium tracking-wide uppercase mt-0.5">
             Entrega en Canarias
           </span>
         </div>
