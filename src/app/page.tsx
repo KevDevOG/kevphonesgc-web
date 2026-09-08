@@ -73,9 +73,9 @@ export default async function Home() {
 
   // 1. Fetch available devices
   const { data: devicesData, error: devicesError } = await supabase
-    .from('devices')
+    .from('public_stock')
     .select(`
-      id,
+      device_id,
       model_id,
       storage,
       color,
@@ -91,29 +91,25 @@ export default async function Home() {
       listing_price,
       discount_price,
       created_at,
-      device_models (
-        id,
-        name,
-        brand,
-        category,
-        supports_battery_health,
-        supports_cycles
-      )
+      model_name,
+      brand,
+      category,
+      supports_battery_health,
+      supports_cycles
     `)
-    .eq('status', 'available')
     .order('created_at', { ascending: false })
 
   if (devicesError) {
     console.error('Error fetching devices:', devicesError)
   }
 
-  const deviceIds = devicesData ? devicesData.map(d => d.id) : []
+  const deviceIds = devicesData ? devicesData.map(d => d.device_id) : []
 
   // 1.5 Fetch device_images for real photos
   let deviceImagesData: any[] = []
   if (deviceIds.length > 0) {
     const { data: imgData, error: imgError } = await supabase
-      .from('device_images')
+      .from('public_device_images')
       .select('id, device_id, storage_path, position')
       .in('device_id', deviceIds)
       .order('position', { ascending: true })
@@ -166,16 +162,13 @@ export default async function Home() {
 
   if (devicesData) {
     for (const d of devicesData) {
-      const dm = Array.isArray(d.device_models) ? d.device_models[0] : d.device_models
-      if (!dm) continue
-
       const imageKey = `${d.model_id}|${d.color || ''}`
       const catalog_image_url = imageMap.get(imageKey) || null
       
-      const realImages = realImageMap.get(d.id) || []
+      const realImages = realImageMap.get(d.device_id) || []
 
       publicStock.push({
-        id: d.id,
+        id: d.device_id,
         model_id: d.model_id,
         storage: d.storage,
         color: d.color,
@@ -191,11 +184,11 @@ export default async function Home() {
         listing_price: d.listing_price,
         discount_price: d.discount_price,
         created_at: d.created_at,
-        model_name: dm.name,
-        brand: dm.brand,
-        category: dm.category,
-        supports_battery_health: dm.supports_battery_health,
-        supports_cycles: dm.supports_cycles,
+        model_name: d.model_name,
+        brand: d.brand,
+        category: d.category,
+        supports_battery_health: d.supports_battery_health,
+        supports_cycles: d.supports_cycles,
         catalog_image_url,
         real_images: realImages
       })
