@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KevPhonesGC
 
-## Getting Started
+## Descripción
+Plataforma web para la gestión de compra y venta de dispositivos electrónicos en Canarias.
 
-First, run the development server:
+## Funcionalidades
 
+### Públicas
+- Catálogo de stock disponible
+- Asistente de cotización de iPhone
+- Valoración de entrega como parte de pago (trade-in)
+- Flujo de solicitud de venta de dispositivos
+- Subida guiada y privada de fotografías
+- Contacto vía WhatsApp
+- Reseñas
+- Preguntas frecuentes (FAQ)
+- Páginas legales
+
+### Administración
+- Gestión de inventario
+- Compras y ventas
+- Clientes
+- Gastos
+- Movimientos de capital
+- Panel financiero (Dashboard)
+- Solicitudes de venta
+- Configuración de cotizaciones
+- Gestión de imágenes del catálogo de modelos
+- Reseñas
+- Configuración del negocio
+
+*Nota: La versión V1 no incluye pagos online.*
+
+## Tecnologías
+- Next.js 16 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- Supabase
+- PostgreSQL
+- Supabase Auth
+- Supabase Storage
+- Server Actions
+- Vercel
+
+## Arquitectura
+La aplicación está dividida en dos áreas principales:
+
+**Pública:** Rutas accesibles para clientes, incluyendo `/`, `/cotizar` y `/vender`.
+**Administración:** Rutas protegidas bajo `/admin`.
+
+El backend está construido de manera serverless:
+- Interacción mediante Server Actions de Next.js
+- Supabase PostgreSQL como base de datos primaria
+- Row Level Security (RLS) para proteger los datos a nivel de tabla
+- RPCs (SECURITY DEFINER) para operaciones críticas
+- Supabase Storage privado para alojar las imágenes de las solicitudes de venta
+
+Las operaciones sensibles (Service Role) permanecen estrictamente limitadas al entorno del servidor (server-only).
+
+## Seguridad
+- Autenticación segura de administrador
+- Autorización estricta basada en el identificador del administrador
+- Row Level Security (RLS) habilitado
+- Bucket de subida de imágenes privado
+- URLs firmadas para subida de archivos (Signed Upload URLs)
+- Validación de sesiones de subida
+- Validación estricta de entradas en tiempo de ejecución (runtime input validation)
+- Cabeceras de seguridad HTTP
+
+## Variables de entorno
+Para ejecutar el proyecto, es necesario configurar las siguientes variables de entorno:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_SITE_URL`
+
+**Importante:** `SUPABASE_SERVICE_ROLE_KEY` confiere privilegios totales de administrador sobre la base de datos y jamás debe ser expuesta al navegador.
+
+## Desarrollo local
+
+Instalar dependencias:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Iniciar el servidor de desarrollo:
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Construir para producción:
+```bash
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Base de datos
+Las migraciones de Supabase PostgreSQL se encuentran en el directorio:
+`supabase/migrations/`
 
-## Learn More
+Las migraciones deben aplicarse secuencialmente y en orden estricto antes de cualquier despliegue a producción.
 
-To learn more about Next.js, take a look at the following resources:
+## Despliegue
+El proyecto está configurado para su despliegue óptimo en **Vercel**.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Checklist para producción:
+- Configurar variables de entorno
+- Verificar migraciones de Supabase
+- Verificar buckets de Storage y políticas
+- Ejecutar `npm run build`
+- Desplegar en Vercel
+- Configurar `NEXT_PUBLIC_SITE_URL` con el dominio HTTPS final
+- Verificar manualmente los flujos públicos y administración
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Estado del proyecto
+V1 en fase final de preparación para producción.
