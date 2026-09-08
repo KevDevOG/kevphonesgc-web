@@ -87,13 +87,25 @@ export async function finalizePublicSaleRequestAction(
 
   // 2. Text Normalization
   const customerName = trimOrNull(input.customerName)
-  if (!customerName) {
+  if (!customerName || customerName.length > 200) {
     return { success: false, error: 'El nombre del cliente es requerido.' }
   }
   const storage = trimOrNull(input.storage)
+  if (storage && storage.length > 100) {
+    return { success: false, error: 'Los datos de la solicitud no son válidos.' }
+  }
   const color = trimOrNull(input.color)
+  if (color && color.length > 100) {
+    return { success: false, error: 'Los datos de la solicitud no son válidos.' }
+  }
   const customerLocation = trimOrNull(input.customerLocation)
+  if (customerLocation && customerLocation.length > 300) {
+    return { success: false, error: 'Los datos de la solicitud no son válidos.' }
+  }
   const notes = trimOrNull(input.notes)
+  if (notes && notes.length > 4000) {
+    return { success: false, error: 'Los datos de la solicitud no son válidos.' }
+  }
   const source = trimOrNull(input.source)
 
   // 3. Device Condition
@@ -109,7 +121,7 @@ export async function finalizePublicSaleRequestAction(
     }
   }
   if (input.batteryCycles !== null && input.batteryCycles !== undefined) {
-    if (!Number.isInteger(input.batteryCycles) || input.batteryCycles < 0) {
+    if (!Number.isSafeInteger(input.batteryCycles) || input.batteryCycles < 0 || input.batteryCycles > 2147483647) {
       return { success: false, error: 'Los datos de la solicitud no son válidos.' }
     }
   }
@@ -166,7 +178,7 @@ export async function finalizePublicSaleRequestAction(
     }
 
     const trimmedPath = storagePath.trim()
-    if (!trimmedPath || storagePaths.has(trimmedPath)) {
+    if (!trimmedPath || trimmedPath.length > 500 || storagePaths.has(trimmedPath)) {
       return { success: false, error: 'Fotos duplicadas o no válidas.' }
     }
     storagePaths.add(trimmedPath)

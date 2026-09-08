@@ -103,3 +103,14 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Admin V2 Desktop Shell Adjustment */
+@media (min-width: 1024px) {
+  /* Shift AdminPageShell on desktop to accommodate the new 260px sidebar */
+  div.fixed.inset-0.z-40.bg-\[\#050505\] {
+    left: 260px !important;
+    width: calc(100% - 260px) !important;
+    padding-top: 1.5rem !important; /* Top header is removed on lg */
+    padding-bottom: 2rem !important; 
+  }
+}

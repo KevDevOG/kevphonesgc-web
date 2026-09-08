@@ -1,15 +1,22 @@
 import { PublicHeader } from '@/components/public/PublicHeader'
 import Link from 'next/link'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Aviso legal',
+  description: 'Información legal de KevPhonesGC.',
+  robots: {
+    index: false,
+    follow: true,
+    noarchive: true
+  }
+}
 
 export default function AvisoLegalPage() {
   return (
     <div className="min-h-screen bg-black text-zinc-300">
       <PublicHeader />
       <main className="max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 py-16 md:py-24">
-        <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-xl mb-12">
-          <p className="text-yellow-400 font-medium text-center">Documento pendiente de completar antes de la publicación definitiva.</p>
-        </div>
-
         <Link href="/" className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors mb-8">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -22,13 +29,12 @@ export default function AvisoLegalPage() {
 
         <div className="space-y-12">
           <section>
-            <h2 className="text-2xl font-semibold text-white mb-4">1. Identificación del titular</h2>
+            <h2 className="text-2xl font-semibold text-white mb-4">1. Datos identificativos</h2>
             <ul className="list-disc pl-5 space-y-2 text-zinc-400">
+              <li><strong className="text-zinc-300">Titular:</strong> Kevin Ochoa González</li>
               <li><strong className="text-zinc-300">Nombre comercial:</strong> KevPhonesGC</li>
-              <li><strong className="text-zinc-300">Titular:</strong> PENDIENTE_NOMBRE_TITULAR</li>
-              <li><strong className="text-zinc-300">NIF/NIE:</strong> PENDIENTE_NIF_NIE</li>
-              <li><strong className="text-zinc-300">Domicilio a efectos legales:</strong> PENDIENTE_DOMICILIO_LEGAL</li>
-              <li><strong className="text-zinc-300">Correo electrónico:</strong> PENDIENTE_EMAIL_CONTACTO</li>
+              <li><strong className="text-zinc-300">Email de contacto:</strong> kevphoness@gmail.com</li>
+              <li><strong className="text-zinc-300">Ubicación general:</strong> Las Palmas de Gran Canaria, España</li>
             </ul>
           </section>
 
@@ -66,7 +72,7 @@ export default function AvisoLegalPage() {
           <section>
             <h2 className="text-2xl font-semibold text-white mb-4">6. Responsabilidad</h2>
             <p className="text-zinc-400">
-              KevPhonesGC no se responsabiliza de los posibles errores u omisiones en el contenido, ni de los daños que puedan derivarse del uso del sitio web. Las garantías u otras obligaciones contractuales se acordarán de forma particular antes de finalizar cualquier operación.
+              KevPhonesGC realiza los esfuerzos necesarios para garantizar la actualización y exactitud de la información proporcionada en este sitio web. No obstante, las valoraciones mostradas son siempre de carácter orientativo y la propuesta final estará sujeta invariablemente a la revisión física del dispositivo. El catálogo mostrado está sujeto a disponibilidad. El uso de esta plataforma por parte de los usuarios debe realizarse conforme a la buena fe y a la ley vigente.
             </p>
           </section>
 

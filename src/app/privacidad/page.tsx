@@ -1,15 +1,22 @@
 import { PublicHeader } from '@/components/public/PublicHeader'
 import Link from 'next/link'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Política de privacidad',
+  description: 'Información sobre privacidad y tratamiento de datos en KevPhonesGC.',
+  robots: {
+    index: false,
+    follow: true,
+    noarchive: true
+  }
+}
 
 export default function PrivacidadPage() {
   return (
     <div className="min-h-screen bg-black text-zinc-300">
       <PublicHeader />
       <main className="max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 py-16 md:py-24">
-        <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-xl mb-12">
-          <p className="text-yellow-400 font-medium text-center">Documento pendiente de completar antes de la publicación definitiva.</p>
-        </div>
-
         <Link href="/" className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors mb-8">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -26,10 +33,10 @@ export default function PrivacidadPage() {
               La presente política rige el tratamiento de datos personales por parte de KevPhonesGC / propietario del sitio web:
             </p>
             <ul className="list-disc pl-5 space-y-2 text-zinc-400">
-              <li><strong className="text-zinc-300">Titular:</strong> PENDIENTE_NOMBRE_TITULAR</li>
-              <li><strong className="text-zinc-300">NIF/NIE:</strong> PENDIENTE_NIF_NIE</li>
-              <li><strong className="text-zinc-300">Domicilio:</strong> PENDIENTE_DOMICILIO_LEGAL</li>
-              <li><strong className="text-zinc-300">Email:</strong> PENDIENTE_EMAIL_CONTACTO</li>
+              <li><strong className="text-zinc-300">Responsable:</strong> Kevin Ochoa González</li>
+              <li><strong className="text-zinc-300">Nombre comercial:</strong> KevPhonesGC</li>
+              <li><strong className="text-zinc-300">Email:</strong> kevphoness@gmail.com</li>
+              <li><strong className="text-zinc-300">Ubicación:</strong> Las Palmas de Gran Canaria, España</li>
             </ul>
           </section>
 
@@ -101,7 +108,7 @@ export default function PrivacidadPage() {
           <section>
             <h2 className="text-2xl font-semibold text-white mb-4">8. Derechos del usuario</h2>
             <p className="text-zinc-400 mb-4">
-              Puedes ejercer tus derechos sobre tus datos personales enviando un correo a <strong className="text-zinc-300">PENDIENTE_EMAIL_CONTACTO</strong>. Tus derechos incluyen:
+              Puedes ejercer tus derechos sobre tus datos personales enviando un correo a <strong className="text-zinc-300">kevphoness@gmail.com</strong>. Tus derechos incluyen:
             </p>
             <ul className="list-disc pl-5 space-y-2 text-zinc-400 mb-4">
               <li><strong>Acceso:</strong> Conocer qué datos personales estamos tratando.</li>

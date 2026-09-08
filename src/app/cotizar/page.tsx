@@ -2,6 +2,15 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import IphoneQuoteFlow from '@/components/public/quote/IphoneQuoteFlow'
 import { PublicHeader } from '@/components/public/PublicHeader'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Valora tu iPhone',
+  description: 'Obtén una valoración orientativa de tu iPhone en pocos pasos. El precio final se confirma después de revisar físicamente el dispositivo.',
+  alternates: {
+    canonical: '/cotizar'
+  }
+}
 
 export const dynamic = 'force-dynamic'
 

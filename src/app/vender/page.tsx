@@ -1,6 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { SellDeviceForm } from '@/components/public/sell/SellDeviceForm'
 import { PublicHeader } from '@/components/public/PublicHeader'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Vende tu dispositivo',
+  description: 'Envía los datos y fotos de tu dispositivo para solicitar una revisión y propuesta de compra de KevPhonesGC.',
+  alternates: {
+    canonical: '/vender'
+  }
+}
 
 export const dynamic = 'force-dynamic'
 

@@ -70,6 +70,7 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
     .eq('model_id', input.modelId)
     .eq('variant_type', 'storage')
     .eq('value', input.storage)
+    .eq('active', true)
     .single()
 
   if (storageError) {
@@ -93,6 +94,7 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
     .select('value')
     .eq('model_id', input.modelId)
     .eq('variant_type', 'color')
+    .eq('active', true)
 
   if (colorError) {
     console.error('Quote engine color variant query failed', {

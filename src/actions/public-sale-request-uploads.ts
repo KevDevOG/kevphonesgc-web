@@ -26,6 +26,10 @@ export type CreateSessionResponse = {
 export async function createSaleRequestUploadSessionAction(
   input: CreateSessionInput
 ): Promise<CreateSessionResponse> {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return { success: false, error: 'Datos no válidos.' }
+  }
+
   const { customerPhone, category } = input
 
   if (!customerPhone || typeof customerPhone !== 'string') {

@@ -32,13 +32,17 @@ export async function updateSession(request: NextRequest) {
   )
 
   // Refresh/verify auth using getClaims as requested
-  const { error } = await supabase.auth.getClaims()
+  const { data, error } = await supabase.auth.getClaims()
 
   // Protect the /admin routes (except /admin/login)
   const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
   const isLoginRoute = request.nextUrl.pathname === '/admin/login'
 
-  if (isAdminRoute && !isLoginRoute && error) {
+  const ADMIN_UUID = '76320352-4c29-42ad-a105-345e0b5928dd'
+  const subject = data?.claims?.sub
+  const isAuthorized = !error && subject === ADMIN_UUID
+
+  if (isAdminRoute && !isLoginRoute && !isAuthorized) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin/login'
     const redirectResponse = NextResponse.redirect(url)

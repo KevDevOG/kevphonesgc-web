@@ -1,15 +1,22 @@
 import { PublicHeader } from '@/components/public/PublicHeader'
 import Link from 'next/link'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Política de cookies',
+  description: 'Información sobre el uso de cookies en KevPhonesGC.',
+  robots: {
+    index: false,
+    follow: true,
+    noarchive: true
+  }
+}
 
 export default function CookiesPage() {
   return (
     <div className="min-h-screen bg-black text-zinc-300">
       <PublicHeader />
       <main className="max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 py-16 md:py-24">
-        <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-xl mb-12">
-          <p className="text-yellow-400 font-medium text-center">Documento pendiente de completar antes de la publicación definitiva.</p>
-        </div>
-
         <Link href="/" className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors mb-8">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />

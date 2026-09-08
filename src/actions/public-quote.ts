@@ -22,13 +22,15 @@ export async function submitPublicIphoneQuote(input: any) {
     }
 
     // Validate storage
-    if (typeof input.storage !== 'string' || input.storage.trim() === '') {
+    if (typeof input.storage !== 'string' || input.storage.trim() === '' || input.storage.length > 100) {
       return { ok: false, code: 'invalid_input' }
     }
 
     // Validate color
-    if (input.color !== undefined && input.color !== null && typeof input.color !== 'string') {
-      return { ok: false, code: 'invalid_input' }
+    if (input.color !== undefined && input.color !== null) {
+      if (typeof input.color !== 'string' || input.color.length > 100) {
+        return { ok: false, code: 'invalid_input' }
+      }
     }
 
     // Validate batteryHealth
@@ -40,7 +42,12 @@ export async function submitPublicIphoneQuote(input: any) {
 
     // Validate batteryCycles
     if (input.batteryCycles !== undefined && input.batteryCycles !== null) {
-      if (typeof input.batteryCycles !== 'number' || !Number.isInteger(input.batteryCycles) || input.batteryCycles < 0) {
+      if (
+        typeof input.batteryCycles !== 'number' ||
+        !Number.isSafeInteger(input.batteryCycles) ||
+        input.batteryCycles < 0 ||
+        input.batteryCycles > 2147483647
+      ) {
         return { ok: false, code: 'invalid_input' }
       }
     }
@@ -61,7 +68,7 @@ export async function submitPublicIphoneQuote(input: any) {
 
     // Validate officialWarrantyUntil
     if (input.officialWarrantyUntil !== undefined && input.officialWarrantyUntil !== null) {
-      if (typeof input.officialWarrantyUntil !== 'string' || !dateRegex.test(input.officialWarrantyUntil)) {
+      if (typeof input.officialWarrantyUntil !== 'string' || input.officialWarrantyUntil.length > 10 || !dateRegex.test(input.officialWarrantyUntil)) {
         return { ok: false, code: 'invalid_input' }
       }
       const d = new Date(input.officialWarrantyUntil)
