@@ -25,6 +25,15 @@ export const metadata: Metadata = {
   authors: [{ name: "KevPhonesGC" }],
   creator: "KevPhonesGC",
   category: "technology",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "KevPhones Admin",
+  },
   formatDetection: {
     telephone: false,
   },
