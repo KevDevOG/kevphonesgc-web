@@ -174,7 +174,10 @@ export function NewDeviceForm({ models, variants, catalogImages = [] }: Props) {
     return (
       <div className="bg-[#0B0B0E] border border-[#22c55e]/20 p-8 rounded-2xl flex flex-col items-center justify-center text-center gap-4">
         <span className="material-symbols-outlined text-[#22c55e] text-5xl">check_circle</span>
-        <h3 className="text-xl font-bold text-white">Dispositivo publicado correctamente.</h3>
+        <h3 className="text-xl font-bold text-white">Dispositivo guardado correctamente.</h3>
+        <p className="text-sm text-zinc-400 font-medium max-w-sm mt-1">
+          Puedes añadir las fotos y publicarlo más tarde desde Stock.
+        </p>
         <button 
           onClick={() => setFormState(initialState)}
           className="mt-2 bg-[#121217] hover:bg-[#1F1F24] border border-[#1F1F24] text-white font-semibold py-3 px-6 rounded-xl transition-colors"
@@ -485,7 +488,7 @@ export function NewDeviceForm({ models, variants, catalogImages = [] }: Props) {
           ) : (
             <>
               <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
-              Guardar y publicar
+              Guardar dispositivo
             </>
           )}
         </button>

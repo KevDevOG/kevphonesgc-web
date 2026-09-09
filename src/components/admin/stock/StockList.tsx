@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
-import { deleteDeviceAction } from '@/actions/devices'
+import { deleteDeviceAction, publishDeviceAction } from '@/actions/devices'
 import { updateDeviceSaleAction, cancelDeviceSaleAction } from '@/actions/sales'
 import Link from 'next/link'
 
@@ -23,6 +23,7 @@ type Device = {
   warranty_until: string | null
   purchased_at: string
   status: string
+  is_published: boolean
   created_at: string
   device_models: {
     category: string
@@ -140,6 +141,21 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
       }
     } catch (err) {
       setError('No se pudo anular la venta. Inténtalo de nuevo.')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  const handlePublish = async (device: Device) => {
+    setIsPending(true)
+    setError(null)
+    try {
+      const res = await publishDeviceAction(device.id)
+      if (res.error) {
+        setError(res.error)
+      }
+    } catch (err) {
+      setError('Error al publicar el dispositivo.')
     } finally {
       setIsPending(false)
     }
@@ -273,8 +289,8 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                       <h3 className="text-base lg:text-[17px] leading-tight text-white font-bold truncate">
                         {device.device_models?.name}
                       </h3>
-                      <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${view === 'available' ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-[#1F1F24] text-zinc-400'}`}>
-                        {view === 'available' ? 'Disponible' : 'Vendido'}
+                      <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${view === 'available' ? (device.is_published ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-orange-500/10 text-orange-400') : 'bg-[#1F1F24] text-zinc-400'}`}>
+                        {view === 'available' ? (device.is_published ? 'Publicado' : 'Pendiente de publicar') : 'Vendido'}
                       </div>
                     </div>
                     
@@ -309,7 +325,11 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                           {view === 'available' ? (
                             <>
                               <Link href={`/admin/stock/${device.id}/editar`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar dispositivo</Link>
-                              <Link href={`/admin/stock/${device.id}/vender`} className="block px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Vender</Link>
+                              {device.is_published ? (
+                                <Link href={`/admin/stock/${device.id}/vender`} className="block px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Vender</Link>
+                              ) : (
+                                <button onClick={() => { setOpenMenuId(null); handlePublish(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Publicar</button>
+                              )}
                               <button onClick={() => { setOpenMenuId(null); setDeletingDevice(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24]">Eliminar</button>
                             </>
                           ) : (
@@ -349,10 +369,15 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                     <Link href={`/admin/stock/${device.id}`} className="p-2 text-zinc-500 hover:text-white hover:bg-[#1F1F24] rounded-lg transition-colors" title="Ver detalle">
                       <span className="material-symbols-outlined text-[20px]">visibility</span>
                     </Link>
-                    {view === 'available' && (
+                    {view === 'available' && device.is_published && (
                       <Link href={`/admin/stock/${device.id}/vender`} className="p-2 text-[#d7baff] hover:bg-[#7a32d4]/15 hover:text-[#e5d0ff] rounded-lg transition-colors" title="Vender">
                         <span className="material-symbols-outlined text-[20px]">sell</span>
                       </Link>
+                    )}
+                    {view === 'available' && !device.is_published && (
+                      <button onClick={() => handlePublish(device)} className="p-2 text-[#d7baff] hover:bg-[#7a32d4]/15 hover:text-[#e5d0ff] rounded-lg transition-colors" title="Publicar">
+                        <span className="material-symbols-outlined text-[20px]">publish</span>
+                      </button>
                     )}
                     <button 
                       aria-label="Más opciones" 
@@ -369,6 +394,9 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                           {view === 'available' ? (
                             <>
                               <Link href={`/admin/stock/${device.id}/editar`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar dispositivo</Link>
+                              {!device.is_published && (
+                                <button onClick={() => { setOpenMenuId(null); handlePublish(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Publicar</button>
+                              )}
                               <button onClick={() => { setOpenMenuId(null); setDeletingDevice(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24]">Eliminar</button>
                             </>
                           ) : (

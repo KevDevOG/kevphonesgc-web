@@ -42,12 +42,14 @@ export default async function AdminPage() {
     { data: sales },
     { data: devices },
     { data: expenses },
-    { data: capitalMovements }
+    { data: capitalMovements },
+    { data: historicalSales }
   ] = await Promise.all([
     supabase.from('sales').select('id, device_id, final_sale_price, sold_at, created_at'),
     supabase.from('devices').select('id, purchase_price, purchased_at, status, created_at, device_models(name)'),
     supabase.from('expenses').select('id, category_id, amount, expense_date, created_at, expense_categories(name)'),
-    supabase.from('capital_movements').select('id, movement_type, amount, movement_date, created_at')
+    supabase.from('capital_movements').select('id, movement_type, amount, movement_date, created_at'),
+    supabase.from('historical_sales').select('id, product_name, purchase_date, purchase_price, sale_date, sale_price, gross_profit, created_at')
   ])
 
   // Parse arrays
@@ -55,6 +57,7 @@ export default async function AdminPage() {
   const devicesArr = devices || []
   const expensesArr = expenses || []
   const capArr = capitalMovements || []
+  const histSalesArr = historicalSales || []
 
   // Device Map for easy lookup
   const deviceMap = new Map()
@@ -114,8 +117,15 @@ export default async function AdminPage() {
     return d.getFullYear() === currentYear && d.getMonth() === currentMonth
   })
   
-  const monthlySalesRevenue = currentMonthSales.reduce((sum, s) => sum + Number(s.final_sale_price), 0)
-  const monthlySoldCount = currentMonthSales.length
+  const currentMonthHistSales = histSalesArr.filter(s => {
+    const d = new Date(s.sale_date)
+    return d.getFullYear() === currentYear && d.getMonth() === currentMonth
+  })
+
+  const monthlySalesRevenue = currentMonthSales.reduce((sum, s) => sum + Number(s.final_sale_price), 0) +
+                              currentMonthHistSales.reduce((sum, s) => sum + Number(s.sale_price), 0)
+                              
+  const monthlySoldCount = currentMonthSales.length + currentMonthHistSales.length
 
   let monthlyOperationProfit = 0
   currentMonthSales.forEach(s => {
@@ -123,6 +133,10 @@ export default async function AdminPage() {
     if (dev) {
       monthlyOperationProfit += (Number(s.final_sale_price) - Number(dev.purchase_price))
     }
+  })
+  
+  currentMonthHistSales.forEach(s => {
+    monthlyOperationProfit += Number(s.gross_profit)
   })
 
   const currentMonthExpenses = expensesArr.filter(e => {
@@ -147,10 +161,19 @@ export default async function AdminPage() {
       return sd.getFullYear() === y && sd.getMonth() === m
     })
     
+    let mHistSales = histSalesArr.filter(s => {
+      const sd = new Date(s.sale_date)
+      return sd.getFullYear() === y && sd.getMonth() === m
+    })
+    
     let mOpProfit = 0
     mSales.forEach(s => {
       const dev = deviceMap.get(s.device_id)
       if (dev) mOpProfit += (Number(s.final_sale_price) - Number(dev.purchase_price))
+    })
+    
+    mHistSales.forEach(s => {
+      mOpProfit += Number(s.gross_profit)
     })
     
     let mExps = expensesArr.filter(e => {

@@ -31,6 +31,7 @@ export default async function StockPage() {
       warranty_until,
       purchased_at,
       status,
+      is_published,
       created_at,
       device_models (
         category,

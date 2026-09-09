@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { deleteDeviceAction } from '@/actions/devices'
+import { deleteDeviceAction, publishDeviceAction } from '@/actions/devices'
 import { EditTradeInForm } from '@/components/admin/stock/EditTradeInForm'
 import { CancelTradeInDialog } from '@/components/admin/stock/CancelTradeInDialog'
 
@@ -27,6 +27,7 @@ type Device = {
   purchase_location: string | null
   purchased_at: string
   status: string
+  is_published: boolean
   internal_notes: string | null
   created_at: string
   device_models: {
@@ -94,6 +95,9 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   
+  const [isPublishing, setIsPublishing] = useState(false)
+  const [publishError, setPublishError] = useState<string | null>(null)
+
   const [isEditingTradeIn, setIsEditingTradeIn] = useState(false)
   const [isCancelingTradeIn, setIsCancelingTradeIn] = useState(false)
 
@@ -109,6 +113,16 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
       setShowConfirmDelete(false)
     } else {
       router.push('/admin/stock')
+    }
+  }
+
+  const handlePublish = async () => {
+    setIsPublishing(true)
+    setPublishError(null)
+    const result = await publishDeviceAction(device.id)
+    if (result.error) {
+      setPublishError(result.error)
+      setIsPublishing(false)
     }
   }
 
@@ -150,8 +164,8 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
               {[device.storage, device.color].filter(Boolean).join(' · ')}
             </p>
           </div>
-          <div className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider ${device.status === 'available' ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-[#1F1F24] text-zinc-400'}`}>
-            {device.status === 'available' ? 'Disponible' : 'Vendido'}
+          <div className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider ${device.status === 'available' ? (device.is_published ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-orange-500/10 text-orange-400') : 'bg-[#1F1F24] text-zinc-400'}`}>
+            {device.status === 'available' ? (device.is_published ? 'Publicado' : 'Pendiente de publicar') : 'Vendido'}
           </div>
         </div>
       </header>
@@ -277,12 +291,25 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
 
           {/* Main Actions */}
           <div className="flex flex-col gap-3">
+            {publishError && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm font-semibold">
+                {publishError}
+              </div>
+            )}
             {device.status === 'available' && (
               <>
-                <Link href={`/admin/stock/${device.id}/vender`} className="w-full bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
-                  <span className="material-symbols-outlined text-[20px]">sell</span>
-                  Vender dispositivo
-                </Link>
+                {!device.is_published && (
+                  <button onClick={handlePublish} disabled={isPublishing} className="w-full bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400 font-bold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                    <span className="material-symbols-outlined text-[20px]">publish</span>
+                    {isPublishing ? 'Publicando...' : 'Publicar'}
+                  </button>
+                )}
+                {device.is_published && (
+                  <Link href={`/admin/stock/${device.id}/vender`} className="w-full bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
+                    <span className="material-symbols-outlined text-[20px]">sell</span>
+                    Vender dispositivo
+                  </Link>
+                )}
                 <Link href={`/admin/stock/${device.id}/editar`} className="w-full bg-[#121217] hover:bg-[#1F1F24] border border-[#1F1F24] text-white font-semibold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
                   <span className="material-symbols-outlined text-[20px]">edit</span>
                   Editar

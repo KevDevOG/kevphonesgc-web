@@ -41,6 +41,7 @@ export default async function DeviceDetailPage({ params }: PageProps) {
       purchase_location,
       purchased_at,
       status,
+      is_published,
       internal_notes,
       created_at,
       device_models (

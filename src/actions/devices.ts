@@ -460,3 +460,60 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
 
   return { success: true }
 }
+
+export async function publishDeviceAction(deviceId: string) {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.id !== '76320352-4c29-42ad-a105-345e0b5928dd') {
+    return { error: 'No autorizado' }
+  }
+
+  if (!deviceId) return { error: 'Error interno: UUID de dispositivo faltante.' }
+
+  const { data: device } = await supabase
+    .from('devices')
+    .select('status, is_published')
+    .eq('id', deviceId)
+    .single()
+
+  if (!device) {
+    return { error: 'El dispositivo no existe.' }
+  }
+
+  if (device.status !== 'available') {
+    return { error: 'Solo se pueden publicar dispositivos en estado disponible.' }
+  }
+
+  if (device.is_published) {
+    return { success: true } // Already published
+  }
+
+  const { count, error: countError } = await supabase
+    .from('device_images')
+    .select('id', { count: 'exact', head: true })
+    .eq('device_id', deviceId)
+
+  if (countError) {
+    return { error: 'Error al verificar las imágenes del dispositivo.' }
+  }
+
+  if (count === 0) {
+    return { error: 'Añade al menos una foto real antes de publicar el dispositivo.' }
+  }
+
+  const { error: updateError } = await supabase
+    .from('devices')
+    .update({ is_published: true })
+    .eq('id', deviceId)
+
+  if (updateError) {
+    return { error: 'No se pudo publicar el dispositivo. Inténtalo de nuevo.' }
+  }
+
+  revalidatePath('/admin')
+  revalidatePath('/admin/stock')
+  revalidatePath('/')
+
+  return { success: true }
+}
