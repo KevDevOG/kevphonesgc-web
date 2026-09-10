@@ -304,12 +304,10 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
                     {isPublishing ? 'Publicando...' : 'Publicar'}
                   </button>
                 )}
-                {device.is_published && (
-                  <Link href={`/admin/stock/${device.id}/vender`} className="w-full bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined text-[20px]">sell</span>
-                    Vender dispositivo
-                  </Link>
-                )}
+                <Link href={`/admin/stock/${device.id}/vender`} className="w-full bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-[20px]">sell</span>
+                  Vender dispositivo
+                </Link>
                 <Link href={`/admin/stock/${device.id}/editar`} className="w-full bg-[#121217] hover:bg-[#1F1F24] border border-[#1F1F24] text-white font-semibold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
                   <span className="material-symbols-outlined text-[20px]">edit</span>
                   Editar

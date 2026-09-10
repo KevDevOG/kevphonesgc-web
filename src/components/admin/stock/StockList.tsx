@@ -325,11 +325,10 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                           {view === 'available' ? (
                             <>
                               <Link href={`/admin/stock/${device.id}/editar`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar dispositivo</Link>
-                              {device.is_published ? (
-                                <Link href={`/admin/stock/${device.id}/vender`} className="block px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Vender</Link>
-                              ) : (
+                              {!device.is_published && (
                                 <button onClick={() => { setOpenMenuId(null); handlePublish(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Publicar</button>
                               )}
+                              <Link href={`/admin/stock/${device.id}/vender`} className="block px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Vender</Link>
                               <button onClick={() => { setOpenMenuId(null); setDeletingDevice(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24]">Eliminar</button>
                             </>
                           ) : (
@@ -369,7 +368,7 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                     <Link href={`/admin/stock/${device.id}`} className="p-2 text-zinc-500 hover:text-white hover:bg-[#1F1F24] rounded-lg transition-colors" title="Ver detalle">
                       <span className="material-symbols-outlined text-[20px]">visibility</span>
                     </Link>
-                    {view === 'available' && device.is_published && (
+                    {view === 'available' && (
                       <Link href={`/admin/stock/${device.id}/vender`} className="p-2 text-[#d7baff] hover:bg-[#7a32d4]/15 hover:text-[#e5d0ff] rounded-lg transition-colors" title="Vender">
                         <span className="material-symbols-outlined text-[20px]">sell</span>
                       </Link>
