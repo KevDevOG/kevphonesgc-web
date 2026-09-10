@@ -106,6 +106,10 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
         setValidationError('Por favor, selecciona el estado físico.')
         return
       }
+      if (deviceCondition === 'sealed') {
+        setStep(6 as any)
+        return
+      }
     } else if (step === 5) {
       if (selectedModel?.supports_battery_health) {
         if (!batteryTouched) {
@@ -130,7 +134,11 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
   const goBack = () => {
     if (step > 1) {
       setValidationError('')
-      setStep((prev) => (prev - 1) as any)
+      if (step === 6 && deviceCondition === 'sealed') {
+        setStep(4 as any)
+      } else {
+        setStep((prev) => (prev - 1) as any)
+      }
     }
   }
 
@@ -488,6 +496,11 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
                     onClick={() => {
                       setDeviceCondition(cond.value as any)
                       setValidationError('')
+                      if (cond.value === 'sealed') {
+                        setBatteryHealth(0)
+                        setBatteryTouched(false)
+                        setBatteryCycles('')
+                      }
                     }}
                     className={`w-full p-5 sm:p-6 rounded-[20px] border text-left transition-all duration-200 active:scale-[0.99] flex flex-col ${
                       deviceCondition === cond.value

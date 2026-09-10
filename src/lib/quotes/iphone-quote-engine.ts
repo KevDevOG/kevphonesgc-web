@@ -237,7 +237,7 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
     totalAdjustment += getAdjustment('condition', input.deviceCondition)
 
     // Battery
-    if (model.supports_battery_health) {
+    if (model.supports_battery_health && input.deviceCondition !== 'sealed') {
       if (typeof input.batteryHealth !== 'number' || !Number.isInteger(input.batteryHealth) || input.batteryHealth < 0 || input.batteryHealth > 100) {
         return { ok: false, code: 'configuration_error' }
       }
@@ -253,7 +253,7 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
     }
 
     // Cycles
-    if (input.batteryCycles !== undefined && input.batteryCycles !== null) {
+    if (input.deviceCondition !== 'sealed' && input.batteryCycles !== undefined && input.batteryCycles !== null) {
       if (typeof input.batteryCycles !== 'number' || !Number.isInteger(input.batteryCycles) || input.batteryCycles < 0) {
         return { ok: false, code: 'configuration_error' }
       }
