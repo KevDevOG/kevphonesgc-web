@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
-import { updateSaleRequestStatusAction } from '@/actions/sale-requests'
+import { updateSaleRequestStatusAction, deleteSaleRequestAction } from '@/actions/sale-requests'
 import { PurchaseFromRequestForm } from '@/components/admin/requests/PurchaseFromRequestForm'
 import { TradeInFromRequestForm } from '@/components/admin/requests/TradeInFromRequestForm'
 
@@ -122,8 +122,10 @@ export function SaleRequestDetail({ request, images, tradeInContext }: SaleReque
     new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount)
     
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState<SaleRequestImage | null>(null)
   const lightboxOpenRef = useRef(false)
   const [mounted, setMounted] = useState(false)
@@ -200,11 +202,35 @@ export function SaleRequestDetail({ request, images, tradeInContext }: SaleReque
         setError(res.error)
       } else {
         setShowDiscardConfirm(false)
+        if (newStatus === 'discarded') {
+          router.push('/admin/solicitudes')
+          router.refresh()
+        }
       }
     } catch (err) {
       setError('Ocurrió un error al actualizar el estado.')
     } finally {
       setIsUpdating(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    setError(null)
+    try {
+      const res = await deleteSaleRequestAction(request.id)
+      if (res.error) {
+        setError(res.error)
+        setShowDeleteConfirm(false)
+      } else {
+        router.push('/admin/solicitudes')
+        router.refresh()
+      }
+    } catch (err) {
+      setError('Ocurrió un error al eliminar la solicitud.')
+      setShowDeleteConfirm(false)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -489,6 +515,48 @@ export function SaleRequestDetail({ request, images, tradeInContext }: SaleReque
                       disabled={isUpdating}
                     >
                       {isUpdating ? 'Guardando...' : 'Sí, descartar'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Acciones Destructivas */}
+            {request.status !== 'purchased' && (
+              <>
+                <div className="h-px bg-[#1F1F24] w-full my-2"></div>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full bg-red-500/5 hover:bg-red-500/10 text-red-500 border border-red-500/20 hover:border-red-500/30 rounded-xl px-4 py-2.5 text-[14px] font-bold transition-colors flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                  Eliminar solicitud
+                </button>
+              </>
+            )}
+
+            {/* Modal Confirmación Eliminación */}
+            {showDeleteConfirm && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+                  <h3 className="text-[17px] font-bold text-white mb-2">¿Eliminar esta solicitud?</h3>
+                  <p className="text-[14px] font-medium text-zinc-400 mb-6 leading-relaxed">
+                    Esta acción eliminará permanentemente la solicitud y sus fotos. No se puede deshacer.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 px-4 py-2.5 bg-[#121217] border border-[#1F1F24] text-white rounded-xl text-[14px] font-bold hover:bg-[#1F1F24] transition-colors"
+                      disabled={isDeleting}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="flex-1 px-4 py-2.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-[14px] font-bold hover:bg-red-500/20 transition-colors"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? 'Eliminando...' : 'Eliminar definitivamente'}
                     </button>
                   </div>
                 </div>

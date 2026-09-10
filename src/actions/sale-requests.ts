@@ -180,3 +180,67 @@ export async function convertRequestToDeviceAction(requestId: string, formData: 
   
   return { success: true, deviceId: newDeviceId }
 }
+
+export async function deleteSaleRequestAction(requestId: string) {
+  const supabase = await createClient()
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.id !== ADMIN_UUID) {
+    return { error: 'No autorizado' }
+  }
+
+  // Verify request exists and fetch its status
+  const { data: request, error: requestError } = await supabase
+    .from('sale_requests')
+    .select('status')
+    .eq('id', requestId)
+    .single()
+
+  if (requestError || !request) {
+    return { error: 'Solicitud no encontrada.' }
+  }
+
+  // Must not be purchased
+  if (request.status === 'purchased') {
+    return { error: 'No se puede eliminar una solicitud que ya ha sido convertida en compra.' }
+  }
+
+  // Fetch related images to delete from Storage
+  const { data: images, error: imagesError } = await supabase
+    .from('sale_request_images')
+    .select('storage_path')
+    .eq('request_id', requestId)
+
+  if (imagesError) {
+    console.error('Error fetching images to delete:', imagesError)
+    return { error: 'Error al buscar las imágenes de la solicitud.' }
+  }
+
+  if (images && images.length > 0) {
+    const paths = images.map(img => img.storage_path)
+    const { error: storageError } = await supabase
+      .storage
+      .from('sale-request-images')
+      .remove(paths)
+
+    if (storageError) {
+      console.error('Error deleting images from storage:', storageError)
+      return { error: 'No se pudieron eliminar las fotos de la solicitud. La solicitud no ha sido borrada.' }
+    }
+  }
+
+  // Delete the row in the DB
+  const { error: deleteError } = await supabase
+    .from('sale_requests')
+    .delete()
+    .eq('id', requestId)
+
+  if (deleteError) {
+    console.error('Error deleting sale request:', deleteError)
+    return { error: 'Error al eliminar la solicitud en la base de datos.' }
+  }
+
+  revalidatePath('/admin/solicitudes')
+  
+  return { success: true }
+}

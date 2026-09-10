@@ -23,6 +23,7 @@ export default async function SaleRequestsPage() {
         category
       )
     `)
+    .neq('status', 'discarded')
     .order('created_at', { ascending: false })
 
   if (error) {

@@ -47,7 +47,7 @@ const statusColors: Record<string, string> = {
 
 export function SaleRequestsList({ initialRequests }: SaleRequestsListProps) {
   const [search, setSearch] = useState('')
-  const [activeFilter, setActiveFilter] = useState<'all' | 'new' | 'in_progress' | 'purchased' | 'discarded'>('all')
+  const [activeFilter, setActiveFilter] = useState<'all' | 'new' | 'in_progress' | 'purchased'>('new')
 
   const filteredRequests = initialRequests.filter(req => {
     if (activeFilter !== 'all' && req.status !== activeFilter) {
@@ -72,16 +72,14 @@ export function SaleRequestsList({ initialRequests }: SaleRequestsListProps) {
     all: initialRequests.length,
     new: initialRequests.filter(r => r.status === 'new').length,
     in_progress: initialRequests.filter(r => r.status === 'in_progress').length,
-    purchased: initialRequests.filter(r => r.status === 'purchased').length,
-    discarded: initialRequests.filter(r => r.status === 'discarded').length,
+    purchased: initialRequests.filter(r => r.status === 'purchased').length
   }
 
   const filters = [
-    { id: 'all', label: 'Todas', count: counts.all },
     { id: 'new', label: 'Nuevas', count: counts.new },
     { id: 'in_progress', label: 'En proceso', count: counts.in_progress },
     { id: 'purchased', label: 'Compradas', count: counts.purchased },
-    { id: 'discarded', label: 'Descartadas', count: counts.discarded }
+    { id: 'all', label: 'Todas', count: counts.all }
   ]
 
   const formatCurrency = (value: number) => {
