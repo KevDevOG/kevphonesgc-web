@@ -17,13 +17,21 @@ interface QuoteGlobalAdjustmentsAdminProps {
   rules: GlobalRule[]
 }
 
-const GROUPS = [
+type GroupItem = {
+  key: string
+  label: string
+  ideal?: boolean
+  base?: boolean
+  increment?: boolean
+}
+
+const GROUPS: { type: string, title: string, items: GroupItem[] }[] = [
   {
     type: 'condition',
     title: 'Estado',
     items: [
-      { key: 'sealed', label: 'Precintado', ideal: true },
-      { key: 'like_new', label: 'Como nuevo', ideal: true },
+      { key: 'sealed', label: 'Precintado', ideal: false, base: false, increment: true },
+      { key: 'like_new', label: 'Como nuevo', ideal: false, base: true, increment: false },
       { key: 'good', label: 'Buen estado' },
       { key: 'marked', label: 'Con marcas' }
     ]
@@ -109,7 +117,7 @@ export function QuoteGlobalAdjustmentsAdmin({ rules }: QuoteGlobalAdjustmentsAdm
     const discount = parseFloat(val)
 
     if (isNaN(discount) || discount < 0) {
-      setMessage({ type: 'error', text: 'El descuento debe ser un número positivo.' })
+      setMessage({ type: 'error', text: 'El valor debe ser un número positivo.' })
       return
     }
 
@@ -124,7 +132,7 @@ export function QuoteGlobalAdjustmentsAdmin({ rules }: QuoteGlobalAdjustmentsAdm
     })
 
     if (res.success) {
-      setMessage({ type: 'success', text: 'Descuento guardado.' })
+      setMessage({ type: 'success', text: 'Ajuste guardado.' })
       setTimeout(() => setMessage(null), 3000)
     } else {
       setMessage({ type: 'error', text: res.error || 'Error al guardar.' })
@@ -136,7 +144,7 @@ export function QuoteGlobalAdjustmentsAdmin({ rules }: QuoteGlobalAdjustmentsAdm
   return (
     <div className="flex flex-col gap-6 mt-8">
       <div className="flex flex-col gap-1">
-        <h2 className="text-2xl font-bold text-white tracking-tight pt-8 border-t border-[#1F1F24]">Descuentos globales</h2>
+        <h2 className="text-2xl font-bold text-white tracking-tight pt-8 border-t border-[#1F1F24]">Ajustes globales</h2>
       </div>
 
       <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-xl p-4 flex gap-4 items-start">
@@ -178,6 +186,12 @@ export function QuoteGlobalAdjustmentsAdmin({ rules }: QuoteGlobalAdjustmentsAdm
                       <span className="font-semibold text-[14px] text-white">{item.label}</span>
                       {item.ideal && (
                         <span className="text-[11px] font-bold text-[#d7baff] uppercase tracking-wider mt-1">Condición ideal (Normalmente 0 €)</span>
+                      )}
+                      {item.base && (
+                        <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mt-1">Condición base (Normalmente 0 €)</span>
+                      )}
+                      {item.increment && (
+                        <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider mt-1">Incremento sobre el precio base</span>
                       )}
                     </div>
                     

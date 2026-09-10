@@ -200,8 +200,8 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
     return { ok: false, code: 'configuration_error' }
   }
 
-  // Helper to find discount
-  const getDiscount = (type: string, key: string) => {
+  // Helper to find adjustment
+  const getAdjustment = (type: string, key: string) => {
     // Prefer model specific
     let match = adjustments.find(a => a.model_id === input.modelId && a.rule_type === type && a.rule_key === key)
     if (!match) {
@@ -213,18 +213,28 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
     const minD = Number(match.min_delta)
     const maxD = Number(match.max_delta)
 
-    if (minD !== maxD || minD > 0 || maxD > 0) {
+    if (minD !== maxD) {
       throw new Error('invariant_violation')
     }
 
-    return minD // Negative value
+    if (type === 'condition' && key === 'sealed') {
+      if (minD < 0 || maxD < 0) {
+        throw new Error('invariant_violation')
+      }
+    } else {
+      if (minD > 0 || maxD > 0) {
+        throw new Error('invariant_violation')
+      }
+    }
+
+    return minD // Value to add
   }
 
   try {
-    let totalDiscount = 0
+    let totalAdjustment = 0
 
     // Condition
-    totalDiscount += getDiscount('condition', input.deviceCondition)
+    totalAdjustment += getAdjustment('condition', input.deviceCondition)
 
     // Battery
     if (model.supports_battery_health) {
@@ -239,7 +249,7 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
       else if (bh >= 85) bKey = '85_89'
       else if (bh >= 80) bKey = '80_84'
       else bKey = 'under_80'
-      totalDiscount += getDiscount('battery', bKey)
+      totalAdjustment += getAdjustment('battery', bKey)
     }
 
     // Cycles
@@ -254,14 +264,14 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
         else if (cy <= 150) cKey = '51_150'
         else if (cy <= 300) cKey = '151_300'
         else cKey = '301_plus'
-        totalDiscount += getDiscount('cycles', cKey)
+        totalAdjustment += getAdjustment('cycles', cKey)
       }
     }
 
     // Accessories
-    if (!input.hasBox) totalDiscount += getDiscount('box', 'no')
-    if (!input.hasCable) totalDiscount += getDiscount('cable', 'no')
-    if (!input.hasInvoice) totalDiscount += getDiscount('invoice', 'no')
+    if (!input.hasBox) totalAdjustment += getAdjustment('box', 'no')
+    if (!input.hasCable) totalAdjustment += getAdjustment('cable', 'no')
+    if (!input.hasInvoice) totalAdjustment += getAdjustment('invoice', 'no')
 
     // Warranty
     let hasWarranty = false
@@ -280,16 +290,16 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
       }
     }
     if (!hasWarranty) {
-      totalDiscount += getDiscount('warranty', 'no')
+      totalAdjustment += getAdjustment('warranty', 'no')
     }
 
     // Color
     if (validatedColor) {
-      totalDiscount += getDiscount('color', validatedColor)
+      totalAdjustment += getAdjustment('color', validatedColor)
     }
 
     // 6. FINAL CALCULATION
-    const estimatedMax = Number((baseMax + totalDiscount).toFixed(2))
+    const estimatedMax = Number((baseMax + totalAdjustment).toFixed(2))
     const estimatedMin = Number((estimatedMax - 30).toFixed(2))
 
     if (estimatedMax < 30 || estimatedMin < 0) {

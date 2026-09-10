@@ -67,7 +67,7 @@ export default async function QuoteAdminPage() {
       <div className="flex flex-col gap-8 w-full max-w-6xl mx-auto pb-12">
         <AdminPageHeader 
           title="Cotizador" 
-          subtitle="Configura los precios base y descuentos de valoración de iPhone." 
+          subtitle="Configura los precios base y ajustes de valoración de iPhone." 
         />
         <p className="text-[14px] text-zinc-500 font-medium -mt-4">
           Los cambios afectan a nuevas valoraciones.

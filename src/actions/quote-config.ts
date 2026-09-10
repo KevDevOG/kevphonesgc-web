@@ -153,11 +153,16 @@ export async function updateGlobalQuoteAdjustment(data: {
   }
 
   if (typeof data.discount !== 'number' || data.discount < 0 || !Number.isFinite(data.discount)) {
-    return { success: false, error: 'El descuento debe ser un número positivo' }
+    return { success: false, error: 'El valor debe ser un número positivo' }
   }
 
-  // Convert positive discount to equal negative values
-  const delta = -Math.abs(Number(data.discount.toFixed(2)))
+  // Convert positive input to positive or negative delta
+  let delta: number
+  if (data.ruleType === 'condition' && data.ruleKey === 'sealed') {
+    delta = Math.abs(Number(data.discount.toFixed(2)))
+  } else {
+    delta = -Math.abs(Number(data.discount.toFixed(2)))
+  }
 
   // Find existing rule
   const { data: existing, error: lookupError } = await supabase
