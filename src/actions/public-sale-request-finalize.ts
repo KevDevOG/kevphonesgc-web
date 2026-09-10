@@ -1,6 +1,7 @@
 'use server'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { sendSaleRequestAdminNotification } from '@/lib/notifications/sale-request-email'
 
 export type FinalizeRequestInput = {
   sessionId: string
@@ -272,6 +273,40 @@ export async function finalizePublicSaleRequestAction(
 
     if (typeof requestId !== 'string' || !UUID_REGEX.test(requestId)) {
       return { success: false, error: 'No se pudo enviar la solicitud. Inténtalo de nuevo.' }
+    }
+
+    // Email notification
+    try {
+      const { data: requestData, error: requestError } = await adminClient
+        .from('sale_requests')
+        .select(`
+          estimated_min,
+          estimated_max,
+          device_models (
+            name
+          )
+        `)
+        .eq('id', requestId)
+        .single()
+
+      if (requestError) {
+        console.error('Failed to fetch request data for email notification:', requestError)
+      } else {
+        const deviceModels = requestData?.device_models as any
+        const modelName = deviceModels?.name || 'Dispositivo'
+        await sendSaleRequestAdminNotification({
+          requestId,
+          modelName,
+          storage: storage,
+          color: color,
+          estimatedMin: requestData?.estimated_min,
+          estimatedMax: requestData?.estimated_max,
+          customerName: customerName,
+          customerLocation: customerLocation
+        })
+      }
+    } catch (emailErr) {
+      console.error('Unexpected error during email notification flow:', emailErr)
     }
 
     return {
