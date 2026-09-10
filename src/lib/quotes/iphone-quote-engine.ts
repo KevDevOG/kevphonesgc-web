@@ -18,6 +18,7 @@ export type QuoteInput = {
   officialWarrantyUntil?: string | null
   source?: 'instagram' | 'tiktok' | 'google' | 'direct' | 'other' | null
   targetDeviceId?: string | null
+  sealedPurchaseType?: 'cash' | 'financed' | 'renting' | null
 }
 
 export type QuoteResult = 
@@ -37,6 +38,19 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
   // 1. ELIGIBILITY CHECKS
   if (input.blocked || !input.originalParts || !input.fullyFunctional) {
     return { ok: false, code: 'manual_review_required' }
+  }
+
+  if (input.deviceCondition === 'sealed') {
+    if (!input.sealedPurchaseType) {
+      return { ok: false, code: 'configuration_error' }
+    }
+    if (input.sealedPurchaseType === 'renting') {
+      return { ok: false, code: 'renting_not_accepted' }
+    }
+  } else {
+    if (input.sealedPurchaseType) {
+      return { ok: false, code: 'configuration_error' }
+    }
   }
 
   const adminSupabase = createSupabaseAdminClient()
@@ -328,7 +342,8 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
         estimated_max: estimatedMax,
         target_device_id: input.quoteMode === 'trade_in' ? input.targetDeviceId : null,
         target_listing_price_snapshot: input.quoteMode === 'trade_in' ? targetListingPrice : null,
-        source: input.source || null
+        source: input.source || null,
+        sealed_purchase_type: input.deviceCondition === 'sealed' ? input.sealedPurchaseType : null
       })
       .select('handoff_token')
       .single()

@@ -58,6 +58,20 @@ export async function submitPublicIphoneQuote(input: any) {
       return { ok: false, code: 'invalid_input' }
     }
 
+    // Validate sealedPurchaseType
+    if (input.deviceCondition === 'sealed') {
+      if (input.sealedPurchaseType !== 'cash' && input.sealedPurchaseType !== 'financed' && input.sealedPurchaseType !== 'renting') {
+        return { ok: false, code: 'invalid_input' }
+      }
+      if (input.sealedPurchaseType === 'renting') {
+        return { ok: false, code: 'renting_not_accepted' }
+      }
+    } else {
+      if (input.sealedPurchaseType !== undefined && input.sealedPurchaseType !== null) {
+        return { ok: false, code: 'invalid_input' }
+      }
+    }
+
     // Validate booleans
     const boolFields = ['hasBox', 'hasCable', 'hasInvoice', 'originalParts', 'fullyFunctional', 'blocked']
     for (const field of boolFields) {
@@ -112,7 +126,8 @@ export async function submitPublicIphoneQuote(input: any) {
       blocked: input.blocked,
       officialWarrantyUntil: input.officialWarrantyUntil || null,
       source: input.source || null,
-      targetDeviceId: input.targetDeviceId || null
+      targetDeviceId: input.targetDeviceId || null,
+      sealedPurchaseType: input.deviceCondition === 'sealed' ? input.sealedPurchaseType : null
     }
 
     const result = await calculateIphoneQuote(validatedInput)

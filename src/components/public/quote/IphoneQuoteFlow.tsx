@@ -43,6 +43,7 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
 
   // Step 4: Estado
   const [deviceCondition, setDeviceCondition] = useState<'sealed'|'like_new'|'good'|'marked'|''>('')
+  const [sealedPurchaseType, setSealedPurchaseType] = useState<'cash'|'financed'|'renting'|''>('')
   
   // Step 5: Batería
   const [batteryHealth, setBatteryHealth] = useState<number>(0)
@@ -106,19 +107,26 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
         setValidationError('Por favor, selecciona el estado físico.')
         return
       }
-      if (deviceCondition === 'sealed') {
-        setStep(6 as any)
-        return
-      }
     } else if (step === 5) {
-      if (selectedModel?.supports_battery_health) {
-        if (!batteryTouched) {
-          setValidationError('Por favor, indica la salud de batería desplazando el control.')
+      if (deviceCondition === 'sealed') {
+        if (!sealedPurchaseType) {
+          setValidationError('Por favor, indica cómo se adquirió el iPhone.')
           return
         }
-        if (batteryHealth < 0 || batteryHealth > 100) {
-          setValidationError('Por favor, indica un valor válido de salud de batería (0-100).')
+        if (sealedPurchaseType === 'renting') {
+          setValidationError('No compramos dispositivos procedentes de renting o alquiler.')
           return
+        }
+      } else {
+        if (selectedModel?.supports_battery_health) {
+          if (!batteryTouched) {
+            setValidationError('Por favor, indica la salud de batería desplazando el control.')
+            return
+          }
+          if (batteryHealth < 0 || batteryHealth > 100) {
+            setValidationError('Por favor, indica un valor válido de salud de batería (0-100).')
+            return
+          }
         }
       }
     } else if (step === 6) {
@@ -134,11 +142,7 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
   const goBack = () => {
     if (step > 1) {
       setValidationError('')
-      if (step === 6 && deviceCondition === 'sealed') {
-        setStep(4 as any)
-      } else {
-        setStep((prev) => (prev - 1) as any)
-      }
+      setStep((prev) => (prev - 1) as any)
     }
   }
 
@@ -181,7 +185,8 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
       color: color || null,
       deviceCondition,
       batteryHealth: selectedModel?.supports_battery_health && batteryTouched ? batteryHealth : null,
-      batteryCycles: (selectedModel?.supports_cycles && batteryCycles !== '') ? parseInt(batteryCycles, 10) : null,
+      batteryCycles: (selectedModel?.supports_cycles && batteryCycles !== '' && deviceCondition !== 'sealed') ? parseInt(batteryCycles, 10) : null,
+      sealedPurchaseType: deviceCondition === 'sealed' ? sealedPurchaseType : null,
       hasBox,
       hasCable,
       hasInvoice,
@@ -201,6 +206,8 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
           setManualReview(true)
         } else if (res.code === 'not_configured') {
           setErrorMsg('No podemos valorar esta configuración automáticamente ahora mismo.')
+        } else if (res.code === 'renting_not_accepted') {
+          setErrorMsg('No compramos dispositivos procedentes de renting o alquiler.')
         } else {
           setErrorMsg('No hemos podido calcular la valoración. Inténtalo de nuevo.')
         }
@@ -220,6 +227,7 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
     setStorage('')
     setColor('')
     setDeviceCondition('')
+    setSealedPurchaseType('')
     setBatteryHealth(0)
     setBatteryTouched(false)
     setBatteryCycles('')
@@ -249,8 +257,9 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
           storage,
           color,
           condition: deviceCondition,
+          sealedPurchaseType: deviceCondition === 'sealed' ? sealedPurchaseType : null,
           batteryHealth: batteryTouched ? batteryHealth : null,
-          batteryCycles,
+          batteryCycles: deviceCondition === 'sealed' ? null : batteryCycles,
           hasBox,
           hasCable,
           hasInvoice,
@@ -500,6 +509,8 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
                         setBatteryHealth(0)
                         setBatteryTouched(false)
                         setBatteryCycles('')
+                      } else {
+                        setSealedPurchaseType('')
                       }
                     }}
                     className={`w-full p-5 sm:p-6 rounded-[20px] border text-left transition-all duration-200 active:scale-[0.99] flex flex-col ${
@@ -519,20 +530,52 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
             </>
           )}
 
-          {/* STEP 5: Batería */}
+          {/* STEP 5: Batería / Compra */}
           {step === 5 && (
             <>
-              <div className="flex-none mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Qué salud de batería tiene?</h2>
-                <p className="text-zinc-400">Puedes verla en Ajustes &gt; Batería &gt; Salud y carga de la batería.</p>
-              </div>
-
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 pb-2 flex flex-col justify-center">
-                {!selectedModel?.supports_battery_health ? (
-                  <div className="p-6 bg-[#0B0B0E] border border-[#1F1F24] rounded-[20px] text-center">
-                  <p className="text-zinc-400">Este modelo no requiere seleccionar salud de batería.</p>
-                </div>
+              {deviceCondition === 'sealed' ? (
+                <>
+                  <div className="flex-none mb-6">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Cómo se adquirió este iPhone?</h2>
+                  </div>
+                  <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 pb-2">
+                    <div className="grid grid-cols-1 gap-3">
+                      {[
+                        { value: 'cash', label: 'Pagado al contado' },
+                        { value: 'financed', label: 'Financiado' },
+                        { value: 'renting', label: 'Renting' }
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => {
+                            setSealedPurchaseType(opt.value as any)
+                            setValidationError('')
+                          }}
+                          className={`w-full p-5 sm:p-6 rounded-[20px] border text-left transition-all duration-200 active:scale-[0.99] flex flex-col ${
+                            sealedPurchaseType === opt.value
+                              ? 'bg-purple-900/20 border-purple-500/50 text-white'
+                              : 'bg-[#0B0B0E] border-[#1F1F24] hover:border-zinc-700 hover:bg-[#111114]'
+                          }`}
+                        >
+                          <span className="font-semibold text-lg">{opt.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
               ) : (
+                <>
+                  <div className="flex-none mb-6">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Qué salud de batería tiene?</h2>
+                    <p className="text-zinc-400">Puedes verla en Ajustes &gt; Batería &gt; Salud y carga de la batería.</p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 pb-2 flex flex-col justify-center">
+                    {!selectedModel?.supports_battery_health ? (
+                      <div className="p-6 bg-[#0B0B0E] border border-[#1F1F24] rounded-[20px] text-center">
+                      <p className="text-zinc-400">Este modelo no requiere seleccionar salud de batería.</p>
+                    </div>
+                  ) : (
                 <div className="p-6 sm:p-8 bg-[#0B0B0E] border border-[#1F1F24] rounded-[24px] flex flex-col items-center max-w-2xl mx-auto w-full">
                   <div className="text-center h-[90px] sm:h-[100px] flex flex-col justify-end mb-8 sm:mb-10">
                     {batteryTouched ? (
@@ -572,6 +615,8 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
                 </div>
                 )}
               </div>
+              </>
+            )}
             </>
           )}
 
@@ -585,7 +630,7 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
               
               <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 pb-2 space-y-6">
                 
-                {selectedModel?.supports_cycles && (
+                {selectedModel?.supports_cycles && deviceCondition !== 'sealed' && (
                   <div className="p-6 bg-[#0B0B0E] border border-[#1F1F24] rounded-[20px]">
                     <label className="block text-white font-medium mb-1">Ciclos de batería</label>
                     <p className="text-zinc-500 text-xs mb-4">Puedes dejarlo vacío si no conoces este dato.</p>
