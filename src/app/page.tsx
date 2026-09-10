@@ -220,31 +220,36 @@ export default async function Home() {
 
       <main className="flex-1 w-full bg-[#050506] overflow-hidden relative">
         {/* Background Ambient Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] bg-purple-900/10 rounded-[100%] blur-[120px] pointer-events-none -z-10 animate-glow-pulse"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[400px] bg-purple-900/10 rounded-[100%] blur-[100px] pointer-events-none -z-10 animate-glow-pulse"></div>
 
         {/* Hero Section */}
-        <div className="w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 pt-16 pb-20 md:pt-28 md:pb-32 relative z-10 animate-fade-in-up">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div className="w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 pt-8 pb-12 md:pt-20 md:pb-24 relative z-10 animate-fade-in-up">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 lg:gap-12 items-center">
             
             {/* Left Content */}
             <div className="flex flex-col items-start text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#1F1F24] bg-[#0B0B0E]/80 mb-8 shadow-sm">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-[#1F1F24] bg-[#0B0B0E]/80 mb-4 md:mb-6 shadow-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse shadow-[0_0_8px_#a855f7]"></span>
-                <span className="text-[10px] sm:text-xs font-semibold text-zinc-400 tracking-[0.2em] uppercase">COMPRA · VENTA · TASACIÓN · CANARIAS</span>
+                <span className="text-[10px] font-semibold text-zinc-400 tracking-wider uppercase">COMPRA · VENTA · TASACIÓN · CANARIAS</span>
               </div>
               
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight mb-6 leading-[1.1] whitespace-pre-wrap">
+              <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight leading-[1.1] whitespace-pre-wrap">
                 {heroTitle}
               </h1>
               
-              <p className="text-zinc-400 text-lg md:text-xl lg:text-2xl mb-10 max-w-xl leading-relaxed whitespace-pre-wrap font-light">
+              <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl mt-2 md:mt-3 mb-3 md:mb-4 tracking-tight">
+                <span className="text-zinc-100 font-medium">Compra y vende </span>
+                <span className="font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-violet-300">iPhone en Canarias</span>
+              </p>
+
+              <p className="text-zinc-400 text-base sm:text-lg md:text-xl lg:text-2xl mb-6 md:mb-8 max-w-[580px] leading-snug md:leading-relaxed whitespace-pre-wrap font-light">
                 {heroSubtitle}
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mb-8">
+              <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full sm:w-auto mb-6">
                 <a 
                   href="#stock" 
-                  className="w-full sm:w-auto px-8 py-4 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-medium rounded-xl transition-all duration-200 shadow-[0_0_20px_rgba(147,51,234,0.2)] hover:shadow-[0_0_30px_rgba(147,51,234,0.4)] text-center flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                  className="w-full sm:w-auto px-6 py-3.5 md:px-8 md:py-4 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-medium rounded-xl transition-all duration-200 shadow-[0_0_20px_rgba(147,51,234,0.2)] hover:shadow-[0_0_30px_rgba(147,51,234,0.4)] text-center flex items-center justify-center gap-2 hover:-translate-y-0.5"
                 >
                   Ver stock
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -253,7 +258,7 @@ export default async function Home() {
                 </a>
                 <Link 
                   href="/cotizar" 
-                  className="w-full sm:w-auto px-8 py-4 bg-[#0B0B0E] border border-[#1F1F24] hover:bg-[#111114] hover:border-zinc-700 active:scale-95 text-white font-medium rounded-xl transition-all duration-200 text-center hover:-translate-y-0.5"
+                  className="w-full sm:w-auto px-6 py-3.5 md:px-8 md:py-4 bg-[#0B0B0E] border border-[#1F1F24] hover:bg-[#111114] hover:border-zinc-700 active:scale-95 text-white font-medium rounded-xl transition-all duration-200 text-center hover:-translate-y-0.5"
                 >
                   Cotizar el mío
                 </Link>
@@ -261,20 +266,38 @@ export default async function Home() {
               
               <Link 
                 href="/vender" 
-                className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors inline-flex items-center gap-1 group"
+                className="text-sm text-zinc-400 hover:text-zinc-300 transition-colors inline-flex flex-wrap items-center gap-1 group mb-2"
               >
-                ¿Quieres vender directamente? <span className="text-purple-400 ml-1 group-hover:text-purple-300">Vender mi iPhone</span>
+                ¿Quieres venderlo directamente? <span className="text-purple-400 ml-1 group-hover:text-purple-300 font-medium">Vender mi iPhone</span>
                 <svg className="w-4 h-4 text-purple-400 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
+              <p className="text-xs text-zinc-400 md:text-zinc-500 font-medium">
+                5/5 en Wallapop · Stock real · Entrega en Canarias
+              </p>
             </div>
 
-            {/* Right Visual */}
-            <div className="relative flex justify-center items-center h-[320px] sm:h-[400px] md:h-[500px] animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-              <div className="absolute inset-0 bg-purple-600/10 blur-[100px] rounded-full pointer-events-none"></div>
-              <div className="absolute inset-0 bg-white/5 blur-[80px] rounded-full pointer-events-none transform scale-75"></div>
-              <div className="relative w-[75%] sm:w-[65%] md:w-[85%] max-w-[340px] h-full drop-shadow-2xl">
+            {/* Mobile Visual (< md) */}
+            <div className="md:hidden relative flex justify-center items-center h-[240px] w-full mt-6 mb-2 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+              <div className="absolute inset-0 bg-purple-600/30 blur-[60px] rounded-full pointer-events-none scale-75"></div>
+              <div className="relative w-full max-w-[180px] h-full drop-shadow-2xl">
+                <Image 
+                  src="/iphone-14-pro-max.png"
+                  alt="iPhone 14 Pro Max Deep Purple"
+                  fill
+                  className="object-contain"
+                  priority
+                  sizes="(max-width: 768px) 100vw, 0vw"
+                />
+              </div>
+            </div>
+
+            {/* Right Visual (Desktop >= md) */}
+            <div className="hidden md:flex relative justify-center items-center h-[340px] sm:h-[420px] md:h-[500px] lg:h-[600px] animate-fade-in-up md:-translate-x-4 md:-translate-y-6 lg:-translate-x-8 lg:-translate-y-8" style={{ animationDelay: '200ms' }}>
+              <div className="absolute inset-0 bg-purple-600/20 blur-[80px] rounded-full pointer-events-none scale-90"></div>
+              <div className="absolute inset-0 bg-white/10 blur-[60px] rounded-full pointer-events-none transform scale-50"></div>
+              <div className="relative w-[75%] sm:w-[65%] md:w-[95%] lg:w-[100%] max-w-[400px] h-full drop-shadow-2xl">
                 <Image 
                   src="/iphone-14-pro-max.png"
                   alt="iPhone 14 Pro Max Deep Purple"
