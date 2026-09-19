@@ -16,20 +16,15 @@ export default async function ClientsPage() {
     redirect('/admin/login')
   }
 
-  const { data: clients } = await supabase
-    .from('clients')
-    .select('id, name, phone, location, created_at')
-    .order('created_at', { ascending: false })
-
-  const { data: sales } = await supabase
-    .from('sales')
-    .select('buyer_client_id')
-    .not('buyer_client_id', 'is', null)
-
-  const { data: devices } = await supabase
-    .from('devices')
-    .select('seller_client_id')
-    .not('seller_client_id', 'is', null)
+  const [
+    { data: clients },
+    { data: sales },
+    { data: devices }
+  ] = await Promise.all([
+    supabase.from('clients').select('id, name, phone, location, created_at').order('created_at', { ascending: false }),
+    supabase.from('sales').select('buyer_client_id').not('buyer_client_id', 'is', null),
+    supabase.from('devices').select('seller_client_id').not('seller_client_id', 'is', null)
+  ])
 
   const processedClients = (clients || []).map(client => {
     const purchases_count = (sales || []).filter(s => s.buyer_client_id === client.id).length

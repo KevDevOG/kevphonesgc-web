@@ -3,14 +3,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function getExpectedCashBreakdown() {
+export async function getExpectedCashBreakdown(providedSettings?: any) {
   const supabase = await createClient()
 
-  const { data: settings } = await supabase
-    .from('financial_settings')
-    .select('*')
-    .eq('id', 1)
-    .single()
+  let settings = providedSettings
+  if (!settings) {
+    const { data } = await supabase
+      .from('financial_settings')
+      .select('*')
+      .eq('id', 1)
+      .single()
+    settings = data
+  }
 
   if (!settings || settings.opening_cash === null || settings.opening_date === null) {
     return null
@@ -19,35 +23,21 @@ export async function getExpectedCashBreakdown() {
   const openingDate = settings.opening_date
   const openingCash = Number(settings.opening_cash)
 
-  // Ventas
-  const { data: sales } = await supabase
-    .from('sales')
-    .select('final_sale_price')
-    .gte('sold_at', openingDate)
-  
+  const [
+    { data: sales },
+    { data: purchases },
+    { data: expenses },
+    { data: capitalMovements }
+  ] = await Promise.all([
+    supabase.from('sales').select('final_sale_price').gte('sold_at', openingDate),
+    supabase.from('devices').select('purchase_price').gte('purchased_at', openingDate),
+    supabase.from('expenses').select('amount').gte('expense_date', openingDate),
+    supabase.from('capital_movements').select('movement_type, amount').gte('movement_date', openingDate)
+  ])
+
   const salesTotal = (sales || []).reduce((acc, s) => acc + Number(s.final_sale_price), 0)
-
-  // Compras de dispositivos
-  const { data: purchases } = await supabase
-    .from('devices')
-    .select('purchase_price')
-    .gte('purchased_at', openingDate)
-
   const purchasesTotal = (purchases || []).reduce((acc, d) => acc + Number(d.purchase_price), 0)
-
-  // Gastos
-  const { data: expenses } = await supabase
-    .from('expenses')
-    .select('amount')
-    .gte('expense_date', openingDate)
-
   const expensesTotal = (expenses || []).reduce((acc, e) => acc + Number(e.amount), 0)
-
-  // Movimientos de capital
-  const { data: capitalMovements } = await supabase
-    .from('capital_movements')
-    .select('movement_type, amount')
-    .gte('movement_date', openingDate)
 
   let contributionsTotal = 0
   let withdrawalsTotal = 0

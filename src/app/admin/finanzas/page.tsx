@@ -16,6 +16,12 @@ export default async function AdminFinancePage() {
     redirect('/admin/login')
   }
 
+  const reconciliationsPromise = supabase
+    .from('cash_reconciliations')
+    .select('*')
+    .order('reconciliation_date', { ascending: false })
+    .order('created_at', { ascending: false })
+
   const { data: settingsRow } = await supabase
     .from('financial_settings')
     .select('*')
@@ -24,13 +30,10 @@ export default async function AdminFinancePage() {
 
   const settings = settingsRow || { opening_cash: null, opening_date: null }
 
-  const breakdown = await getExpectedCashBreakdown()
-
-  const { data: reconciliations } = await supabase
-    .from('cash_reconciliations')
-    .select('*')
-    .order('reconciliation_date', { ascending: false })
-    .order('created_at', { ascending: false })
+  const [breakdown, { data: reconciliations }] = await Promise.all([
+    getExpectedCashBreakdown(settings),
+    reconciliationsPromise
+  ])
 
   return (
     <AdminPageShell>
