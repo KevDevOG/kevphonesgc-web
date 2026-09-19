@@ -242,8 +242,11 @@ export function AdminDashboard({
 
             {/* Recent Activity */}
             <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl flex flex-col overflow-hidden">
-              <div className="p-6 border-b border-[#1F1F24]">
+              <div className="p-6 border-b border-[#1F1F24] flex items-center justify-between">
                 <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Últimos Movimientos</h3>
+                <Link href="/admin/actividad" target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold text-[#d7baff] hover:underline uppercase tracking-wider">
+                  Ver todos los movimientos
+                </Link>
               </div>
               <ul className="flex flex-col overflow-y-auto max-h-[300px] lg:max-h-full">
                 {recentActivities.length === 0 ? (
