@@ -42,6 +42,11 @@ export default async function SellDevicePage({ params }: PageProps) {
     notFound()
   }
 
+  const { data: clients } = await supabase
+    .from('clients')
+    .select('id, name, phone, location')
+    .order('name', { ascending: true })
+
   if (device.status !== 'available') {
     redirect(`/admin/stock/${device.id}`)
   }
@@ -61,7 +66,7 @@ export default async function SellDevicePage({ params }: PageProps) {
             Registra la venta del dispositivo.
           </p>
         </header>
-        <SellDeviceForm device={device} />
+        <SellDeviceForm device={device} clients={clients || []} />
       </div>
     </AdminPageShell>
   )

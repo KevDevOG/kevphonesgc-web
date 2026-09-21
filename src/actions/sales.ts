@@ -16,9 +16,21 @@ export async function registerDeviceSaleAction(
   }
 
   // Extract form data
-  const buyerName = formData.get('buyerName')?.toString().trim()
-  const buyerPhone = formData.get('buyerPhone')?.toString().trim()
-  const buyerLocation = formData.get('buyerLocation')?.toString().trim() || null
+  let buyerName = formData.get('buyerName')?.toString().trim()
+  let buyerPhone = formData.get('buyerPhone')?.toString().trim()
+  let buyerLocation = formData.get('buyerLocation')?.toString().trim() || null
+
+  const buyerClientId = formData.get('buyerClientId')?.toString() || null
+
+  if (buyerClientId) {
+    const { data: client } = await supabase.from('clients').select('name, phone, location').eq('id', buyerClientId).single()
+    if (!client) {
+      return { success: false, error: 'El cliente seleccionado ya no existe.' }
+    }
+    buyerName = client.name
+    buyerPhone = client.phone
+    buyerLocation = client.location
+  }
   
   const finalPriceStr = formData.get('finalPrice')?.toString()
   const saleDateStr = formData.get('saleDate')?.toString()

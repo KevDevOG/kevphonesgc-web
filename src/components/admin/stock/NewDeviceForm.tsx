@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { createDeviceAction } from '@/actions/devices'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -26,15 +26,23 @@ type CatalogImage = {
   storage_path: string
 }
 
+type Client = {
+  id: string
+  name: string
+  phone: string
+  location: string | null
+}
+
 type Props = {
   models: Model[]
   variants: Variant[]
   catalogImages?: CatalogImage[]
+  clients?: Client[]
 }
 
 const initialState = { error: '', success: false }
 
-export function NewDeviceForm({ models, variants, catalogImages = [] }: Props) {
+export function NewDeviceForm({ models, variants, catalogImages = [], clients = [] }: Props) {
   const [category, setCategory] = useState<string>('iphone')
   const [modelId, setModelId] = useState<string>('')
   const [storage, setStorage] = useState<string>('')
@@ -48,8 +56,23 @@ export function NewDeviceForm({ models, variants, catalogImages = [] }: Props) {
   const [uploading, setUploading] = useState(false)
   const [formState, setFormState] = useState(initialState)
   
+  const [clientMode, setClientMode] = useState<'existing' | 'new'>('new')
+  const [selectedClientId, setSelectedClientId] = useState<string>('')
+  const [clientSearch, setClientSearch] = useState('')
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
+
+  const filteredClients = useMemo(() => {
+    if (!clientSearch) return clients.slice(0, 5)
+    const searchLower = clientSearch.toLowerCase()
+    return clients.filter(c => 
+      c.name.toLowerCase().includes(searchLower) || 
+      c.phone.toLowerCase().includes(searchLower)
+    )
+  }, [clientSearch, clients])
+  
+  const selectedClient = clients.find(c => c.id === selectedClientId)
 
   const selectedModel = models.find(m => m.id === modelId)
   
@@ -157,6 +180,9 @@ export function NewDeviceForm({ models, variants, catalogImages = [] }: Props) {
           prev.forEach(p => URL.revokeObjectURL(p))
           return []
         })
+        setClientMode('new')
+        setSelectedClientId('')
+        setClientSearch('')
       }
     } catch (error: any) {
       setFormState({ error: error.message || 'Error inesperado.', success: false })
@@ -370,20 +396,96 @@ export function NewDeviceForm({ models, variants, catalogImages = [] }: Props) {
               <span className="material-symbols-outlined text-[16px]">person</span> Vendedor
             </h3>
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Nombre *</label>
-                  <input type="text" name="seller_name" required className={inputClass} placeholder="Ej. Juan Pérez" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Teléfono *</label>
-                  <input type="text" name="seller_phone" required className={inputClass} placeholder="Ej. 600 000 000" />
-                </div>
+              <div className="flex p-1 bg-[#121217] rounded-xl border border-[#1F1F24] w-fit">
+                <button
+                  type="button"
+                  onClick={() => { setClientMode('existing'); setSelectedClientId(''); setClientSearch(''); }}
+                  className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${clientMode === 'existing' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Cliente existente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setClientMode('new'); setSelectedClientId(''); }}
+                  className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${clientMode === 'new' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Nuevo cliente
+                </button>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Ubicación (Opcional)</label>
-                <input type="text" name="seller_location" className={inputClass} placeholder="Ej. Las Palmas" />
-              </div>
+
+              {clientMode === 'existing' && (
+                <div className="flex flex-col gap-4">
+                  {selectedClient ? (
+                    <div className="bg-[#121217] border border-[#7a32d4]/30 rounded-xl p-4 flex flex-col gap-2 relative">
+                      <input type="hidden" name="seller_client_id" value={selectedClient.id} />
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col">
+                          <span className="text-white font-bold">{selectedClient.name}</span>
+                          <span className="text-zinc-400 text-sm">{selectedClient.phone}{selectedClient.location ? ` · ${selectedClient.location}` : ''}</span>
+                        </div>
+                        <button type="button" onClick={() => setSelectedClientId('')} className="text-zinc-500 hover:text-white">
+                          <span className="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                      </div>
+                      <Link href={`/admin/clientes/${selectedClient.id}`} target="_blank" className="text-xs text-[#d7baff] hover:underline mt-1 w-fit">
+                        Editar cliente
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-3 text-zinc-500 text-[18px]">search</span>
+                        <input
+                          type="text"
+                          placeholder="Buscar por nombre o teléfono..."
+                          value={clientSearch}
+                          onChange={(e) => setClientSearch(e.target.value)}
+                          className={`${inputClass} pl-10`}
+                        />
+                      </div>
+                      {clientSearch && filteredClients.length > 0 && (
+                        <div className="flex flex-col bg-[#121217] border border-[#1F1F24] rounded-xl overflow-hidden max-h-[200px] overflow-y-auto">
+                          {filteredClients.map(client => (
+                            <button
+                              key={client.id}
+                              type="button"
+                              onClick={() => setSelectedClientId(client.id)}
+                              className="flex flex-col items-start p-3 hover:bg-[#1F1F24] transition-colors border-b border-[#1F1F24] last:border-0 text-left"
+                            >
+                              <span className="text-white text-sm font-semibold">{client.name}</span>
+                              <span className="text-zinc-400 text-xs">{client.phone}{client.location ? ` · ${client.location}` : ''}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {clientSearch && filteredClients.length === 0 && (
+                        <div className="text-center p-4 text-sm text-zinc-500">
+                          No se encontraron clientes.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {clientMode === 'new' && (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Nombre *</label>
+                      <input type="text" name="seller_name" required className={inputClass} placeholder="Ej. Juan Pérez" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Teléfono *</label>
+                      <input type="text" name="seller_phone" required className={inputClass} placeholder="Ej. 600 000 000" />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className={labelClass}>Ubicación (Opcional)</label>
+                    <input type="text" name="seller_location" className={inputClass} placeholder="Ej. Las Palmas" />
+                  </div>
+                </>
+              )}
             </div>
           </section>
 

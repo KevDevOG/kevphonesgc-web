@@ -22,10 +22,22 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
   const imeiSerial = imeiSerialRaw?.trim() || null
   const condition = formData.get('condition') as string
   
-  const sellerName = formData.get('seller_name') as string
-  const sellerPhone = formData.get('seller_phone') as string
-  const sellerLocationRaw = formData.get('seller_location') as string
-  const sellerLocation = sellerLocationRaw?.trim() || null
+  let sellerName = formData.get('seller_name') as string
+  let sellerPhone = formData.get('seller_phone') as string
+  let sellerLocationRaw = formData.get('seller_location') as string
+  let sellerLocation = sellerLocationRaw?.trim() || null
+
+  const sellerClientId = formData.get('seller_client_id') as string | null
+
+  if (sellerClientId) {
+    const { data: client } = await supabase.from('clients').select('name, phone, location').eq('id', sellerClientId).single()
+    if (!client) {
+      return { error: 'El cliente seleccionado ya no existe.' }
+    }
+    sellerName = client.name
+    sellerPhone = client.phone
+    sellerLocation = client.location
+  }
   
   const batteryHealthStr = formData.get('battery_health') as string
   const batteryCyclesStr = formData.get('battery_cycles') as string

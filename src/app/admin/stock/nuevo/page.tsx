@@ -29,6 +29,11 @@ export default async function NewDevicePage() {
     .from('device_model_catalog_images')
     .select('model_id, color, storage_path')
 
+  const { data: clients } = await supabase
+    .from('clients')
+    .select('id, name, phone, location')
+    .order('name', { ascending: true })
+
   const sortedModels = (models || []).sort((a, b) => {
     const categoryOrder = { 'iphone': 1, 'ps5': 2, 'nintendo_switch': 3 }
     const catDiff = (categoryOrder[a.category as keyof typeof categoryOrder] || 99) - (categoryOrder[b.category as keyof typeof categoryOrder] || 99)
@@ -53,7 +58,7 @@ export default async function NewDevicePage() {
             Registra una nueva unidad en stock.
           </p>
         </header>
-        <NewDeviceForm models={sortedModels} variants={sortedVariants} catalogImages={catalogImages || []} />
+        <NewDeviceForm models={sortedModels} variants={sortedVariants} catalogImages={catalogImages || []} clients={clients || []} />
       </div>
     </AdminPageShell>
   )

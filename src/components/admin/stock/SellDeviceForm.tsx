@@ -1,8 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { registerDeviceSaleAction } from '@/actions/sales'
+
+type Client = {
+  id: string
+  name: string
+  phone: string
+  location: string | null
+}
 
 type Device = {
   id: string
@@ -19,12 +27,27 @@ type Device = {
   } | any
 }
 
-export function SellDeviceForm({ device }: { device: Device }) {
+export function SellDeviceForm({ device, clients = [] }: { device: Device, clients?: Client[] }) {
   const router = useRouter()
   const defaultSalePrice = device.discount_price ?? device.listing_price
   const [finalPrice, setFinalPrice] = useState<string>(defaultSalePrice.toString())
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [clientMode, setClientMode] = useState<'existing' | 'new'>('new')
+  const [selectedClientId, setSelectedClientId] = useState<string>('')
+  const [clientSearch, setClientSearch] = useState('')
+
+  const filteredClients = useMemo(() => {
+    if (!clientSearch) return clients.slice(0, 5)
+    const searchLower = clientSearch.toLowerCase()
+    return clients.filter(c => 
+      c.name.toLowerCase().includes(searchLower) || 
+      c.phone.toLowerCase().includes(searchLower)
+    )
+  }, [clientSearch, clients])
+  
+  const selectedClient = clients.find(c => c.id === selectedClientId)
 
   const maskImei = (imei: string) => {
     if (!imei) return ''
@@ -81,20 +104,97 @@ export function SellDeviceForm({ device }: { device: Device }) {
           
           <div className="flex flex-col gap-4">
             <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Comprador</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-zinc-400" htmlFor="buyerName">Nombre</label>
-                <input className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" id="buyerName" name="buyerName" placeholder="Ej. Juan Pérez" type="text" required />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] font-semibold text-zinc-400" htmlFor="buyerPhone">Teléfono</label>
-                <input className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" id="buyerPhone" name="buyerPhone" placeholder="Ej. 600 000 000" type="tel" required />
-              </div>
+            
+            <div className="flex p-1 bg-[#121217] rounded-xl border border-[#1F1F24] w-fit mb-2">
+              <button
+                type="button"
+                onClick={() => { setClientMode('existing'); setSelectedClientId(''); setClientSearch(''); }}
+                className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${clientMode === 'existing' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'}`}
+              >
+                Cliente existente
+              </button>
+              <button
+                type="button"
+                onClick={() => { setClientMode('new'); setSelectedClientId(''); }}
+                className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${clientMode === 'new' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'}`}
+              >
+                Nuevo cliente
+              </button>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-zinc-400" htmlFor="buyerLocation">Ubicación (opcional)</label>
-              <input className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" id="buyerLocation" name="buyerLocation" placeholder="Ej. Telde" type="text" />
-            </div>
+
+            {clientMode === 'existing' && (
+              <div className="flex flex-col gap-4">
+                {selectedClient ? (
+                  <div className="bg-[#121217] border border-[#7a32d4]/30 rounded-xl p-4 flex flex-col gap-2 relative">
+                    <input type="hidden" name="buyerClientId" value={selectedClient.id} />
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col">
+                        <span className="text-white font-bold">{selectedClient.name}</span>
+                        <span className="text-zinc-400 text-sm">{selectedClient.phone}{selectedClient.location ? ` · ${selectedClient.location}` : ''}</span>
+                      </div>
+                      <button type="button" onClick={() => setSelectedClientId('')} className="text-zinc-500 hover:text-white">
+                        <span className="material-symbols-outlined text-[18px]">close</span>
+                      </button>
+                    </div>
+                    <Link href={`/admin/clientes/${selectedClient.id}`} target="_blank" className="text-xs text-[#d7baff] hover:underline mt-1 w-fit">
+                      Editar cliente
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <div className="relative">
+                      <span className="material-symbols-outlined absolute left-3 top-3 text-zinc-500 text-[18px]">search</span>
+                      <input
+                        type="text"
+                        placeholder="Buscar por nombre o teléfono..."
+                        value={clientSearch}
+                        onChange={(e) => setClientSearch(e.target.value)}
+                        className="bg-[#121217] border border-[#1F1F24] rounded-xl pl-10 pr-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all w-full"
+                      />
+                    </div>
+                    {clientSearch && filteredClients.length > 0 && (
+                      <div className="flex flex-col bg-[#121217] border border-[#1F1F24] rounded-xl overflow-hidden max-h-[200px] overflow-y-auto">
+                        {filteredClients.map(client => (
+                          <button
+                            key={client.id}
+                            type="button"
+                            onClick={() => setSelectedClientId(client.id)}
+                            className="flex flex-col items-start p-3 hover:bg-[#1F1F24] transition-colors border-b border-[#1F1F24] last:border-0 text-left"
+                          >
+                            <span className="text-white text-sm font-semibold">{client.name}</span>
+                            <span className="text-zinc-400 text-xs">{client.phone}{client.location ? ` · ${client.location}` : ''}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {clientSearch && filteredClients.length === 0 && (
+                      <div className="text-center p-4 text-sm text-zinc-500">
+                        No se encontraron clientes.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {clientMode === 'new' && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[13px] font-semibold text-zinc-400" htmlFor="buyerName">Nombre</label>
+                    <input className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" id="buyerName" name="buyerName" placeholder="Ej. Juan Pérez" type="text" required />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[13px] font-semibold text-zinc-400" htmlFor="buyerPhone">Teléfono</label>
+                    <input className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" id="buyerPhone" name="buyerPhone" placeholder="Ej. 600 000 000" type="tel" required />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] font-semibold text-zinc-400" htmlFor="buyerLocation">Ubicación (opcional)</label>
+                  <input className="bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" id="buyerLocation" name="buyerLocation" placeholder="Ej. Telde" type="text" />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="h-px bg-[#1F1F24] w-full"></div>
