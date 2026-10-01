@@ -9,6 +9,12 @@ export type PublicStockItem = {
   model_id: string
   storage: string | null
   color: string | null
+  size: string | null
+  connectivity: string | null
+  chip: string | null
+  memory: string | null
+  case_type: string | null
+  case_material: string | null
   battery_health: number | null
   battery_cycles: number | null
   condition: string
@@ -40,11 +46,13 @@ export function PublicStockSection({ devices, whatsappPhone, contactEnabled }: P
   const [selectedDevice, setSelectedDevice] = useState<PublicStockItem | null>(null)
   const [activeCategory, setActiveCategory] = useState<string>('Todos')
 
-  const categories = ['Todos', 'iPhone', 'PS5', 'Nintendo Switch']
+  const categories = ['Todos', 'iPhone', 'Apple Watch', 'AirPods', 'PS5', 'Nintendo Switch']
 
   const filteredDevices = devices.filter(d => {
     if (activeCategory === 'Todos') return true
     if (activeCategory === 'iPhone') return d.category === 'iphone'
+    if (activeCategory === 'Apple Watch') return d.category === 'apple_watch'
+    if (activeCategory === 'AirPods') return d.category === 'airpods'
     if (activeCategory === 'PS5') return d.category === 'ps5'
     if (activeCategory === 'Nintendo Switch') return d.category === 'nintendo_switch'
     return true

@@ -27,8 +27,7 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
 
 
 
-  const isPhone = device.category === 'iphone'
-  const isNew = device.condition === 'new'
+  const isNew = device.condition === 'sealed'
   const hasWarranty = !!device.warranty_until
 
   return (
@@ -55,9 +54,9 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
       {/* Image Area */}
       <div className="w-full h-56 sm:h-[240px] bg-[#0A0A0C] flex items-center justify-center p-6 relative overflow-hidden group-hover:bg-[#0C0C0F] transition-colors duration-300">
         <div className="absolute inset-0 bg-purple-900/5 blur-[50px] rounded-full scale-50 group-hover:scale-100 transition-transform duration-700 pointer-events-none opacity-0 group-hover:opacity-100"></div>
-        {device.catalog_image_url ? (
+        {device.catalog_image_url || (device.real_images && device.real_images.length > 0) ? (
           <img 
-            src={device.catalog_image_url} 
+            src={device.catalog_image_url || device.real_images[0].url} 
             alt={`${device.model_name} ${device.color || ''}`}
             className="w-full h-full object-contain relative z-10 group-hover:-translate-y-1 transition-transform duration-500"
           />
@@ -81,14 +80,22 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
         
         {/* Specs Line */}
         <div className="flex flex-wrap items-center gap-1.5 mb-1.5 text-[13px] text-zinc-400 font-medium">
-          {device.storage && <span>{device.storage}</span>}
-          {device.storage && device.color && <span className="text-zinc-600">·</span>}
-          {device.color && <span>{device.color}</span>}
+          {(device.category === 'apple_watch' 
+            ? [device.size, device.connectivity, device.case_material]
+            : device.category === 'airpods'
+            ? [device.case_type, device.color]
+            : [device.storage, device.color]
+          ).filter(Boolean).map((val, i, arr) => (
+            <span key={i} className="flex items-center gap-1.5">
+              {val}
+              {i < arr.length - 1 && <span className="text-zinc-600">·</span>}
+            </span>
+          ))}
         </div>
 
         {/* Battery Line */}
         <div className="mb-3 h-4">
-          {isPhone && device.battery_health !== null && (
+          {device.supports_battery_health && device.battery_health !== null && (
             <span className="text-[12px] text-zinc-500 font-medium flex items-center gap-1">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />

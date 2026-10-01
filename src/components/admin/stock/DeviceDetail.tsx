@@ -11,6 +11,12 @@ type Device = {
   id: string
   storage: string | null
   color: string | null
+  size: string | null
+  connectivity: string | null
+  chip: string | null
+  memory: string | null
+  case_type: string | null
+  case_material: string | null
   imei_serial: string | null
   battery_health: number | null
   battery_cycles: number | null
@@ -58,7 +64,9 @@ const conditionMap: Record<string, string> = {
 
 const categoryMap: Record<string, string> = {
   'iphone': 'iPhone',
-  'ps5': 'PS5',
+  'apple_watch': 'Apple Watch',
+  'airpods': 'AirPods',
+  'ps5': 'PlayStation',
   'nintendo_switch': 'Nintendo Switch'
 }
 
@@ -384,9 +392,45 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
                   <span className="text-sm font-semibold text-white">{device.color}</span>
                 </div>
               )}
+              {device.size && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-500">Tamaño</span>
+                  <span className="text-sm font-semibold text-white">{device.size}</span>
+                </div>
+              )}
+              {device.connectivity && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-500">Conectividad</span>
+                  <span className="text-sm font-semibold text-white">{device.connectivity}</span>
+                </div>
+              )}
+              {device.case_material && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-500">Material de caja</span>
+                  <span className="text-sm font-semibold text-white">{device.case_material}</span>
+                </div>
+              )}
+              {device.case_type && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-500">Tipo de estuche</span>
+                  <span className="text-sm font-semibold text-white">{device.case_type}</span>
+                </div>
+              )}
+              {device.chip && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-500">Chip</span>
+                  <span className="text-sm font-semibold text-white">{device.chip}</span>
+                </div>
+              )}
+              {device.memory && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-500">Memoria</span>
+                  <span className="text-sm font-semibold text-white">{device.memory}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-zinc-500">IMEI / Serie</span>
-                <span className="text-sm font-mono text-zinc-300">{device.imei_serial}</span>
+                <span className="text-sm font-mono text-zinc-300">{device.imei_serial || 'No registrado'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-zinc-500">Estado Físico</span>

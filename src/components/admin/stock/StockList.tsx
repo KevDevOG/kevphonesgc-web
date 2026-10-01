@@ -14,6 +14,10 @@ type Device = {
   model_id: string
   storage: string | null
   color: string | null
+  size: string | null
+  connectivity: string | null
+  case_type: string | null
+  case_material: string | null
   imei_serial: string
   battery_health: number | null
   battery_cycles: number | null
@@ -81,10 +85,14 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
     const q = search.toLowerCase()
     return activeList.filter(d => {
       const modelName = d.device_models?.name?.toLowerCase() || ''
-      const imei = d.imei_serial.toLowerCase()
+      const imei = (d.imei_serial || '').toLowerCase()
       const storage = (d.storage || '').toLowerCase()
       const color = (d.color || '').toLowerCase()
-      return modelName.includes(q) || imei.includes(q) || storage.includes(q) || color.includes(q)
+      const size = (d.size || '').toLowerCase()
+      const connectivity = (d.connectivity || '').toLowerCase()
+      const caseType = (d.case_type || '').toLowerCase()
+      const caseMaterial = (d.case_material || '').toLowerCase()
+      return modelName.includes(q) || imei.includes(q) || storage.includes(q) || color.includes(q) || size.includes(q) || connectivity.includes(q) || caseType.includes(q) || caseMaterial.includes(q)
     })
   }, [activeList, search])
 
@@ -295,12 +303,27 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                     </div>
                     
                     <p className="text-xs lg:text-[13px] text-zinc-400 truncate mb-1">
-                      {[
-                        device.storage, 
-                        device.color, 
-                        device.battery_health ? `${device.battery_health}%` : null,
-                        conditionMap[device.condition] || null
-                      ].filter(Boolean).join(' · ')}
+                      {device.device_models?.category === 'apple_watch'
+                        ? [
+                            device.size,
+                            device.connectivity,
+                            device.case_material,
+                            device.battery_health ? `${device.battery_health}%` : null,
+                            conditionMap[device.condition] || null
+                          ].filter(Boolean).join(' · ')
+                        : device.device_models?.category === 'airpods'
+                        ? [
+                            device.case_type,
+                            device.color,
+                            conditionMap[device.condition] || null
+                          ].filter(Boolean).join(' · ')
+                        : [
+                            device.storage, 
+                            device.color, 
+                            device.battery_health ? `${device.battery_health}%` : null,
+                            conditionMap[device.condition] || null
+                          ].filter(Boolean).join(' · ')
+                      }
                     </p>
                     
                     <p className="text-[11px] text-zinc-500 font-mono truncate">

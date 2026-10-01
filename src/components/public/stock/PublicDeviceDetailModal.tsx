@@ -224,6 +224,43 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
                   <span className="text-sm text-white font-medium">{device.color}</span>
                 </div>
               )}
+
+              {device.size && (
+                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Tamaño</span>
+                  <span className="text-sm text-white font-medium">{device.size}</span>
+                </div>
+              )}
+              {device.connectivity && (
+                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Conectividad</span>
+                  <span className="text-sm text-white font-medium">{device.connectivity}</span>
+                </div>
+              )}
+              {device.case_material && (
+                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Material de caja</span>
+                  <span className="text-sm text-white font-medium">{device.case_material}</span>
+                </div>
+              )}
+              {device.case_type && (
+                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Tipo de estuche</span>
+                  <span className="text-sm text-white font-medium">{device.case_type}</span>
+                </div>
+              )}
+              {device.chip && (
+                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Chip</span>
+                  <span className="text-sm text-white font-medium">{device.chip}</span>
+                </div>
+              )}
+              {device.memory && (
+                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Memoria</span>
+                  <span className="text-sm text-white font-medium">{device.memory}</span>
+                </div>
+              )}
               
               {device.supports_battery_health && device.battery_health !== null && (
                 <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
@@ -265,7 +302,7 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
             {contactEnabled && whatsappPhone ? (
               <a 
                 href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
-                  `Hola, estoy interesado en este dispositivo de KevPhonesGC:\n\n${device.model_name}\n${device.storage ? `${device.storage}\n` : ''}${device.color ? `${device.color}\n` : ''}Precio: ${effectivePrice ? `${effectivePrice} €` : 'No disponible'}\n\n¿Sigue disponible?`
+                  `Hola, estoy interesado en este dispositivo de KevPhonesGC:\n\n${device.model_name}\n${(device.category === 'apple_watch' ? [device.size, device.connectivity, device.case_material] : device.category === 'airpods' ? [device.case_type, device.color] : [device.storage, device.color]).filter(Boolean).map(v => `${v}\n`).join('')}Precio: ${effectivePrice ? `${effectivePrice} €` : 'No disponible'}\n\n¿Sigue disponible?`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

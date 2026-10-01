@@ -47,6 +47,10 @@ export function NewDeviceForm({ models, variants, catalogImages = [], clients = 
   const [modelId, setModelId] = useState<string>('')
   const [storage, setStorage] = useState<string>('')
   const [color, setColor] = useState<string>('')
+  const [size, setSize] = useState<string>('')
+  const [connectivity, setConnectivity] = useState<string>('')
+  const [caseType, setCaseType] = useState<string>('')
+  const [caseMaterial, setCaseMaterial] = useState<string>('')
   const [condition, setCondition] = useState<string>('like_new')
   const [batteryHealth, setBatteryHealth] = useState<string>('')
   
@@ -79,6 +83,10 @@ export function NewDeviceForm({ models, variants, catalogImages = [], clients = 
   const availableModels = models.filter(m => m.category === category)
   const availableStorage = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'storage') : []
   const availableColors = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'color') : []
+  const availableSizes = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'size') : []
+  const availableConnectivities = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'connectivity') : []
+  const availableCaseTypes = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'case_type') : []
+  const availableCaseMaterials = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'case_material') : []
   
   const selectedCatalogImage = modelId && color
     ? catalogImages.find(ci => ci.model_id === modelId && ci.color === color)
@@ -88,11 +96,22 @@ export function NewDeviceForm({ models, variants, catalogImages = [], clients = 
 
   useEffect(() => {
     setModelId('')
+    setStorage('')
+    setColor('')
+    setSize('')
+    setConnectivity('')
+    setCaseType('')
+    setCaseMaterial('')
+    setBatteryHealth('')
   }, [category])
 
   useEffect(() => {
     setStorage('')
     setColor('')
+    setSize('')
+    setConnectivity('')
+    setCaseType('')
+    setCaseMaterial('')
     setBatteryHealth('')
   }, [modelId])
 
@@ -175,6 +194,12 @@ export function NewDeviceForm({ models, variants, catalogImages = [], clients = 
         formRef.current?.reset()
         setCategory('iphone')
         setModelId('')
+        setStorage('')
+        setColor('')
+        setSize('')
+        setConnectivity('')
+        setCaseType('')
+        setCaseMaterial('')
         setImageFiles([])
         setImagePreviews(prev => {
           prev.forEach(p => URL.revokeObjectURL(p))
@@ -231,7 +256,7 @@ export function NewDeviceForm({ models, variants, catalogImages = [], clients = 
               <div className="flex flex-col gap-1.5">
                 <label className={labelClass}>Categoría</label>
                 <div className="flex p-1 bg-[#121217] rounded-xl border border-[#1F1F24]">
-                  {[{ id: 'iphone', label: 'iPhone' }, { id: 'ps5', label: 'PlayStation' }, { id: 'nintendo_switch', label: 'Nintendo Switch' }].map(c => (
+                  {[{ id: 'iphone', label: 'iPhone' }, { id: 'apple_watch', label: 'Apple Watch' }, { id: 'airpods', label: 'AirPods' }, { id: 'ps5', label: 'PlayStation' }, { id: 'nintendo_switch', label: 'Nintendo Switch' }].map(c => (
                     <label key={c.id} className="flex-1 text-center cursor-pointer relative">
                       <input 
                         type="radio" 
@@ -260,20 +285,73 @@ export function NewDeviceForm({ models, variants, catalogImages = [], clients = 
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Capacidad</label>
-                  <select name="storage" value={storage} onChange={e => setStorage(e.target.value)} required={availableStorage.length > 0} className={inputClass} disabled={availableStorage.length === 0}>
-                    <option value="">{availableStorage.length > 0 ? "Selecciona..." : "N/A"}</option>
-                    {availableStorage.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Color</label>
-                  <select name="color" value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
-                    <option value="">{availableColors.length > 0 ? "Selecciona..." : "N/A"}</option>
-                    {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
-                  </select>
-                </div>
+                {category !== 'apple_watch' && category !== 'airpods' && (
+                  <>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Capacidad</label>
+                      <select name="storage" value={storage} onChange={e => setStorage(e.target.value)} required={availableStorage.length > 0} className={inputClass} disabled={availableStorage.length === 0}>
+                        <option value="">{availableStorage.length > 0 ? "Selecciona..." : "N/A"}</option>
+                        {availableStorage.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Color</label>
+                      <select name="color" value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
+                        <option value="">{availableColors.length > 0 ? "Selecciona..." : "N/A"}</option>
+                        {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                      </select>
+                    </div>
+                  </>
+                )}
+                
+                {category === 'apple_watch' && (
+                  <>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Tamaño</label>
+                      <select name="size" value={size} onChange={e => setSize(e.target.value)} required={availableSizes.length > 0} className={inputClass} disabled={availableSizes.length === 0}>
+                        <option value="">{availableSizes.length > 0 ? "Selecciona..." : "N/A"}</option>
+                        {availableSizes.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Conectividad</label>
+                      <select name="connectivity" value={connectivity} onChange={e => setConnectivity(e.target.value)} required={availableConnectivities.length > 0} className={inputClass} disabled={availableConnectivities.length === 0}>
+                        <option value="">{availableConnectivities.length > 0 ? "Selecciona..." : "N/A"}</option>
+                        {availableConnectivities.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Material de caja</label>
+                      <select name="case_material" value={caseMaterial} onChange={e => setCaseMaterial(e.target.value)} required={availableCaseMaterials.length > 0} className={inputClass} disabled={availableCaseMaterials.length === 0}>
+                        <option value="">{availableCaseMaterials.length > 0 ? "Selecciona..." : "N/A"}</option>
+                        {availableCaseMaterials.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                      </select>
+                    </div>
+                  </>
+                )}
+                
+                {category === 'airpods' && (
+                  <>
+                    {availableCaseTypes.length > 0 && (
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Tipo de estuche</label>
+                        <select name="case_type" value={caseType} onChange={e => setCaseType(e.target.value)} required className={inputClass}>
+                          <option value="">Selecciona...</option>
+                          {availableCaseTypes.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {availableColors.length > 0 && (
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Color</label>
+                        <select name="color" value={color} onChange={e => setColor(e.target.value)} required className={inputClass}>
+                          <option value="">Selecciona...</option>
+                          {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">

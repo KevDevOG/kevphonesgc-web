@@ -35,7 +35,7 @@ export default async function NewDevicePage() {
     .order('name', { ascending: true })
 
   const sortedModels = (models || []).sort((a, b) => {
-    const categoryOrder = { 'iphone': 1, 'ps5': 2, 'nintendo_switch': 3 }
+    const categoryOrder = { 'iphone': 1, 'apple_watch': 2, 'airpods': 3, 'ps5': 4, 'nintendo_switch': 5 }
     const catDiff = (categoryOrder[a.category as keyof typeof categoryOrder] || 99) - (categoryOrder[b.category as keyof typeof categoryOrder] || 99)
     if (catDiff !== 0) return catDiff
     return a.sort_order - b.sort_order

@@ -79,6 +79,12 @@ export default async function Home() {
       model_id,
       storage,
       color,
+      size,
+      connectivity,
+      chip,
+      memory,
+      case_type,
+      case_material,
       battery_health,
       battery_cycles,
       condition,
@@ -172,6 +178,12 @@ export default async function Home() {
         model_id: d.model_id,
         storage: d.storage,
         color: d.color,
+        size: d.size,
+        connectivity: d.connectivity,
+        chip: d.chip,
+        memory: d.memory,
+        case_type: d.case_type,
+        case_material: d.case_material,
         battery_health: d.battery_health,
         battery_cycles: d.battery_cycles,
         condition: d.condition,
@@ -198,8 +210,10 @@ export default async function Home() {
   // 4. Sort by Category Order, then newest
   const categoryOrder: Record<string, number> = {
     iphone: 1,
-    ps5: 2,
-    nintendo_switch: 3
+    apple_watch: 2,
+    airpods: 3,
+    ps5: 4,
+    nintendo_switch: 5
   }
 
   publicStock.sort((a, b) => {

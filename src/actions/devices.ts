@@ -16,8 +16,14 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
   if (!deviceId) return { error: 'Error interno: UUID de dispositivo faltante.' }
 
   const modelId = formData.get('model_id') as string
-  const storage = formData.get('storage') as string | null
-  const color = formData.get('color') as string | null
+  let storage = formData.get('storage') as string | null
+  let color = formData.get('color') as string | null
+  let size = (formData.get('size') as string)?.trim() || null
+  let connectivity = (formData.get('connectivity') as string)?.trim() || null
+  let chip = (formData.get('chip') as string)?.trim() || null
+  let memory = (formData.get('memory') as string)?.trim() || null
+  let caseType = (formData.get('case_type') as string)?.trim() || null
+  let caseMaterial = (formData.get('case_material') as string)?.trim() || null
   const imeiSerialRaw = formData.get('imei_serial') as string
   const imeiSerial = imeiSerialRaw?.trim() || null
   const condition = formData.get('condition') as string
@@ -85,7 +91,7 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
 
   const { data: model } = await supabase
     .from('device_models')
-    .select('active, supports_battery_health, supports_cycles')
+    .select('category, active, supports_battery_health, supports_cycles')
     .eq('id', modelId)
     .single()
 
@@ -93,7 +99,35 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
     return { error: 'El modelo seleccionado no es válido o está inactivo.' }
   }
 
-  if (storage || color) {
+  if (model.category === 'iphone') {
+    size = null
+    connectivity = null
+    chip = null
+    memory = null
+    caseType = null
+    caseMaterial = null
+  } else if (model.category === 'apple_watch') {
+    storage = null
+    caseType = null
+    chip = null
+    memory = null
+  } else if (model.category === 'airpods') {
+    storage = null
+    size = null
+    connectivity = null
+    chip = null
+    memory = null
+    caseMaterial = null
+  } else if (model.category === 'ps5' || model.category === 'nintendo_switch') {
+    size = null
+    connectivity = null
+    chip = null
+    memory = null
+    caseType = null
+    caseMaterial = null
+  }
+
+  if (storage || color || size || connectivity || caseType || caseMaterial) {
     const { data: variants } = await supabase
       .from('device_model_variants')
       .select('variant_type, value')
@@ -105,6 +139,18 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
     }
     if (color && !variants?.some(v => v.variant_type === 'color' && v.value === color)) {
       return { error: 'El color seleccionado no es válido para este modelo.' }
+    }
+    if (size && !variants?.some(v => v.variant_type === 'size' && v.value === size)) {
+      return { error: 'El tamaño seleccionado no es válido para este modelo.' }
+    }
+    if (connectivity && !variants?.some(v => v.variant_type === 'connectivity' && v.value === connectivity)) {
+      return { error: 'La conectividad seleccionada no es válida para este modelo.' }
+    }
+    if (caseType && !variants?.some(v => v.variant_type === 'case_type' && v.value === caseType)) {
+      return { error: 'El tipo de estuche seleccionado no es válido para este modelo.' }
+    }
+    if (caseMaterial && !variants?.some(v => v.variant_type === 'case_material' && v.value === caseMaterial)) {
+      return { error: 'El material seleccionado no es válido para este modelo.' }
     }
   }
 
@@ -169,7 +215,13 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
       p_seller_name: sellerName,
       p_seller_phone: sellerPhone,
       p_seller_location: sellerLocation,
-      p_discount_price: discountPrice
+      p_discount_price: discountPrice,
+      p_size: size,
+      p_connectivity: connectivity,
+      p_chip: chip,
+      p_memory: memory,
+      p_case_type: caseType,
+      p_case_material: caseMaterial
     })
 
   if (deviceError) {
@@ -273,8 +325,14 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
   if (!deviceId) return { error: 'Error interno: UUID de dispositivo faltante.' }
 
   const modelId = formData.get('model_id') as string
-  const storage = formData.get('storage') as string | null
-  const color = formData.get('color') as string | null
+  let storage = formData.get('storage') as string | null
+  let color = formData.get('color') as string | null
+  let size = (formData.get('size') as string)?.trim() || null
+  let connectivity = (formData.get('connectivity') as string)?.trim() || null
+  let chip = (formData.get('chip') as string)?.trim() || null
+  let memory = (formData.get('memory') as string)?.trim() || null
+  let caseType = (formData.get('case_type') as string)?.trim() || null
+  let caseMaterial = (formData.get('case_material') as string)?.trim() || null
   const imeiSerialRaw = formData.get('imei_serial') as string
   const imeiSerial = imeiSerialRaw?.trim() || null
   const condition = formData.get('condition') as string
@@ -358,7 +416,7 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
 
   const { data: model } = await supabase
     .from('device_models')
-    .select('active, supports_battery_health, supports_cycles')
+    .select('category, active, supports_battery_health, supports_cycles')
     .eq('id', modelId)
     .single()
 
@@ -366,7 +424,35 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
     return { error: 'El modelo seleccionado no es válido o está inactivo.' }
   }
 
-  if (storage || color) {
+  if (model.category === 'iphone') {
+    size = null
+    connectivity = null
+    chip = null
+    memory = null
+    caseType = null
+    caseMaterial = null
+  } else if (model.category === 'apple_watch') {
+    storage = null
+    caseType = null
+    chip = null
+    memory = null
+  } else if (model.category === 'airpods') {
+    storage = null
+    size = null
+    connectivity = null
+    chip = null
+    memory = null
+    caseMaterial = null
+  } else if (model.category === 'ps5' || model.category === 'nintendo_switch') {
+    size = null
+    connectivity = null
+    chip = null
+    memory = null
+    caseType = null
+    caseMaterial = null
+  }
+
+  if (storage || color || size || connectivity || caseType || caseMaterial) {
     const { data: variants } = await supabase
       .from('device_model_variants')
       .select('variant_type, value')
@@ -378,6 +464,18 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
     }
     if (color && !variants?.some(v => v.variant_type === 'color' && v.value === color)) {
       return { error: 'El color seleccionado no es válido para este modelo.' }
+    }
+    if (size && !variants?.some(v => v.variant_type === 'size' && v.value === size)) {
+      return { error: 'El tamaño seleccionado no es válido para este modelo.' }
+    }
+    if (connectivity && !variants?.some(v => v.variant_type === 'connectivity' && v.value === connectivity)) {
+      return { error: 'La conectividad seleccionada no es válida para este modelo.' }
+    }
+    if (caseType && !variants?.some(v => v.variant_type === 'case_type' && v.value === caseType)) {
+      return { error: 'El tipo de estuche seleccionado no es válido para este modelo.' }
+    }
+    if (caseMaterial && !variants?.some(v => v.variant_type === 'case_material' && v.value === caseMaterial)) {
+      return { error: 'El material seleccionado no es válido para este modelo.' }
     }
   }
 
@@ -441,7 +539,13 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
       p_seller_name: sellerName,
       p_seller_phone: sellerPhone,
       p_seller_location: sellerLocation,
-      p_discount_price: discountPrice
+      p_discount_price: discountPrice,
+      p_size: size,
+      p_connectivity: connectivity,
+      p_chip: chip,
+      p_memory: memory,
+      p_case_type: caseType,
+      p_case_material: caseMaterial
     })
 
   if (deviceError) {

@@ -43,7 +43,13 @@ export default async function EditDevicePage({ params }: PageProps) {
     .from('device_models')
     .select('*')
     .eq('active', true)
-    .order('sort_order', { ascending: true })
+
+  const sortedModels = (models || []).sort((a, b) => {
+    const categoryOrder = { 'iphone': 1, 'apple_watch': 2, 'airpods': 3, 'ps5': 4, 'nintendo_switch': 5 }
+    const catDiff = (categoryOrder[a.category as keyof typeof categoryOrder] || 99) - (categoryOrder[b.category as keyof typeof categoryOrder] || 99)
+    if (catDiff !== 0) return catDiff
+    return a.sort_order - b.sort_order
+  })
 
   const { data: variants } = await supabase
     .from('device_model_variants')
@@ -70,7 +76,7 @@ export default async function EditDevicePage({ params }: PageProps) {
             Modifica los datos de esta unidad.
           </p>
         </header>
-        <EditDeviceForm device={device} models={models || []} variants={variants || []} catalogImages={catalogImages || []} />
+        <EditDeviceForm device={device} models={sortedModels} variants={variants || []} catalogImages={catalogImages || []} />
       </div>
     </AdminPageShell>
   )
