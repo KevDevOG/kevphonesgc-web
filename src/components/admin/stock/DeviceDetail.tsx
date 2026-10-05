@@ -317,6 +317,10 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
                   <span className="material-symbols-outlined text-[20px]">sell</span>
                   Vender dispositivo
                 </Link>
+                <Link href={`/admin/stock/nuevo?duplicate=${device.id}`} className="w-full bg-[#121217] hover:bg-[#1F1F24] border border-[#1F1F24] text-white font-semibold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-[20px]">content_copy</span>
+                  Duplicar
+                </Link>
                 <Link href={`/admin/stock/${device.id}/editar`} className="w-full bg-[#121217] hover:bg-[#1F1F24] border border-[#1F1F24] text-white font-semibold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
                   <span className="material-symbols-outlined text-[20px]">edit</span>
                   Editar

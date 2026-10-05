@@ -7,12 +7,7 @@ export const metadata = {
   title: 'Añadir dispositivo - KevPhonesGC Admin'
 }
 
-type PageProps = {
-  searchParams: Promise<{ duplicate?: string }>
-}
-
-export default async function NewDevicePage({ searchParams }: PageProps) {
-  const { duplicate } = await searchParams
+export default async function NewDevicePage() {
   const supabase = await createClient()
   
   const { data: user } = await supabase.auth.getUser()
@@ -52,16 +47,6 @@ export default async function NewDevicePage({ searchParams }: PageProps) {
 
   const sortedVariants = (variants || []).sort((a, b) => a.sort_order - b.sort_order)
 
-  let duplicateData = null
-  if (duplicate) {
-    const { data: dData } = await supabase
-      .from('devices')
-      .select('*, device_models(category)')
-      .eq('id', duplicate)
-      .single()
-    if (dData) duplicateData = dData
-  }
-
   return (
     <AdminPageShell>
       <div className="flex flex-col gap-6 lg:gap-8 w-full max-w-6xl mx-auto">
@@ -77,7 +62,7 @@ export default async function NewDevicePage({ searchParams }: PageProps) {
             Registra una nueva unidad en stock.
           </p>
         </header>
-        <NewDeviceForm models={sortedModels} variants={sortedVariants} compatibilities={compatibilities || []} catalogImages={catalogImages || []} clients={clients || []} duplicateData={duplicateData} />
+        <NewDeviceForm models={sortedModels} variants={sortedVariants} compatibilities={compatibilities || []} catalogImages={catalogImages || []} clients={clients || []} />
       </div>
     </AdminPageShell>
   )

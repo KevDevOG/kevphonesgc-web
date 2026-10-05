@@ -355,6 +355,7 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                           {view === 'available' ? (
                             <>
                               <Link href={`/admin/stock/${device.id}/editar`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar dispositivo</Link>
+                              <Link href={`/admin/stock/nuevo?duplicate=${device.id}`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Duplicar dispositivo</Link>
                               {!device.is_published && (
                                 <button onClick={() => { setOpenMenuId(null); handlePublish(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Publicar</button>
                               )}
@@ -423,6 +424,7 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                           {view === 'available' ? (
                             <>
                               <Link href={`/admin/stock/${device.id}/editar`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar dispositivo</Link>
+                              <Link href={`/admin/stock/nuevo?duplicate=${device.id}`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Duplicar dispositivo</Link>
                               {!device.is_published && (
                                 <button onClick={() => { setOpenMenuId(null); handlePublish(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Publicar</button>
                               )}
