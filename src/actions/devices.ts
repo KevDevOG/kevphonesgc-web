@@ -118,6 +118,17 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
     chip = null
     memory = null
     caseMaterial = null
+  } else if (model.category === 'ipad') {
+    size = null
+    chip = null
+    memory = null
+    caseType = null
+    caseMaterial = null
+  } else if (model.category === 'macbook') {
+    size = null
+    connectivity = null
+    caseType = null
+    caseMaterial = null
   } else if (model.category === 'ps5' || model.category === 'nintendo_switch') {
     size = null
     connectivity = null
@@ -127,7 +138,7 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
     caseMaterial = null
   }
 
-  if (storage || color || size || connectivity || caseType || caseMaterial) {
+  if (storage || color || size || connectivity || caseType || caseMaterial || chip || memory) {
     const { data: variants } = await supabase
       .from('device_model_variants')
       .select('variant_type, value')
@@ -151,6 +162,29 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
     }
     if (caseMaterial && !variants?.some(v => v.variant_type === 'case_material' && v.value === caseMaterial)) {
       return { error: 'El material seleccionado no es válido para este modelo.' }
+    }
+    if (chip && !variants?.some(v => v.variant_type === 'chip' && v.value === chip)) {
+      return { error: 'El procesador seleccionado no es válido para este modelo.' }
+    }
+    if (memory && !variants?.some(v => v.variant_type === 'memory' && v.value === memory)) {
+      return { error: 'La memoria seleccionada no es válida para este modelo.' }
+    }
+
+    if (model.category === 'macbook' && chip) {
+      const { data: compatibilities } = await supabase
+        .from('device_variant_compatibility')
+        .select('child_variant_type, child_value')
+        .eq('model_id', modelId)
+        .eq('parent_variant_type', 'chip')
+        .eq('parent_value', chip)
+      
+      if (memory && !compatibilities?.some(c => c.child_variant_type === 'memory' && c.child_value === memory)) {
+        return { error: 'La memoria seleccionada no es compatible con el procesador seleccionado.' }
+      }
+      
+      if (storage && !compatibilities?.some(c => c.child_variant_type === 'storage' && c.child_value === storage)) {
+        return { error: 'La capacidad seleccionada no es compatible con el procesador seleccionado.' }
+      }
     }
   }
 
@@ -443,6 +477,17 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
     chip = null
     memory = null
     caseMaterial = null
+  } else if (model.category === 'ipad') {
+    size = null
+    chip = null
+    memory = null
+    caseType = null
+    caseMaterial = null
+  } else if (model.category === 'macbook') {
+    size = null
+    connectivity = null
+    caseType = null
+    caseMaterial = null
   } else if (model.category === 'ps5' || model.category === 'nintendo_switch') {
     size = null
     connectivity = null
@@ -452,7 +497,7 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
     caseMaterial = null
   }
 
-  if (storage || color || size || connectivity || caseType || caseMaterial) {
+  if (storage || color || size || connectivity || caseType || caseMaterial || chip || memory) {
     const { data: variants } = await supabase
       .from('device_model_variants')
       .select('variant_type, value')
@@ -476,6 +521,29 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
     }
     if (caseMaterial && !variants?.some(v => v.variant_type === 'case_material' && v.value === caseMaterial)) {
       return { error: 'El material seleccionado no es válido para este modelo.' }
+    }
+    if (chip && !variants?.some(v => v.variant_type === 'chip' && v.value === chip)) {
+      return { error: 'El procesador seleccionado no es válido para este modelo.' }
+    }
+    if (memory && !variants?.some(v => v.variant_type === 'memory' && v.value === memory)) {
+      return { error: 'La memoria seleccionada no es válida para este modelo.' }
+    }
+
+    if (model.category === 'macbook' && chip) {
+      const { data: compatibilities } = await supabase
+        .from('device_variant_compatibility')
+        .select('child_variant_type, child_value')
+        .eq('model_id', modelId)
+        .eq('parent_variant_type', 'chip')
+        .eq('parent_value', chip)
+      
+      if (memory && !compatibilities?.some(c => c.child_variant_type === 'memory' && c.child_value === memory)) {
+        return { error: 'La memoria seleccionada no es compatible con el procesador seleccionado.' }
+      }
+      
+      if (storage && !compatibilities?.some(c => c.child_variant_type === 'storage' && c.child_value === storage)) {
+        return { error: 'La capacidad seleccionada no es compatible con el procesador seleccionado.' }
+      }
     }
   }
 

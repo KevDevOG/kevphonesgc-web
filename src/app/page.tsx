@@ -212,8 +212,9 @@ export default async function Home() {
     iphone: 1,
     apple_watch: 2,
     airpods: 3,
-    ps5: 4,
-    nintendo_switch: 5
+    ipad: 4,
+    ps5: 5,
+    nintendo_switch: 6
   }
 
   publicStock.sort((a, b) => {

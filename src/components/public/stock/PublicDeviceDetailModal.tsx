@@ -302,7 +302,7 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
             {contactEnabled && whatsappPhone ? (
               <a 
                 href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
-                  `Hola, estoy interesado en este dispositivo de KevPhonesGC:\n\n${device.model_name}\n${(device.category === 'apple_watch' ? [device.size, device.connectivity, device.case_material] : device.category === 'airpods' ? [device.case_type, device.color] : [device.storage, device.color]).filter(Boolean).map(v => `${v}\n`).join('')}Precio: ${effectivePrice ? `${effectivePrice} €` : 'No disponible'}\n\n¿Sigue disponible?`
+                  `Hola, estoy interesado en este dispositivo de KevPhonesGC:\n\n${device.model_name}\n${(device.category === 'apple_watch' ? [device.size, device.connectivity, device.case_material] : device.category === 'airpods' ? [device.case_type, device.color] : device.category === 'ipad' ? [device.storage, device.connectivity, device.color] : [device.storage, device.color]).filter(Boolean).map(v => `${v}\n`).join('')}Precio: ${effectivePrice ? `${effectivePrice} €` : 'No disponible'}\n\n¿Sigue disponible?`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

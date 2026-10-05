@@ -84,6 +84,8 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
             ? [device.size, device.connectivity, device.case_material]
             : device.category === 'airpods'
             ? [device.case_type, device.color]
+            : device.category === 'ipad'
+            ? [device.storage, device.connectivity, device.color]
             : [device.storage, device.color]
           ).filter(Boolean).map((val, i, arr) => (
             <span key={i} className="flex items-center gap-1.5">

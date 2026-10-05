@@ -66,154 +66,66 @@ export default async function CotizarPage({
     }
   }
 
-  // --- 2. QUOTABLE IPHONE FILTERING ---
+  // --- 2. IPHONE DATA LOADING ---
   const { data: basePrices, error: basePricesError } = await adminSupabase
     .from('iphone_quote_base_prices')
     .select('model_id, storage')
     .eq('active', true)
 
-  if (basePricesError) {
-    console.error('Error fetching base prices:', {
-      code: basePricesError.code,
-      message: basePricesError.message,
-      details: basePricesError.details,
-      hint: basePricesError.hint
-    })
+  let iphoneModels: any[] = []
+  
+  if (!basePricesError && basePrices && basePrices.length > 0) {
+    const activeModelIds = Array.from(new Set(basePrices.map(bp => bp.model_id)))
+
+    const { data: modelsData } = await publicSupabase
+      .from('device_models')
+      .select('id, name, supports_battery_health, supports_cycles, sort_order')
+      .in('id', activeModelIds)
+      .eq('category', 'iphone')
+      .eq('active', true)
+      .order('sort_order', { ascending: true })
+
+    const { data: variantsData } = await publicSupabase
+      .from('device_model_variants')
+      .select('model_id, variant_type, value, sort_order')
+      .in('model_id', activeModelIds)
+      .in('variant_type', ['storage', 'color'])
+      .eq('active', true)
+      .order('sort_order', { ascending: true })
+
+    if (modelsData) {
+      iphoneModels = modelsData
+        .map(m => {
+          const activeStorages = Array.from(new Set(
+            basePrices
+              .filter(bp => bp.model_id === m.id)
+              .map(bp => bp.storage)
+          ))
+          const colors = Array.from(new Set(
+            (variantsData || [])
+              .filter(v => v.model_id === m.id && v.variant_type === 'color')
+              .map(v => v.value)
+          ))
+          return {
+            id: m.id,
+            name: m.name,
+            supports_battery_health: m.supports_battery_health,
+            supports_cycles: m.supports_cycles,
+            storages: activeStorages,
+            colors: colors
+          }
+        })
+        .filter(m => m.storages.length > 0)
+    }
+  }
+
+  if (iphoneModels.length === 0) {
     return (
       <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
         <PublicHeader />
         <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
           <div className="text-center text-zinc-400">
             <p>El cotizador no está disponible en este momento.</p>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
-  if (!basePrices || basePrices.length === 0) {
-    return (
-      <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
-        <PublicHeader />
-        <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
-          <div className="text-center text-zinc-400">
-            <p>No hay configuraciones de cotización activas en este momento.</p>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
-  const activeModelIds = Array.from(new Set(basePrices.map(bp => bp.model_id)))
-
-  // Public client already initialized above
-
-  // Load models
-  const { data: modelsData, error: modelsError } = await publicSupabase
-    .from('device_models')
-    .select('id, name, supports_battery_health, supports_cycles, sort_order')
-    .in('id', activeModelIds)
-    .eq('category', 'iphone')
-    .eq('active', true)
-    .order('sort_order', { ascending: true })
-
-  if (modelsError) {
-    console.error('Error fetching models:', {
-      code: modelsError.code,
-      message: modelsError.message,
-      details: modelsError.details,
-      hint: modelsError.hint
-    })
-    return (
-      <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
-        <PublicHeader />
-        <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
-          <div className="text-center text-zinc-400">
-            <p>El cotizador no está disponible en este momento.</p>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
-  if (!modelsData || modelsData.length === 0) {
-    return (
-      <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
-        <PublicHeader />
-        <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
-          <div className="text-center text-zinc-400">
-            <p>No hay configuraciones de cotización activas en este momento.</p>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
-  // Load variants for these models
-  const { data: variantsData, error: variantsError } = await publicSupabase
-    .from('device_model_variants')
-    .select('model_id, variant_type, value, sort_order')
-    .in('model_id', activeModelIds)
-    .in('variant_type', ['storage', 'color'])
-    .eq('active', true)
-    .order('sort_order', { ascending: true })
-
-  if (variantsError) {
-    console.error('Error fetching variants:', {
-      code: variantsError.code,
-      message: variantsError.message,
-      details: variantsError.details,
-      hint: variantsError.hint
-    })
-    return (
-      <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
-        <PublicHeader />
-        <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
-          <div className="text-center text-zinc-400">
-            <p>El cotizador no está disponible en este momento.</p>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
-  // Format data for client
-  const models = modelsData
-    .map(m => {
-      // Find storages that have active base prices
-      const activeStorages = Array.from(new Set(
-        basePrices
-          .filter(bp => bp.model_id === m.id)
-          .map(bp => bp.storage)
-      ))
-
-      // Find valid colors
-      const colors = Array.from(new Set(
-        (variantsData || [])
-          .filter(v => v.model_id === m.id && v.variant_type === 'color')
-          .map(v => v.value)
-      ))
-
-      return {
-        id: m.id,
-        name: m.name,
-        supports_battery_health: m.supports_battery_health,
-        supports_cycles: m.supports_cycles,
-        storages: activeStorages,
-        colors: colors
-      }
-    })
-    .filter(m => m.storages.length > 0) // Remove models that end up with zero quotable storage variants
-
-  // Models are already sorted by the database via sort_order, no need to manually sort
-
-  if (models.length === 0) {
-    return (
-      <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
-        <PublicHeader />
-        <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
-          <div className="text-center text-zinc-400">
-            <p>No hay configuraciones de cotización activas en este momento.</p>
           </div>
         </main>
       </div>
@@ -226,7 +138,7 @@ export default async function CotizarPage({
       <main className="flex-1 pt-4 md:pt-10 pb-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-[1440px] mx-auto w-full">
           <IphoneQuoteFlow 
-            models={models} 
+            models={iphoneModels} 
             quoteMode={mode}
             targetDevice={targetDevice}
           />

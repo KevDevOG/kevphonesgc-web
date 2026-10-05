@@ -317,6 +317,13 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                             device.color,
                             conditionMap[device.condition] || null
                           ].filter(Boolean).join(' · ')
+                        : device.device_models?.category === 'ipad'
+                        ? [
+                            device.storage,
+                            device.connectivity,
+                            device.color,
+                            conditionMap[device.condition] || null
+                          ].filter(Boolean).join(' · ')
                         : [
                             device.storage, 
                             device.color, 

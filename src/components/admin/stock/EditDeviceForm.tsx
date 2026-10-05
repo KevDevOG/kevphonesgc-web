@@ -72,10 +72,20 @@ type CatalogImage = {
   storage_path: string
 }
 
+type Compatibility = {
+  id: string
+  model_id: string
+  parent_variant_type: string
+  parent_value: string
+  child_variant_type: string
+  child_value: string
+}
+
 type EditDeviceFormProps = {
   device: Device
   models: Model[]
   variants: Variant[]
+  compatibilities?: Compatibility[]
   catalogImages?: CatalogImage[]
 }
 
@@ -95,13 +105,15 @@ type NewImage = {
 
 type ImageItem = ExistingImage | NewImage
 
-export function EditDeviceForm({ device, models, variants, catalogImages = [] }: EditDeviceFormProps) {
+export function EditDeviceForm({ device, models, variants, compatibilities = [], catalogImages = [] }: EditDeviceFormProps) {
   const router = useRouter()
   const supabase = createClient()
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   
   const [category, setCategory] = useState<string>(device.device_models.category)
   const [modelId, setModelId] = useState<string>(device.model_id)
+  const [chip, setChip] = useState<string>(device.chip || '')
+  const [memory, setMemory] = useState<string>(device.memory || '')
   const [storage, setStorage] = useState<string>(device.storage || '')
   const [color, setColor] = useState<string>(device.color || '')
   const [size, setSize] = useState<string>(device.size || '')
@@ -157,7 +169,19 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
     : null
   
   const availableModels = models.filter(m => m.category === category)
-  const availableStorage = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'storage') : []
+  
+  const availableChips = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'chip') : []
+  
+  const rawMemories = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'memory') : []
+  const availableMemories = chip && category === 'macbook'
+    ? rawMemories.filter(m => compatibilities.some(c => c.model_id === modelId && c.parent_variant_type === 'chip' && c.parent_value === chip && c.child_variant_type === 'memory' && c.child_value === m.value))
+    : rawMemories
+
+  const rawStorages = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'storage') : []
+  const availableStorage = chip && category === 'macbook'
+    ? rawStorages.filter(s => compatibilities.some(c => c.model_id === modelId && c.parent_variant_type === 'chip' && c.parent_value === chip && c.child_variant_type === 'storage' && c.child_value === s.value))
+    : rawStorages
+
   const availableColors = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'color') : []
   const availableSizes = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'size') : []
   const availableConnectivities = selectedModel ? variants.filter(v => v.model_id === modelId && v.variant_type === 'connectivity') : []
@@ -167,6 +191,8 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
   const handleCategoryChange = (val: string) => {
     setCategory(val)
     setModelId('')
+    setChip('')
+    setMemory('')
     setStorage('')
     setColor('')
     setSize('')
@@ -179,6 +205,8 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
 
   const handleModelChange = (val: string) => {
     setModelId(val)
+    setChip('')
+    setMemory('')
     setStorage('')
     setColor('')
     setSize('')
@@ -187,6 +215,12 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
     setCaseMaterial('')
     setBatteryHealth('')
     setBatteryCycles('')
+  }
+
+  const handleChipChange = (val: string) => {
+    setChip(val)
+    setMemory('')
+    setStorage('')
   }
 
   const showBatteryHealth = selectedModel?.supports_battery_health && condition !== 'sealed'
@@ -335,7 +369,7 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
               <div className="flex flex-col gap-1.5">
                 <label className={labelClass}>Categoría</label>
                 <div className="flex p-1 bg-[#121217] rounded-xl border border-[#1F1F24]">
-                  {[{ id: 'iphone', label: 'iPhone' }, { id: 'apple_watch', label: 'Apple Watch' }, { id: 'airpods', label: 'AirPods' }, { id: 'ps5', label: 'PlayStation' }, { id: 'nintendo_switch', label: 'Nintendo Switch' }].map(c => (
+                  {[{ id: 'iphone', label: 'iPhone' }, { id: 'apple_watch', label: 'Apple Watch' }, { id: 'airpods', label: 'AirPods' }, { id: 'ipad', label: 'iPad' }, { id: 'macbook', label: 'MacBook' }, { id: 'ps5', label: 'PlayStation' }, { id: 'nintendo_switch', label: 'Nintendo Switch' }].map(c => (
                     <label key={c.id} className="flex-1 text-center cursor-pointer relative">
                       <input 
                         type="radio" 
@@ -381,6 +415,16 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
                       </select>
                     </div>
                   </>
+                )}
+
+                {category === 'ipad' && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className={labelClass}>Conectividad</label>
+                    <select name="connectivity" value={connectivity} onChange={e => setConnectivity(e.target.value)} required={availableConnectivities.length > 0} className={inputClass} disabled={availableConnectivities.length === 0}>
+                      <option value="">{availableConnectivities.length > 0 ? "Selecciona..." : "N/A"}</option>
+                      {availableConnectivities.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                    </select>
+                  </div>
                 )}
                 
                 {category === 'apple_watch' && (
@@ -429,6 +473,39 @@ export function EditDeviceForm({ device, models, variants, catalogImages = [] }:
                         </select>
                       </div>
                     )}
+                  </>
+                )}
+
+                {category === 'macbook' && (
+                  <>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Chip (Procesador)</label>
+                      <select name="chip" value={chip} onChange={e => handleChipChange(e.target.value)} required={availableChips.length > 0} className={inputClass} disabled={availableChips.length === 0}>
+                        <option value="">{availableChips.length > 0 ? "Selecciona..." : "N/A"}</option>
+                        {availableChips.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Memoria Unificada</label>
+                      <select name="memory" value={memory} onChange={e => setMemory(e.target.value)} required={availableMemories.length > 0} className={inputClass} disabled={availableMemories.length === 0 || (!chip && availableChips.length > 0)}>
+                        <option value="">{availableMemories.length > 0 ? "Selecciona..." : "N/A"}</option>
+                        {availableMemories.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Almacenamiento SSD</label>
+                      <select name="storage" value={storage} onChange={e => setStorage(e.target.value)} required={availableStorage.length > 0} className={inputClass} disabled={availableStorage.length === 0 || (!chip && availableChips.length > 0)}>
+                        <option value="">{availableStorage.length > 0 ? "Selecciona..." : "N/A"}</option>
+                        {availableStorage.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Color</label>
+                      <select name="color" value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
+                        <option value="">{availableColors.length > 0 ? "Selecciona..." : "N/A"}</option>
+                        {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                      </select>
+                    </div>
                   </>
                 )}
               </div>

@@ -46,13 +46,14 @@ export function PublicStockSection({ devices, whatsappPhone, contactEnabled }: P
   const [selectedDevice, setSelectedDevice] = useState<PublicStockItem | null>(null)
   const [activeCategory, setActiveCategory] = useState<string>('Todos')
 
-  const categories = ['Todos', 'iPhone', 'Apple Watch', 'AirPods', 'PS5', 'Nintendo Switch']
+  const categories = ['Todos', 'iPhone', 'Apple Watch', 'AirPods', 'iPad', 'PS5', 'Nintendo Switch']
 
   const filteredDevices = devices.filter(d => {
     if (activeCategory === 'Todos') return true
     if (activeCategory === 'iPhone') return d.category === 'iphone'
     if (activeCategory === 'Apple Watch') return d.category === 'apple_watch'
     if (activeCategory === 'AirPods') return d.category === 'airpods'
+    if (activeCategory === 'iPad') return d.category === 'ipad'
     if (activeCategory === 'PS5') return d.category === 'ps5'
     if (activeCategory === 'Nintendo Switch') return d.category === 'nintendo_switch'
     return true

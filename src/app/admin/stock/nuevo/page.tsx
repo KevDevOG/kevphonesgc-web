@@ -7,7 +7,12 @@ export const metadata = {
   title: 'Añadir dispositivo - KevPhonesGC Admin'
 }
 
-export default async function NewDevicePage() {
+type PageProps = {
+  searchParams: Promise<{ duplicate?: string }>
+}
+
+export default async function NewDevicePage({ searchParams }: PageProps) {
+  const { duplicate } = await searchParams
   const supabase = await createClient()
   
   const { data: user } = await supabase.auth.getUser()
@@ -25,6 +30,10 @@ export default async function NewDevicePage() {
     .select('id, model_id, variant_type, value, sort_order')
     .eq('active', true)
 
+  const { data: compatibilities } = await supabase
+    .from('device_variant_compatibility')
+    .select('id, model_id, parent_variant_type, parent_value, child_variant_type, child_value')
+
   const { data: catalogImages } = await supabase
     .from('device_model_catalog_images')
     .select('model_id, color, storage_path')
@@ -35,13 +44,23 @@ export default async function NewDevicePage() {
     .order('name', { ascending: true })
 
   const sortedModels = (models || []).sort((a, b) => {
-    const categoryOrder = { 'iphone': 1, 'apple_watch': 2, 'airpods': 3, 'ps5': 4, 'nintendo_switch': 5 }
+    const categoryOrder = { 'iphone': 1, 'apple_watch': 2, 'airpods': 3, 'ipad': 4, 'macbook': 5, 'ps5': 6, 'nintendo_switch': 7 }
     const catDiff = (categoryOrder[a.category as keyof typeof categoryOrder] || 99) - (categoryOrder[b.category as keyof typeof categoryOrder] || 99)
     if (catDiff !== 0) return catDiff
     return a.sort_order - b.sort_order
   })
 
   const sortedVariants = (variants || []).sort((a, b) => a.sort_order - b.sort_order)
+
+  let duplicateData = null
+  if (duplicate) {
+    const { data: dData } = await supabase
+      .from('devices')
+      .select('*, device_models(category)')
+      .eq('id', duplicate)
+      .single()
+    if (dData) duplicateData = dData
+  }
 
   return (
     <AdminPageShell>
@@ -58,7 +77,7 @@ export default async function NewDevicePage() {
             Registra una nueva unidad en stock.
           </p>
         </header>
-        <NewDeviceForm models={sortedModels} variants={sortedVariants} catalogImages={catalogImages || []} clients={clients || []} />
+        <NewDeviceForm models={sortedModels} variants={sortedVariants} compatibilities={compatibilities || []} catalogImages={catalogImages || []} clients={clients || []} duplicateData={duplicateData} />
       </div>
     </AdminPageShell>
   )

@@ -45,7 +45,7 @@ export default async function EditDevicePage({ params }: PageProps) {
     .eq('active', true)
 
   const sortedModels = (models || []).sort((a, b) => {
-    const categoryOrder = { 'iphone': 1, 'apple_watch': 2, 'airpods': 3, 'ps5': 4, 'nintendo_switch': 5 }
+    const categoryOrder = { 'iphone': 1, 'apple_watch': 2, 'airpods': 3, 'ipad': 4, 'macbook': 5, 'ps5': 6, 'nintendo_switch': 7 }
     const catDiff = (categoryOrder[a.category as keyof typeof categoryOrder] || 99) - (categoryOrder[b.category as keyof typeof categoryOrder] || 99)
     if (catDiff !== 0) return catDiff
     return a.sort_order - b.sort_order
@@ -56,6 +56,10 @@ export default async function EditDevicePage({ params }: PageProps) {
     .select('*')
     .eq('active', true)
     .order('sort_order', { ascending: true })
+
+  const { data: compatibilities } = await supabase
+    .from('device_variant_compatibility')
+    .select('id, model_id, parent_variant_type, parent_value, child_variant_type, child_value')
 
   const { data: catalogImages } = await supabase
     .from('device_model_catalog_images')
@@ -76,7 +80,7 @@ export default async function EditDevicePage({ params }: PageProps) {
             Modifica los datos de esta unidad.
           </p>
         </header>
-        <EditDeviceForm device={device} models={sortedModels} variants={variants || []} catalogImages={catalogImages || []} />
+        <EditDeviceForm device={device} models={sortedModels} variants={variants || []} compatibilities={compatibilities || []} catalogImages={catalogImages || []} />
       </div>
     </AdminPageShell>
   )

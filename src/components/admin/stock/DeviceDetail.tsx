@@ -66,6 +66,7 @@ const categoryMap: Record<string, string> = {
   'iphone': 'iPhone',
   'apple_watch': 'Apple Watch',
   'airpods': 'AirPods',
+  'ipad': 'iPad',
   'ps5': 'PlayStation',
   'nintendo_switch': 'Nintendo Switch'
 }
