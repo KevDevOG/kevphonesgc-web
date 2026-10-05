@@ -290,9 +290,9 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className={labelClass}>Categoría</label>
-                <div className="flex p-1 bg-[#121217] rounded-xl border border-[#1F1F24]">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                   {[{ id: 'iphone', label: 'iPhone' }, { id: 'apple_watch', label: 'Apple Watch' }, { id: 'airpods', label: 'AirPods' }, { id: 'ipad', label: 'iPad' }, { id: 'macbook', label: 'MacBook' }, { id: 'ps5', label: 'PlayStation' }, { id: 'nintendo_switch', label: 'Nintendo Switch' }].map(c => (
-                    <label key={c.id} className="flex-1 text-center cursor-pointer relative">
+                    <label key={c.id} className="cursor-pointer relative h-full">
                       <input 
                         type="radio" 
                         name="category" 
@@ -301,7 +301,7 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         onChange={(e) => setCategory(e.target.value)}
                         className="peer sr-only" 
                       />
-                      <div className="py-2.5 rounded-lg peer-checked:bg-[#7a32d4]/10 peer-checked:text-[#d7baff] peer-checked:font-bold text-zinc-400 text-[13px] font-semibold transition-colors">
+                      <div className="h-full flex items-center justify-center p-3 text-center rounded-xl border border-[#1F1F24] bg-[#121217] hover:bg-[#1F1F24] peer-checked:bg-[#7a32d4]/10 peer-checked:border-[#7a32d4]/30 peer-checked:text-[#d7baff] peer-checked:font-bold peer-focus-visible:ring-2 peer-focus-visible:ring-[#7a32d4]/50 text-zinc-400 text-[13px] font-semibold transition-colors leading-snug">
                         {c.label}
                       </div>
                     </label>
