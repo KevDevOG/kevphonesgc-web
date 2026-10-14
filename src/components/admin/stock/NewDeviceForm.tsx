@@ -66,6 +66,14 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
   const [condition, setCondition] = useState<string>('like_new')
   const [batteryHealth, setBatteryHealth] = useState<string>('')
   
+  // Other category state
+  const [productType, setProductType] = useState<string>('android_phone')
+  const [customProductType, setCustomProductType] = useState<string>('')
+  const [customBrand, setCustomBrand] = useState<string>('')
+  const [customModelName, setCustomModelName] = useState<string>('')
+  const [presetSpecs, setPresetSpecs] = useState<Record<string, string>>({})
+  const [customSpecRows, setCustomSpecRows] = useState<{ id: string; name: string; value: string }[]>([])
+  
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   
@@ -129,6 +137,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
     setCaseType('')
     setCaseMaterial('')
     setBatteryHealth('')
+    setPresetSpecs({})
+    setCustomSpecRows([])
   }, [category])
 
   useEffect(() => {
@@ -188,6 +198,29 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
     
     try {
       const formData = new FormData(e.currentTarget)
+      
+      if (category === 'other') {
+        const finalCustomSpecs: Record<string, string> = {}
+        // Add preset specs
+        Object.entries(presetSpecs).forEach(([k, v]) => {
+          if (k.trim() && v.trim()) {
+            finalCustomSpecs[k.trim()] = v.trim()
+          }
+        })
+        // Add custom key/value rows
+        customSpecRows.forEach(row => {
+          if (row.name.trim() && row.value.trim()) {
+            finalCustomSpecs[row.name.trim()] = row.value.trim()
+          }
+        })
+        formData.set('custom_specs', JSON.stringify(finalCustomSpecs))
+        
+        const finalProdType = productType === 'other' ? (customProductType.trim() || 'other') : productType
+        formData.set('custom_product_type', finalProdType)
+        formData.set('custom_brand', customBrand.trim())
+        formData.set('custom_model_name', customModelName.trim())
+      }
+
       const deviceUuid = crypto.randomUUID()
       formData.set('device_uuid', deviceUuid)
       
@@ -235,6 +268,12 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
         setConnectivity('')
         setCaseType('')
         setCaseMaterial('')
+        setProductType('android_phone')
+        setCustomProductType('')
+        setCustomBrand('')
+        setCustomModelName('')
+        setPresetSpecs({})
+        setCustomSpecRows([])
         setImageFiles([])
         setImagePreviews(prev => {
           prev.forEach(p => URL.revokeObjectURL(p))
@@ -291,7 +330,7 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
               <div className="flex flex-col gap-1.5">
                 <label className={labelClass}>Categoría</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {[{ id: 'iphone', label: 'iPhone' }, { id: 'apple_watch', label: 'Apple Watch' }, { id: 'airpods', label: 'AirPods' }, { id: 'ipad', label: 'iPad' }, { id: 'macbook', label: 'MacBook' }, { id: 'ps5', label: 'PlayStation' }, { id: 'nintendo_switch', label: 'Nintendo Switch' }].map(c => (
+                  {[{ id: 'iphone', label: 'iPhone' }, { id: 'apple_watch', label: 'Apple Watch' }, { id: 'airpods', label: 'AirPods' }, { id: 'ipad', label: 'iPad' }, { id: 'macbook', label: 'MacBook' }, { id: 'ps5', label: 'PlayStation' }, { id: 'nintendo_switch', label: 'Nintendo Switch' }, { id: 'other', label: 'Otros' }].map(c => (
                     <label key={c.id} className="cursor-pointer relative h-full">
                       <input 
                         type="radio" 
@@ -309,6 +348,365 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 </div>
               </div>
 
+              {category === 'other' ? (
+                <>
+                  {/* Tipo de producto */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className={labelClass}>Tipo de producto</label>
+                    <select
+                      value={productType}
+                      onChange={(e) => {
+                        setProductType(e.target.value)
+                        setPresetSpecs({})
+                      }}
+                      className={inputClass}
+                    >
+                      <option value="android_phone">Móvil Android</option>
+                      <option value="laptop">Portátil</option>
+                      <option value="desktop_pc">PC sobremesa</option>
+                      <option value="tablet">Tablet</option>
+                      <option value="console">Consola</option>
+                      <option value="other">Otro</option>
+                    </select>
+                  </div>
+
+                  {productType === 'other' && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Tipo personalizado</label>
+                      <input
+                        type="text"
+                        value={customProductType}
+                        onChange={(e) => setCustomProductType(e.target.value)}
+                        placeholder="Ej: Monitor, Smartwatch Android, VR Headset..."
+                        className={inputClass}
+                      />
+                    </div>
+                  )}
+
+                  {/* Marca y Modelo */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Marca</label>
+                      <input
+                        type="text"
+                        value={customBrand}
+                        onChange={(e) => setCustomBrand(e.target.value)}
+                        placeholder="Ej: Samsung, Lenovo, ASUS..."
+                        required
+                        className={inputClass}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Modelo / Nombre</label>
+                      <input
+                        type="text"
+                        value={customModelName}
+                        onChange={(e) => setCustomModelName(e.target.value)}
+                        placeholder="Ej: Galaxy S24 Ultra, Legion 5 Pro..."
+                        required
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Preset Common Specs */}
+                  {productType === 'android_phone' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>RAM</label>
+                        <input
+                          type="text"
+                          value={presetSpecs['RAM'] || ''}
+                          onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'RAM': e.target.value }))}
+                          placeholder="Ej: 12GB"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Almacenamiento</label>
+                        <input
+                          type="text"
+                          name="storage"
+                          value={storage}
+                          onChange={(e) => {
+                            setStorage(e.target.value)
+                            setPresetSpecs(prev => ({ ...prev, 'Almacenamiento': e.target.value }))
+                          }}
+                          placeholder="Ej: 256GB"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Color</label>
+                        <input
+                          type="text"
+                          name="color"
+                          value={color}
+                          onChange={(e) => {
+                            setColor(e.target.value)
+                            setPresetSpecs(prev => ({ ...prev, 'Color': e.target.value }))
+                          }}
+                          placeholder="Ej: Titanium Gray"
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {productType === 'laptop' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Procesador</label>
+                        <input
+                          type="text"
+                          value={presetSpecs['Procesador'] || ''}
+                          onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Procesador': e.target.value }))}
+                          placeholder="Ej: Intel Core i7-13700H"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Gráfica</label>
+                        <input
+                          type="text"
+                          value={presetSpecs['Gráfica'] || ''}
+                          onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Gráfica': e.target.value }))}
+                          placeholder="Ej: NVIDIA RTX 4060"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>RAM</label>
+                        <input
+                          type="text"
+                          value={presetSpecs['RAM'] || ''}
+                          onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'RAM': e.target.value }))}
+                          placeholder="Ej: 16GB DDR5"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Almacenamiento</label>
+                        <input
+                          type="text"
+                          name="storage"
+                          value={storage}
+                          onChange={(e) => {
+                            setStorage(e.target.value)
+                            setPresetSpecs(prev => ({ ...prev, 'Almacenamiento': e.target.value }))
+                          }}
+                          placeholder="Ej: 1TB SSD NVMe"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5 sm:col-span-2">
+                        <label className={labelClass}>Tamaño de pantalla</label>
+                        <input
+                          type="text"
+                          value={presetSpecs['Tamaño de pantalla'] || ''}
+                          onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Tamaño de pantalla': e.target.value }))}
+                          placeholder="Ej: 16 pulg 165Hz WQXGA"
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {productType === 'desktop_pc' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Procesador</label>
+                        <input
+                          type="text"
+                          value={presetSpecs['Procesador'] || ''}
+                          onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Procesador': e.target.value }))}
+                          placeholder="Ej: AMD Ryzen 7 7800X3D"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Gráfica</label>
+                        <input
+                          type="text"
+                          value={presetSpecs['Gráfica'] || ''}
+                          onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Gráfica': e.target.value }))}
+                          placeholder="Ej: RTX 4070 Ti Super 16GB"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>RAM</label>
+                        <input
+                          type="text"
+                          value={presetSpecs['RAM'] || ''}
+                          onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'RAM': e.target.value }))}
+                          placeholder="Ej: 32GB (2x16GB) DDR5 6000MHz"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Almacenamiento</label>
+                        <input
+                          type="text"
+                          name="storage"
+                          value={storage}
+                          onChange={(e) => {
+                            setStorage(e.target.value)
+                            setPresetSpecs(prev => ({ ...prev, 'Almacenamiento': e.target.value }))
+                          }}
+                          placeholder="Ej: 2TB Kingston KC3000 PCIe 4.0"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Placa base</label>
+                        <input
+                          type="text"
+                          value={presetSpecs['Placa base'] || ''}
+                          onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Placa base': e.target.value }))}
+                          placeholder="Ej: MSI B650 Gaming Plus WiFi"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Fuente de alimentación</label>
+                        <input
+                          type="text"
+                          value={presetSpecs['Fuente de alimentación'] || ''}
+                          onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Fuente de alimentación': e.target.value }))}
+                          placeholder="Ej: Corsair RM750e 750W 80 Plus Gold"
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {productType === 'tablet' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>RAM</label>
+                        <input
+                          type="text"
+                          value={presetSpecs['RAM'] || ''}
+                          onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'RAM': e.target.value }))}
+                          placeholder="Ej: 8GB"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Almacenamiento</label>
+                        <input
+                          type="text"
+                          name="storage"
+                          value={storage}
+                          onChange={(e) => {
+                            setStorage(e.target.value)
+                            setPresetSpecs(prev => ({ ...prev, 'Almacenamiento': e.target.value }))
+                          }}
+                          placeholder="Ej: 128GB"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Color</label>
+                        <input
+                          type="text"
+                          name="color"
+                          value={color}
+                          onChange={(e) => {
+                            setColor(e.target.value)
+                            setPresetSpecs(prev => ({ ...prev, 'Color': e.target.value }))
+                          }}
+                          placeholder="Ej: Graphite"
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {productType === 'console' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Almacenamiento</label>
+                        <input
+                          type="text"
+                          name="storage"
+                          value={storage}
+                          onChange={(e) => {
+                            setStorage(e.target.value)
+                            setPresetSpecs(prev => ({ ...prev, 'Almacenamiento': e.target.value }))
+                          }}
+                          placeholder="Ej: 512GB"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className={labelClass}>Color</label>
+                        <input
+                          type="text"
+                          name="color"
+                          value={color}
+                          onChange={(e) => {
+                            setColor(e.target.value)
+                            setPresetSpecs(prev => ({ ...prev, 'Color': e.target.value }))
+                          }}
+                          placeholder="Ej: Negro"
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Custom Key/Value Specifications */}
+                  <div className="flex flex-col gap-3 pt-2 border-t border-[#1F1F24]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Especificaciones personalizadas</span>
+                      <button
+                        type="button"
+                        onClick={() => setCustomSpecRows(prev => [...prev, { id: crypto.randomUUID(), name: '', value: '' }])}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#d7baff] hover:text-white transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">add</span>
+                        + Añadir especificación
+                      </button>
+                    </div>
+
+                    {customSpecRows.map((row, idx) => (
+                      <div key={row.id} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={row.name}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setCustomSpecRows(prev => prev.map((r, i) => i === idx ? { ...r, name: val } : r))
+                          }}
+                          placeholder="Nombre (ej: Refrigeración)"
+                          className="flex-1 bg-[#121217] border border-[#1F1F24] rounded-xl px-3 py-2 text-[13px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50"
+                        />
+                        <input
+                          type="text"
+                          value={row.value}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setCustomSpecRows(prev => prev.map((r, i) => i === idx ? { ...r, value: val } : r))
+                          }}
+                          placeholder="Valor (ej: NZXT Kraken 240)"
+                          className="flex-1 bg-[#121217] border border-[#1F1F24] rounded-xl px-3 py-2 text-[13px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50"
+                        />
+                        <button
+                          type="button"
+                          aria-label="Eliminar especificación"
+                          onClick={() => setCustomSpecRows(prev => prev.filter((_, i) => i !== idx))}
+                          className="p-2 text-zinc-500 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
               <div className="flex flex-col gap-1.5">
                 <label className={labelClass}>Modelo</label>
                 <select name="model_id" value={modelId} onChange={e => setModelId(e.target.value)} required className={inputClass}>
@@ -431,6 +829,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                   </>
                 )}
               </div>
+                </>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label className={labelClass}>IMEI / Número de serie (Opcional)</label>

@@ -34,6 +34,8 @@ export type PublicStockItem = {
   supports_cycles: boolean
   catalog_image_url: string | null
   real_images: { id: string, url: string, position: number }[]
+  custom_product_type?: string | null
+  custom_specs?: Record<string, any> | string | null
 }
 
 interface PublicStockSectionProps {
@@ -46,7 +48,7 @@ export function PublicStockSection({ devices, whatsappPhone, contactEnabled }: P
   const [selectedDevice, setSelectedDevice] = useState<PublicStockItem | null>(null)
   const [activeCategory, setActiveCategory] = useState<string>('Todos')
 
-  const categories = ['Todos', 'iPhone', 'Apple Watch', 'AirPods', 'iPad', 'PS5', 'Nintendo Switch']
+  const categories = ['Todos', 'iPhone', 'Apple Watch', 'AirPods', 'iPad', 'PS5', 'Nintendo Switch', 'Otros']
 
   const filteredDevices = devices.filter(d => {
     if (activeCategory === 'Todos') return true
@@ -56,6 +58,7 @@ export function PublicStockSection({ devices, whatsappPhone, contactEnabled }: P
     if (activeCategory === 'iPad') return d.category === 'ipad'
     if (activeCategory === 'PS5') return d.category === 'ps5'
     if (activeCategory === 'Nintendo Switch') return d.category === 'nintendo_switch'
+    if (activeCategory === 'Otros') return d.category === 'other'
     return true
   })
 

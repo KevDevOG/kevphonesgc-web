@@ -29,8 +29,11 @@ type Device = {
   status: string
   is_published: boolean
   created_at: string
+  custom_product_type?: string | null
+  custom_specs?: Record<string, any> | string | null
   device_models: {
     category: string
+    brand?: string
     name: string
   } | any
   device_images?: { storage_path: string }[] | any
@@ -66,6 +69,101 @@ const conditionMap: Record<string, string> = {
   'marked': 'Con marcas'
 }
 
+
+const otherProductTypeMap: Record<string, string> = {
+  android_phone: 'Móvil Android',
+  laptop: 'Portátil',
+  desktop_pc: 'PC sobremesa',
+  tablet: 'Tablet',
+  console: 'Consola',
+  other: 'Otro'
+}
+
+function getOtherProductTypeLabel(type?: string | null): string | null {
+  if (!type) return null
+  return otherProductTypeMap[type] || type
+}
+
+function getDeviceTitle(device: Device): string {
+  const modelName = device.device_models?.name || ''
+  if (device.device_models?.category !== 'other') {
+    return modelName
+  }
+  const brand = (device.device_models?.brand || '').trim()
+  if (!brand) return modelName
+  if (modelName.toLowerCase().startsWith(brand.toLowerCase())) {
+    return modelName
+  }
+  return `${brand} ${modelName}`
+}
+
+function parseCustomSpecs(specs: any): Record<string, string> {
+  if (!specs) return {}
+  if (typeof specs === 'string') {
+    try {
+      const parsed = JSON.parse(specs)
+      return typeof parsed === 'object' && parsed !== null ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+  return typeof specs === 'object' ? specs : {}
+}
+
+function getOtherDeviceSummary(device: Device): string {
+  const specs = parseCustomSpecs(device.custom_specs)
+  const pType = device.custom_product_type || 'other'
+
+  const storageVal = device.storage || specs['Almacenamiento'] || null
+  const colorVal = device.color || specs['Color'] || null
+
+  const items: (string | null | undefined)[] = []
+
+  if (pType === 'android_phone') {
+    if (specs['RAM']) items.push(specs['RAM'].includes('RAM') ? specs['RAM'] : `${specs['RAM']} RAM`)
+    if (storageVal) items.push(storageVal)
+    if (colorVal) items.push(colorVal)
+  } else if (pType === 'laptop') {
+    if (specs['Procesador']) items.push(specs['Procesador'])
+    if (specs['Gráfica']) items.push(specs['Gráfica'])
+    if (specs['RAM']) items.push(specs['RAM'].includes('RAM') ? specs['RAM'] : `${specs['RAM']} RAM`)
+    if (storageVal) items.push(storageVal)
+  } else if (pType === 'desktop_pc') {
+    if (specs['Procesador']) items.push(specs['Procesador'])
+    if (specs['Gráfica']) items.push(specs['Gráfica'])
+    if (specs['RAM']) items.push(specs['RAM'].includes('RAM') ? specs['RAM'] : `${specs['RAM']} RAM`)
+    if (storageVal) items.push(storageVal)
+  } else if (pType === 'tablet') {
+    if (specs['RAM']) items.push(specs['RAM'].includes('RAM') ? specs['RAM'] : `${specs['RAM']} RAM`)
+    if (storageVal) items.push(storageVal)
+    if (colorVal) items.push(colorVal)
+  } else if (pType === 'console') {
+    if (storageVal) items.push(storageVal)
+    if (colorVal) items.push(colorVal)
+  } else {
+    // Arbitrary product types: take up to 3 non-empty specs
+    const entries = Object.entries(specs).filter(([k, v]) => {
+      const valStr = String(v ?? '').trim()
+      return valStr !== '' && k !== 'Almacenamiento' && k !== 'Color'
+    })
+    for (const [k, v] of entries.slice(0, 3)) {
+      items.push(`${v}`)
+    }
+    if (items.length < 3 && storageVal && !items.includes(storageVal)) {
+      items.push(storageVal)
+    }
+    if (items.length < 3 && colorVal && !items.includes(colorVal)) {
+      items.push(colorVal)
+    }
+  }
+
+  if (device.condition && conditionMap[device.condition]) {
+    items.push(conditionMap[device.condition])
+  }
+
+  return items.filter(Boolean).join(' · ')
+}
+
 export function StockList({ availableDevices, soldDevices, availableCount, stockCapital, soldCount }: StockListProps) {
   const [view, setView] = useState<'available' | 'sold'>('available')
   const [search, setSearch] = useState('')
@@ -84,7 +182,8 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
     if (!search.trim()) return activeList
     const q = search.toLowerCase()
     return activeList.filter(d => {
-      const modelName = d.device_models?.name?.toLowerCase() || ''
+      const title = getDeviceTitle(d).toLowerCase()
+      const brand = (d.device_models?.brand || '').toLowerCase()
       const imei = (d.imei_serial || '').toLowerCase()
       const storage = (d.storage || '').toLowerCase()
       const color = (d.color || '').toLowerCase()
@@ -92,7 +191,8 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
       const connectivity = (d.connectivity || '').toLowerCase()
       const caseType = (d.case_type || '').toLowerCase()
       const caseMaterial = (d.case_material || '').toLowerCase()
-      return modelName.includes(q) || imei.includes(q) || storage.includes(q) || color.includes(q) || size.includes(q) || connectivity.includes(q) || caseType.includes(q) || caseMaterial.includes(q)
+      const customType = (d.custom_product_type || '').toLowerCase()
+      return title.includes(q) || brand.includes(q) || imei.includes(q) || storage.includes(q) || color.includes(q) || size.includes(q) || connectivity.includes(q) || caseType.includes(q) || caseMaterial.includes(q) || customType.includes(q)
     })
   }, [activeList, search])
 
@@ -295,15 +395,22 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-0.5">
                       <h3 className="text-base lg:text-[17px] leading-tight text-white font-bold truncate">
-                        {device.device_models?.name}
+                        {getDeviceTitle(device)}
                       </h3>
+                      {device.device_models?.category === 'other' && getOtherProductTypeLabel(device.custom_product_type) && (
+                        <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#1F1F24] text-zinc-400">
+                          {getOtherProductTypeLabel(device.custom_product_type)}
+                        </span>
+                      )}
                       <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${view === 'available' ? (device.is_published ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-orange-500/10 text-orange-400') : 'bg-[#1F1F24] text-zinc-400'}`}>
                         {view === 'available' ? (device.is_published ? 'Publicado' : 'Pendiente de publicar') : 'Vendido'}
                       </div>
                     </div>
                     
                     <p className="text-xs lg:text-[13px] text-zinc-400 truncate mb-1">
-                      {device.device_models?.category === 'apple_watch'
+                      {device.device_models?.category === 'other'
+                        ? getOtherDeviceSummary(device)
+                        : device.device_models?.category === 'apple_watch'
                         ? [
                             device.size,
                             device.connectivity,
@@ -454,7 +561,7 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
           <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 w-full max-w-md flex flex-col gap-5 shadow-2xl">
             <div>
               <h3 className="text-lg font-bold text-white mb-2">Eliminar dispositivo</h3>
-              <p className="text-sm text-zinc-400">Esta acción eliminará permanentemente el dispositivo <span className="font-bold text-zinc-300">{deletingDevice.device_models?.name}</span> y sus fotos del stock. No se puede deshacer.</p>
+              <p className="text-sm text-zinc-400">Esta acción eliminará permanentemente el dispositivo <span className="font-bold text-zinc-300">{getDeviceTitle(deletingDevice)}</span> y sus fotos del stock. No se puede deshacer.</p>
             </div>
             
             {error && (
@@ -528,7 +635,7 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
             {/* Device summary context */}
             <div className="bg-[#121217] border border-[#1F1F24] rounded-xl p-4 flex flex-col gap-1.5">
               <div className="flex justify-between items-start">
-                <span className="font-bold text-white">{editingSale.device_models?.name}</span>
+                <span className="font-bold text-white">{getDeviceTitle(editingSale)}</span>
                 <span className="text-xs text-zinc-500 font-mono mt-0.5">IMEI {maskImei(editingSale.imei_serial)}</span>
               </div>
               <span className="text-[13px] text-zinc-400">

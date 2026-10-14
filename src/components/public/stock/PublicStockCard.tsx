@@ -5,6 +5,113 @@ interface PublicStockCardProps {
   onSelect: () => void
 }
 
+const otherProductTypeMap: Record<string, string> = {
+  android_phone: 'Móvil Android',
+  laptop: 'Portátil',
+  desktop_pc: 'PC sobremesa',
+  tablet: 'Tablet',
+  console: 'Consola',
+  other: 'Otro'
+}
+
+function getOtherProductTypeLabel(type?: string | null): string | null {
+  if (!type) return null
+  return otherProductTypeMap[type] || type
+}
+
+function getDeviceTitle(device: PublicStockItem): string {
+  const modelName = device.model_name || ''
+  if (device.category !== 'other') {
+    return modelName
+  }
+  const brand = (device.brand || '').trim()
+  if (!brand) return modelName
+  if (modelName.toLowerCase().startsWith(brand.toLowerCase())) {
+    return modelName
+  }
+  return `${brand} ${modelName}`
+}
+
+function parseCustomSpecs(specs: any): Record<string, string> {
+  if (!specs) return {}
+  if (typeof specs === 'string') {
+    try {
+      const parsed = JSON.parse(specs)
+      return typeof parsed === 'object' && parsed !== null ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+  return typeof specs === 'object' ? specs : {}
+}
+
+function getOtherDeviceSpecsLine(device: PublicStockItem): string[] {
+  const specs = parseCustomSpecs(device.custom_specs)
+  const pType = device.custom_product_type || 'other'
+
+  // Deduplication: check if custom_specs has storage or color
+  const customStorageKey = Object.keys(specs).find(
+    k => k.trim().toLowerCase() === 'almacenamiento' || k.trim().toLowerCase() === 'capacidad'
+  )
+  const customColorKey = Object.keys(specs).find(
+    k => k.trim().toLowerCase() === 'color'
+  )
+
+  const storageVal = (customStorageKey ? specs[customStorageKey] : null) || device.storage || null
+  const colorVal = (customColorKey ? specs[customColorKey] : null) || device.color || null
+
+  const items: (string | null | undefined)[] = []
+
+  if (pType === 'android_phone') {
+    // RAM, storage, color
+    if (specs['RAM']) items.push(specs['RAM'].includes('RAM') ? specs['RAM'] : `${specs['RAM']} RAM`)
+    if (storageVal) items.push(storageVal)
+    if (colorVal) items.push(colorVal)
+  } else if (pType === 'laptop') {
+    // Procesador, Gráfica, RAM, storage
+    if (specs['Procesador']) items.push(specs['Procesador'])
+    if (specs['Gráfica']) items.push(specs['Gráfica'])
+    if (specs['RAM']) items.push(specs['RAM'].includes('RAM') ? specs['RAM'] : `${specs['RAM']} RAM`)
+    if (storageVal) items.push(storageVal)
+  } else if (pType === 'desktop_pc') {
+    // Procesador, Gráfica, RAM, storage
+    if (specs['Procesador']) items.push(specs['Procesador'])
+    if (specs['Gráfica']) items.push(specs['Gráfica'])
+    if (specs['RAM']) items.push(specs['RAM'].includes('RAM') ? specs['RAM'] : `${specs['RAM']} RAM`)
+    if (storageVal) items.push(storageVal)
+  } else if (pType === 'tablet') {
+    // RAM, storage, color
+    if (specs['RAM']) items.push(specs['RAM'].includes('RAM') ? specs['RAM'] : `${specs['RAM']} RAM`)
+    if (storageVal) items.push(storageVal)
+    if (colorVal) items.push(colorVal)
+  } else if (pType === 'console') {
+    // storage, color
+    if (storageVal) items.push(storageVal)
+    if (colorVal) items.push(colorVal)
+  } else {
+    // Custom / other type: show up to 3 useful values from custom_specs
+    // including storage and color if available
+    const standardKeysToIgnore = new Set([
+      customStorageKey?.toLowerCase(),
+      customColorKey?.toLowerCase()
+    ].filter(Boolean))
+
+    if (storageVal) items.push(storageVal)
+    if (colorVal) items.push(colorVal)
+
+    for (const [key, val] of Object.entries(specs)) {
+      if (items.length >= 3) break
+      if (standardKeysToIgnore.has(key.trim().toLowerCase())) continue
+      const strVal = String(val).trim()
+      if (strVal) {
+        items.push(strVal)
+      }
+    }
+  }
+
+  return items.filter(Boolean).map(v => String(v).trim()) as string[]
+}
+
 export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
   const effectivePrice = device.discount_price ?? device.listing_price
   const formattedPrice = effectivePrice
@@ -25,16 +132,16 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
       }).format(device.listing_price)
     : null
 
-
-
   const isNew = device.condition === 'sealed'
   const hasWarranty = !!device.warranty_until
+  const displayTitle = getDeviceTitle(device)
+  const productTypeLabel = device.category === 'other' ? getOtherProductTypeLabel(device.custom_product_type) : null
 
   return (
     <button 
       onClick={onSelect}
       className="text-left w-full bg-[#050506] border border-[#1F1F24] rounded-3xl overflow-hidden flex flex-col group hover:border-[#383840] transition-all duration-300 relative active:scale-[0.99]"
-      aria-label={`Ver detalles de ${device.model_name}`}
+      aria-label={`Ver detalles de ${displayTitle}`}
     >
       
       {/* Top Badges */}
@@ -57,7 +164,7 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
         {device.catalog_image_url || (device.real_images && device.real_images.length > 0) ? (
           <img 
             src={device.catalog_image_url || device.real_images[0].url} 
-            alt={`${device.model_name} ${device.color || ''}`}
+            alt={`${displayTitle} ${device.color || ''}`}
             className="w-full h-full object-contain relative z-10 group-hover:-translate-y-1 transition-transform duration-500"
           />
         ) : (
@@ -75,12 +182,20 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
         
         {/* Device Name */}
         <h3 className="text-lg font-bold text-white mb-1 leading-tight">
-          {device.model_name}
+          {displayTitle}
         </h3>
         
         {/* Specs Line */}
         <div className="flex flex-wrap items-center gap-1.5 mb-1.5 text-[13px] text-zinc-400 font-medium">
-          {(device.category === 'apple_watch' 
+          {productTypeLabel && (
+            <>
+              <span className="text-purple-400 font-semibold">{productTypeLabel}</span>
+              <span className="text-zinc-600">·</span>
+            </>
+          )}
+          {(device.category === 'other'
+            ? getOtherDeviceSpecsLine(device)
+            : device.category === 'apple_watch' 
             ? [device.size, device.connectivity, device.case_material]
             : device.category === 'airpods'
             ? [device.case_type, device.color]

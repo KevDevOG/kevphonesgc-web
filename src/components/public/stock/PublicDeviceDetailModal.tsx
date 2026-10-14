@@ -19,10 +19,89 @@ const CONDITION_LABELS: Record<string, string> = {
   marked: 'Con marcas'
 }
 
+const OTHER_PRODUCT_TYPE_MAP: Record<string, string> = {
+  android_phone: 'Móvil Android',
+  laptop: 'Portátil',
+  desktop_pc: 'PC sobremesa',
+  tablet: 'Tablet',
+  console: 'Consola',
+  other: 'Otro'
+}
+
+function getOtherProductTypeLabel(type?: string | null): string | null {
+  if (!type) return null
+  return OTHER_PRODUCT_TYPE_MAP[type] || type
+}
+
+function getDeviceTitle(device: PublicStockItem): string {
+  const modelName = device.model_name || ''
+  if (device.category !== 'other') {
+    return modelName
+  }
+  const brand = (device.brand || '').trim()
+  if (!brand) return modelName
+  if (modelName.toLowerCase().startsWith(brand.toLowerCase())) {
+    return modelName
+  }
+  return `${brand} ${modelName}`
+}
+
+function parseCustomSpecs(specs: any): Record<string, string> {
+  if (!specs) return {}
+  if (typeof specs === 'string') {
+    try {
+      const parsed = JSON.parse(specs)
+      return typeof parsed === 'object' && parsed !== null ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+  return typeof specs === 'object' ? specs : {}
+}
+
+function getTechnicalSpecsRows(device: PublicStockItem): { label: string; value: string }[] {
+  const specs = parseCustomSpecs(device.custom_specs)
+  const rows: { label: string; value: string }[] = []
+
+  // Check if custom_specs has storage or color (case-insensitive check)
+  const hasStorageInCustom = Object.keys(specs).some(
+    k => k.trim().toLowerCase() === 'almacenamiento' || k.trim().toLowerCase() === 'capacidad'
+  )
+  const hasColorInCustom = Object.keys(specs).some(
+    k => k.trim().toLowerCase() === 'color'
+  )
+
+  // Standard storage if available and not present in custom_specs
+  if (device.storage && device.storage.trim() && !hasStorageInCustom) {
+    rows.push({ label: 'Almacenamiento', value: device.storage.trim() })
+  }
+
+  // Standard color if available and not present in custom_specs
+  if (device.color && device.color.trim() && !hasColorInCustom) {
+    rows.push({ label: 'Color', value: device.color.trim() })
+  }
+
+  // All custom_specs key/values that are non-empty
+  Object.entries(specs).forEach(([key, val]) => {
+    if (val !== null && val !== undefined) {
+      const valStr = String(val).trim()
+      const keyStr = String(key).trim()
+      if (keyStr && valStr) {
+        rows.push({ label: keyStr, value: valStr })
+      }
+    }
+  })
+
+  return rows
+}
+
 export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contactEnabled }: PublicDeviceDetailModalProps) {
   const [mounted, setMounted] = useState(false)
   const isSealed = device.condition === 'sealed'
   const hasWarranty = device.warranty_until && new Date(device.warranty_until) > new Date()
+  const displayTitle = getDeviceTitle(device)
+  const productTypeLabel = device.category === 'other' ? getOtherProductTypeLabel(device.custom_product_type) : null
+  const technicalSpecs = device.category === 'other' ? getTechnicalSpecsRows(device) : []
   
   // Gallery logic
   const allPhotos = device.real_images.length > 0 
@@ -103,8 +182,6 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
       }).format(device.listing_price)
     : null
 
-
-
   if (!mounted) return null
 
   return createPortal(
@@ -136,7 +213,7 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
             {allPhotos.length > 0 ? (
               <img 
                 src={allPhotos[mainPhotoIndex].url}
-                alt={`${device.model_name} foto`}
+                alt={`${displayTitle} foto`}
                 className="w-full h-full object-contain relative z-10"
               />
             ) : (
@@ -178,8 +255,13 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
         <div className="w-full md:w-1/2 p-6 sm:p-10 flex flex-col max-h-[85vh] overflow-y-auto custom-scrollbar bg-[#050506]">
           
           <div className="mb-8">
+            {productTypeLabel && (
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 border border-purple-700/50 text-[11px] font-medium tracking-wide mb-2">
+                {productTypeLabel}
+              </span>
+            )}
             <h2 id="modal-title" className="text-2xl sm:text-3xl font-semibold text-white mb-2 leading-tight">
-              {device.model_name}
+              {displayTitle}
             </h2>
             {device.discount_price ? (
               <div className="flex flex-col mt-4">
@@ -205,20 +287,28 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
           </div>
 
           <div className="flex-1">
+            {/* General Specs Grid */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-8">
               <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
                 <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Estado</span>
                 <span className="text-sm text-white font-medium">{CONDITION_LABELS[device.condition] || device.condition}</span>
               </div>
+
+              {device.category === 'other' && device.brand && (
+                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Marca</span>
+                  <span className="text-sm text-white font-medium">{device.brand}</span>
+                </div>
+              )}
               
-              {device.storage && (
+              {device.category !== 'other' && device.storage && (
                 <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
                   <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Almacenamiento</span>
                   <span className="text-sm text-white font-medium">{device.storage}</span>
                 </div>
               )}
               
-              {device.color && (
+              {device.category !== 'other' && device.color && (
                 <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
                   <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Color</span>
                   <span className="text-sm text-white font-medium">{device.color}</span>
@@ -286,6 +376,21 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
               )}
             </div>
 
+            {/* Dedicated Technical Specs Section for Category 'other' */}
+            {device.category === 'other' && technicalSpecs.length > 0 && (
+              <div className="mb-8">
+                <span className="block text-[11px] uppercase tracking-wider text-zinc-500 mb-3">Especificaciones técnicas</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 p-4 rounded-xl bg-[#0A0A0C] border border-[#1F1F24]">
+                  {technicalSpecs.map((spec, idx) => (
+                    <div key={idx} className="flex justify-between items-center gap-3 border-b border-[#1F1F24]/40 last:border-b-0 pb-2">
+                      <span className="text-xs text-zinc-400 font-medium shrink-0">{spec.label}</span>
+                      <span className="text-xs text-white font-semibold text-right break-words">{spec.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mb-8">
               <span className="block text-[11px] uppercase tracking-wider text-zinc-500 mb-3">Accesorios y Otros</span>
               <div className="flex flex-wrap gap-2">
@@ -302,7 +407,7 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
             {contactEnabled && whatsappPhone ? (
               <a 
                 href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
-                  `Hola, estoy interesado en este dispositivo de KevPhonesGC:\n\n${device.model_name}\n${(device.category === 'apple_watch' ? [device.size, device.connectivity, device.case_material] : device.category === 'airpods' ? [device.case_type, device.color] : device.category === 'ipad' ? [device.storage, device.connectivity, device.color] : [device.storage, device.color]).filter(Boolean).map(v => `${v}\n`).join('')}Precio: ${effectivePrice ? `${effectivePrice} €` : 'No disponible'}\n\n¿Sigue disponible?`
+                  `Hola, estoy interesado en este dispositivo de KevPhonesGC:\n\n${displayTitle}\n${(device.category === 'other' ? technicalSpecs.slice(0, 4).map(s => `${s.label}: ${s.value}`) : device.category === 'apple_watch' ? [device.size, device.connectivity, device.case_material] : device.category === 'airpods' ? [device.case_type, device.color] : device.category === 'ipad' ? [device.storage, device.connectivity, device.color] : [device.storage, device.color]).filter(Boolean).map(v => `${v}\n`).join('')}Precio: ${effectivePrice ? `${effectivePrice} €` : 'No disponible'}\n\n¿Sigue disponible?`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

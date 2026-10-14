@@ -35,10 +35,11 @@ type Device = {
   status: string
   is_published: boolean
   internal_notes: string | null
-  created_at: string
+  custom_product_type?: string | null
+  custom_specs?: Record<string, any> | string | null
   device_models: {
     category: string
-    brand: string
+    brand?: string
     name: string
     supports_battery_health: boolean
     supports_cycles: boolean
@@ -68,7 +69,84 @@ const categoryMap: Record<string, string> = {
   'airpods': 'AirPods',
   'ipad': 'iPad',
   'ps5': 'PlayStation',
-  'nintendo_switch': 'Nintendo Switch'
+  'nintendo_switch': 'Nintendo Switch',
+  'other': 'Otro'
+}
+
+const otherProductTypeMap: Record<string, string> = {
+  android_phone: 'Móvil Android',
+  laptop: 'Portátil',
+  desktop_pc: 'PC sobremesa',
+  tablet: 'Tablet',
+  console: 'Consola',
+  other: 'Otro'
+}
+
+function getOtherProductTypeLabel(type?: string | null): string | null {
+  if (!type) return null
+  return otherProductTypeMap[type] || type
+}
+
+function getDeviceTitle(device: Device): string {
+  const modelName = device.device_models?.name || ''
+  if (device.device_models?.category !== 'other') {
+    return modelName
+  }
+  const brand = (device.device_models?.brand || '').trim()
+  if (!brand) return modelName
+  if (modelName.toLowerCase().startsWith(brand.toLowerCase())) {
+    return modelName
+  }
+  return `${brand} ${modelName}`
+}
+
+function parseCustomSpecs(specs: any): Record<string, string> {
+  if (!specs) return {}
+  if (typeof specs === 'string') {
+    try {
+      const parsed = JSON.parse(specs)
+      return typeof parsed === 'object' && parsed !== null ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+  return typeof specs === 'object' ? specs : {}
+}
+
+function getTechnicalSpecsRows(device: Device): { label: string; value: string }[] {
+  const specs = parseCustomSpecs(device.custom_specs)
+  const rows: { label: string; value: string }[] = []
+
+  // Check if custom_specs has storage or color (case-insensitive check)
+  const hasStorageInCustom = Object.keys(specs).some(
+    k => k.trim().toLowerCase() === 'almacenamiento' || k.trim().toLowerCase() === 'capacidad'
+  )
+  const hasColorInCustom = Object.keys(specs).some(
+    k => k.trim().toLowerCase() === 'color'
+  )
+
+  // Standard storage if available and not present in custom_specs
+  if (device.storage && device.storage.trim() && !hasStorageInCustom) {
+    rows.push({ label: 'Almacenamiento', value: device.storage.trim() })
+  }
+
+  // Standard color if available and not present in custom_specs
+  if (device.color && device.color.trim() && !hasColorInCustom) {
+    rows.push({ label: 'Color', value: device.color.trim() })
+  }
+
+  // All custom_specs key/values that are non-empty
+  Object.entries(specs).forEach(([key, val]) => {
+    if (val !== null && val !== undefined) {
+      const valStr = String(val).trim()
+      const keyStr = String(key).trim()
+      if (keyStr && valStr) {
+        rows.push({ label: keyStr, value: valStr })
+      }
+    }
+  })
+
+  return rows
 }
 
 type TradeInContext = {
@@ -167,10 +245,12 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-none mb-1.5">
-              {model?.name}
+              {getDeviceTitle(device)}
             </h1>
             <p className="text-sm font-semibold text-zinc-400">
-              {[device.storage, device.color].filter(Boolean).join(' · ')}
+              {model?.category === 'other'
+                ? [getOtherProductTypeLabel(device.custom_product_type), device.storage, device.color].filter(Boolean).join(' · ')
+                : [device.storage, device.color].filter(Boolean).join(' · ')}
             </p>
           </div>
           <div className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider ${device.status === 'available' ? (device.is_published ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-orange-500/10 text-orange-400') : 'bg-[#1F1F24] text-zinc-400'}`}>
@@ -189,7 +269,7 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
               <img 
                 className="w-full h-full object-contain" 
                 src={activeImageUrl} 
-                alt={model?.name}
+                alt={getDeviceTitle(device)}
               />
             ) : (
               <div className="flex flex-col items-center justify-center text-zinc-600 gap-2">
@@ -381,17 +461,29 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
                 <span className="text-sm font-medium text-zinc-500">Categoría</span>
                 <span className="text-sm font-semibold text-white">{model?.category ? (categoryMap[model.category] || model.category) : ''}</span>
               </div>
+              {model?.category === 'other' && device.custom_product_type && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-500">Tipo de producto</span>
+                  <span className="text-sm font-semibold text-white">{getOtherProductTypeLabel(device.custom_product_type)}</span>
+                </div>
+              )}
+              {model?.category === 'other' && model?.brand && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-500">Marca</span>
+                  <span className="text-sm font-semibold text-white">{model.brand}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-zinc-500">Modelo</span>
                 <span className="text-sm font-semibold text-white">{model?.name}</span>
               </div>
-              {device.storage && (
+              {model?.category !== 'other' && device.storage && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-zinc-500">Capacidad</span>
                   <span className="text-sm font-semibold text-white">{device.storage}</span>
                 </div>
               )}
-              {device.color && (
+              {model?.category !== 'other' && device.color && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-zinc-500">Color</span>
                   <span className="text-sm font-semibold text-white">{device.color}</span>
@@ -443,6 +535,24 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
               </div>
             </div>
           </div>
+
+          {model?.category === 'other' && (() => {
+            const techSpecs = getTechnicalSpecsRows(device)
+            if (techSpecs.length === 0) return null
+            return (
+              <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6">
+                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Especificaciones técnicas</h3>
+                <div className="flex flex-col gap-4">
+                  {techSpecs.map((row, idx) => (
+                    <div key={idx} className="flex justify-between items-center gap-4">
+                      <span className="text-sm font-medium text-zinc-500 flex-shrink-0">{row.label}</span>
+                      <span className="text-sm font-semibold text-white text-right break-words">{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
 
           {(device.battery_health !== null || device.battery_cycles !== null) && (
             <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6">

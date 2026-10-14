@@ -101,7 +101,9 @@ export default async function Home() {
       brand,
       category,
       supports_battery_health,
-      supports_cycles
+      supports_cycles,
+      custom_product_type,
+      custom_specs
     `)
     .order('created_at', { ascending: false })
 
@@ -201,6 +203,8 @@ export default async function Home() {
         category: d.category,
         supports_battery_health: d.supports_battery_health,
         supports_cycles: d.supports_cycles,
+        custom_product_type: d.custom_product_type,
+        custom_specs: d.custom_specs,
         catalog_image_url,
         real_images: realImages
       })
@@ -214,7 +218,8 @@ export default async function Home() {
     airpods: 3,
     ipad: 4,
     ps5: 5,
-    nintendo_switch: 6
+    nintendo_switch: 6,
+    other: 7
   }
 
   publicStock.sort((a, b) => {

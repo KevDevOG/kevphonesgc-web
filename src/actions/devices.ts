@@ -15,7 +15,103 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
   const deviceId = formData.get('device_uuid') as string
   if (!deviceId) return { error: 'Error interno: UUID de dispositivo faltante.' }
 
-  const modelId = formData.get('model_id') as string
+  let modelId = formData.get('model_id') as string
+  const categoryRaw = (formData.get('category') as string)?.trim() || null
+  const customBrand = (formData.get('custom_brand') as string)?.trim() || null
+  const customModelName = (formData.get('custom_model_name') as string)?.trim() || null
+  const customProductTypeRaw = (formData.get('custom_product_type') as string)?.trim() || null
+  const customSpecsRaw = formData.get('custom_specs') as string | null
+
+  let customSpecs: Record<string, string> = {}
+  if (customSpecsRaw) {
+    try {
+      const parsed = JSON.parse(customSpecsRaw)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        for (const [k, v] of Object.entries(parsed)) {
+          const keyTrim = String(k).trim()
+          const valTrim = String(v ?? '').trim()
+          if (keyTrim && valTrim) {
+            customSpecs[keyTrim] = valTrim
+          }
+        }
+      }
+    } catch (e) {
+      return { error: 'Formato de especificaciones personalizadas inválido.' }
+    }
+  }
+
+  // Handle 'other' category model resolution or creation
+  if (categoryRaw === 'other') {
+    if (!customBrand) {
+      return { error: 'Introduce la marca del producto.' }
+    }
+    if (!customModelName) {
+      return { error: 'Introduce el modelo o nombre del producto.' }
+    }
+
+    // Search for existing model with category 'other' matching name & brand (case-insensitive)
+    const { data: existingModels, error: searchError } = await supabase
+      .from('device_models')
+      .select('id, brand, name')
+      .eq('category', 'other')
+      .ilike('name', customModelName)
+
+    if (searchError) {
+      console.error(searchError)
+      return { error: 'Error al buscar el modelo existente.' }
+    }
+
+    const matchedModel = existingModels?.find(
+      m => m.brand.trim().toLowerCase() === customBrand.toLowerCase() &&
+           m.name.trim().toLowerCase() === customModelName.toLowerCase()
+    )
+
+    if (matchedModel) {
+      modelId = matchedModel.id
+    } else {
+      const { data: newModel, error: insertError } = await supabase
+        .from('device_models')
+        .insert({
+          category: 'other',
+          brand: customBrand,
+          name: customModelName,
+          active: true,
+          supports_battery_health: false,
+          supports_cycles: false,
+          sort_order: 0
+        })
+        .select('id')
+        .single()
+
+      if (insertError) {
+        if (insertError.code === '23505' || insertError.message?.includes('duplicate key')) {
+          // Re-fetch existing models for category 'other' matching name to find the one matching both brand and name
+          const { data: conflictModels } = await supabase
+            .from('device_models')
+            .select('id, brand, name')
+            .eq('category', 'other')
+            .ilike('name', customModelName)
+          
+          const conflictMatch = conflictModels?.find(
+            m => m.brand.trim().toLowerCase() === customBrand.toLowerCase() &&
+                 m.name.trim().toLowerCase() === customModelName.toLowerCase()
+          )
+
+          if (conflictMatch) {
+            modelId = conflictMatch.id
+          } else {
+            return { error: 'Error de conflicto al registrar el modelo del producto.' }
+          }
+        } else {
+          console.error(insertError)
+          return { error: 'No se pudo crear el modelo en la base de datos.' }
+        }
+      } else if (newModel) {
+        modelId = newModel.id
+      }
+    }
+  }
+
   let storage = formData.get('storage') as string | null
   let color = formData.get('color') as string | null
   let size = (formData.get('size') as string)?.trim() || null
@@ -136,9 +232,16 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
     memory = null
     caseType = null
     caseMaterial = null
+  } else if (model.category === 'other') {
+    size = null
+    connectivity = null
+    chip = null
+    memory = null
+    caseType = null
+    caseMaterial = null
   }
 
-  if (storage || color || size || connectivity || caseType || caseMaterial || chip || memory) {
+  if (model.category !== 'other' && (storage || color || size || connectivity || caseType || caseMaterial || chip || memory)) {
     const { data: variants } = await supabase
       .from('device_model_variants')
       .select('variant_type, value')
@@ -255,7 +358,9 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
       p_chip: chip,
       p_memory: memory,
       p_case_type: caseType,
-      p_case_material: caseMaterial
+      p_case_material: caseMaterial,
+      p_custom_product_type: customProductTypeRaw || null,
+      p_custom_specs: customSpecs
     })
 
   if (deviceError) {
@@ -358,7 +463,122 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
 
   if (!deviceId) return { error: 'Error interno: UUID de dispositivo faltante.' }
 
-  const modelId = formData.get('model_id') as string
+  let modelId = formData.get('model_id') as string
+  const categoryRaw = (formData.get('category') as string)?.trim() || null
+  const customBrand = (formData.get('custom_brand') as string)?.trim() || null
+  const customModelName = (formData.get('custom_model_name') as string)?.trim() || null
+  const customProductTypeRaw = (formData.get('custom_product_type') as string)?.trim() || null
+  const customSpecsRaw = formData.get('custom_specs') as string | null
+
+  let customSpecs: Record<string, string> = {}
+  if (customSpecsRaw) {
+    try {
+      const parsed = JSON.parse(customSpecsRaw)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        for (const [k, v] of Object.entries(parsed)) {
+          const keyTrim = String(k).trim()
+          const valTrim = String(v ?? '').trim()
+          if (keyTrim && valTrim) {
+            customSpecs[keyTrim] = valTrim
+          }
+        }
+      }
+    } catch (e) {
+      return { error: 'Formato de especificaciones personalizadas inválido.' }
+    }
+  }
+
+  // Handle 'other' category model resolution or creation
+  if (categoryRaw === 'other') {
+    if (!customBrand) {
+      return { error: 'Introduce la marca del producto.' }
+    }
+    if (!customModelName) {
+      return { error: 'Introduce el modelo o nombre del producto.' }
+    }
+
+    // Check if the current device already has a model with the exact same brand and name
+    let keepCurrentModel = false
+    if (modelId) {
+      const { data: currModel } = await supabase
+        .from('device_models')
+        .select('id, category, brand, name')
+        .eq('id', modelId)
+        .maybeSingle()
+      
+      if (
+        currModel &&
+        currModel.category === 'other' &&
+        currModel.brand.trim().toLowerCase() === customBrand.toLowerCase() &&
+        currModel.name.trim().toLowerCase() === customModelName.toLowerCase()
+      ) {
+        keepCurrentModel = true
+      }
+    }
+
+    if (!keepCurrentModel) {
+      // Search for existing model with category 'other' matching name & brand (case-insensitive)
+      const { data: existingModels, error: searchError } = await supabase
+        .from('device_models')
+        .select('id, brand, name')
+        .eq('category', 'other')
+        .ilike('name', customModelName)
+
+      if (searchError) {
+        console.error(searchError)
+        return { error: 'Error al buscar el modelo existente.' }
+      }
+
+      const matchedModel = existingModels?.find(
+        m => m.brand.trim().toLowerCase() === customBrand.toLowerCase() &&
+             m.name.trim().toLowerCase() === customModelName.toLowerCase()
+      )
+
+      if (matchedModel) {
+        modelId = matchedModel.id
+      } else {
+        const { data: newModel, error: insertError } = await supabase
+          .from('device_models')
+          .insert({
+            category: 'other',
+            brand: customBrand,
+            name: customModelName,
+            active: true,
+            supports_battery_health: false,
+            supports_cycles: false,
+            sort_order: 0
+          })
+          .select('id')
+          .single()
+
+        if (insertError) {
+          if (insertError.code === '23505' || insertError.message?.includes('duplicate key')) {
+            const { data: conflictModels } = await supabase
+              .from('device_models')
+              .select('id, brand, name')
+              .eq('category', 'other')
+              .ilike('name', customModelName)
+            
+            const conflictMatch = conflictModels?.find(
+              m => m.brand.trim().toLowerCase() === customBrand.toLowerCase() &&
+                   m.name.trim().toLowerCase() === customModelName.toLowerCase()
+            )
+
+            if (conflictMatch) {
+              modelId = conflictMatch.id
+            } else {
+              return { error: 'Error de conflicto al registrar el modelo del producto.' }
+            }
+          } else {
+            console.error(insertError)
+            return { error: 'No se pudo crear el modelo en la base de datos.' }
+          }
+        } else if (newModel) {
+          modelId = newModel.id
+        }
+      }
+    }
+  }
   let storage = formData.get('storage') as string | null
   let color = formData.get('color') as string | null
   let size = (formData.get('size') as string)?.trim() || null
@@ -495,9 +715,16 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
     memory = null
     caseType = null
     caseMaterial = null
+  } else if (model.category === 'other') {
+    size = null
+    connectivity = null
+    chip = null
+    memory = null
+    caseType = null
+    caseMaterial = null
   }
 
-  if (storage || color || size || connectivity || caseType || caseMaterial || chip || memory) {
+  if (model.category !== 'other' && (storage || color || size || connectivity || caseType || caseMaterial || chip || memory)) {
     const { data: variants } = await supabase
       .from('device_model_variants')
       .select('variant_type, value')
@@ -613,7 +840,9 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
       p_chip: chip,
       p_memory: memory,
       p_case_type: caseType,
-      p_case_material: caseMaterial
+      p_case_material: caseMaterial,
+      p_custom_product_type: customProductTypeRaw || null,
+      p_custom_specs: customSpecs
     })
 
   if (deviceError) {
