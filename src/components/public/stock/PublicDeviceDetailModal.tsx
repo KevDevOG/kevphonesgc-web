@@ -103,12 +103,23 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
   const productTypeLabel = device.category === 'other' ? getOtherProductTypeLabel(device.custom_product_type) : null
   const technicalSpecs = device.category === 'other' ? getTechnicalSpecsRows(device) : []
   
-  // Gallery logic
-  const allPhotos = device.real_images.length > 0 
-    ? device.real_images 
-    : device.catalog_image_url 
-      ? [{ id: 'catalog', url: device.catalog_image_url, position: 0 }] 
-      : []
+  // Gallery logic: prioritize catalog image as the first image, followed by real photos
+  const allPhotos: { id: string; url: string; position: number }[] = []
+  const seenUrls = new Set<string>()
+
+  if (device.catalog_image_url) {
+    allPhotos.push({ id: 'catalog', url: device.catalog_image_url, position: 0 })
+    seenUrls.add(device.catalog_image_url)
+  }
+
+  if (device.real_images && device.real_images.length > 0) {
+    for (const img of device.real_images) {
+      if (!seenUrls.has(img.url)) {
+        allPhotos.push(img)
+        seenUrls.add(img.url)
+      }
+    }
+  }
 
   const [mainPhotoIndex, setMainPhotoIndex] = useState(0)
 

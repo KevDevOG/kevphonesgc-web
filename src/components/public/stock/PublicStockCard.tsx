@@ -161,15 +161,15 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
       {/* Image Area */}
       <div className="w-full h-56 sm:h-[240px] bg-[#0A0A0C] flex items-center justify-center p-6 relative overflow-hidden group-hover:bg-[#0C0C0F] transition-colors duration-300">
         <div className="absolute inset-0 bg-purple-900/5 blur-[50px] rounded-full scale-50 group-hover:scale-100 transition-transform duration-700 pointer-events-none opacity-0 group-hover:opacity-100"></div>
-        {device.real_images && device.real_images.length > 0 ? (
+        {device.catalog_image_url ? (
           <img 
-            src={device.real_images[0].url} 
+            src={device.catalog_image_url} 
             alt={`${displayTitle} ${device.color || ''}`}
             className="w-full h-full object-contain relative z-10 group-hover:-translate-y-1 transition-transform duration-500"
           />
-        ) : device.catalog_image_url ? (
+        ) : device.real_images && device.real_images.length > 0 ? (
           <img 
-            src={device.catalog_image_url} 
+            src={device.real_images[0].url} 
             alt={`${displayTitle} ${device.color || ''}`}
             className="w-full h-full object-contain relative z-10 group-hover:-translate-y-1 transition-transform duration-500"
           />
