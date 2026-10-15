@@ -170,8 +170,9 @@ export default async function Home() {
 
   if (devicesData) {
     for (const d of devicesData) {
-      const imageKey = `${d.model_id}|${d.color || ''}`
-      const catalog_image_url = imageMap.get(imageKey) || null
+      const colorKey = `${d.model_id}|${d.color || ''}`
+      const defaultKey = `${d.model_id}|__default__`
+      const catalog_image_url = (d.color ? imageMap.get(colorKey) : null) || imageMap.get(defaultKey) || null
       
       const realImages = realImageMap.get(d.device_id) || []
 

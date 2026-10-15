@@ -38,17 +38,37 @@ export async function upsertModelCatalogImageAction(modelId: string, color: stri
     return { success: false, error: 'El modelo no existe o no está activo.' }
   }
 
-  // Verify color exists and active
-  const { data: colorData, error: colorError } = await supabase
-    .from('device_model_variants')
-    .select('value, active')
-    .eq('model_id', cleanModelId)
-    .eq('variant_type', 'color')
-    .eq('value', cleanColor)
-    .single()
+  // Verify color or generic default support
+  if (cleanColor === '__default__') {
+    // Ensure the model has no active color variants
+    const { count, error: countError } = await supabase
+      .from('device_model_variants')
+      .select('id', { count: 'exact', head: true })
+      .eq('model_id', cleanModelId)
+      .eq('variant_type', 'color')
+      .eq('active', true)
 
-  if (colorError || !colorData || !colorData.active) {
-    return { success: false, error: 'El color no es válido o no está activo para este modelo.' }
+    if (countError) {
+      console.error('Error checking model color variants:', countError)
+      return { success: false, error: 'Error verificando variantes del modelo.' }
+    }
+
+    if (count && count > 0) {
+      return { success: false, error: 'Este modelo tiene variantes de color configuradas; debe subirse la imagen por color.' }
+    }
+  } else {
+    // Verify color exists and active
+    const { data: colorData, error: colorError } = await supabase
+      .from('device_model_variants')
+      .select('value, active')
+      .eq('model_id', cleanModelId)
+      .eq('variant_type', 'color')
+      .eq('value', cleanColor)
+      .single()
+
+    if (colorError || !colorData || !colorData.active) {
+      return { success: false, error: 'El color no es válido o no está activo para este modelo.' }
+    }
   }
 
   // Check if mapping exists to return previous path

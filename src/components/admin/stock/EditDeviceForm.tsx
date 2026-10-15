@@ -898,6 +898,13 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         {availableCaseMaterials.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Color</label>
+                      <select name="color" value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
+                        <option value="">{availableColors.length > 0 ? "Selecciona..." : "N/A"}</option>
+                        {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                      </select>
+                    </div>
                   </>
                 )}
                 
