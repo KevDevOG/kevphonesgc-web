@@ -42,29 +42,77 @@ type Compatibility = {
   child_value: string
 }
 
+export type NewDeviceInitialValues = {
+  model_id?: string | null
+  storage?: string | null
+  color?: string | null
+  imei_serial?: string | null
+  battery_health?: number | null
+  battery_cycles?: number | null
+  condition?: string | null
+  has_box?: boolean | null
+  has_cable?: boolean | null
+  has_invoice?: boolean | null
+  original_parts?: boolean | null
+  fully_functional?: boolean | null
+  warranty_until?: string | null
+  purchase_price?: number | null
+  listing_price?: number | null
+  internal_notes?: string | null
+  seller_client_id?: string | null
+  seller_name?: string | null
+  seller_phone?: string | null
+  seller_location?: string | null
+  purchased_at?: string | null
+  purchase_location?: string | null
+}
+
 type Props = {
   models: Model[]
   variants: Variant[]
   compatibilities?: Compatibility[]
   catalogImages?: CatalogImage[]
   clients?: Client[]
+  initialValues?: NewDeviceInitialValues
+  mode?: 'normal' | 'quick'
+  /** Batch card: hides the own submit button and shows a compact success state. */
+  embedded?: boolean
+  formId?: string
+  onSubmitResult?: (result: NewDeviceSubmitResult) => void
 }
 
 const initialState = { error: '', success: false }
 
-export function NewDeviceForm({ models, variants, compatibilities = [], catalogImages = [], clients = [] }: Props) {
+export type NewDeviceSubmitSummary = {
+  modelName: string
+  storage: string
+  color: string
+  listingPrice: number | null
+}
+
+export type NewDeviceSubmitResult = {
+  success: boolean
+  error?: string
+  /** Set on success: ID of the device created by createDeviceAction. */
+  deviceId?: string
+  /** Set on success: values captured before the form resets itself. */
+  summary?: NewDeviceSubmitSummary
+}
+
+export function NewDeviceForm({ models, variants, compatibilities = [], catalogImages = [], clients = [], initialValues, mode = 'normal', embedded = false, formId, onSubmitResult }: Props) {
+  const [prefill, setPrefill] = useState<NewDeviceInitialValues | undefined>(initialValues)
   const [category, setCategory] = useState<string>('iphone')
-  const [modelId, setModelId] = useState<string>('')
+  const [modelId, setModelId] = useState<string>(prefill?.model_id ?? '')
   const [chip, setChip] = useState<string>('')
   const [memory, setMemory] = useState<string>('')
-  const [storage, setStorage] = useState<string>('')
-  const [color, setColor] = useState<string>('')
+  const [storage, setStorage] = useState<string>(prefill?.storage ?? '')
+  const [color, setColor] = useState<string>(prefill?.color ?? '')
   const [size, setSize] = useState<string>('')
   const [connectivity, setConnectivity] = useState<string>('')
   const [caseType, setCaseType] = useState<string>('')
   const [caseMaterial, setCaseMaterial] = useState<string>('')
-  const [condition, setCondition] = useState<string>('like_new')
-  const [batteryHealth, setBatteryHealth] = useState<string>('')
+  const [condition, setCondition] = useState<string>(prefill?.condition ?? 'like_new')
+  const [batteryHealth, setBatteryHealth] = useState<string>(prefill?.battery_health != null ? String(prefill.battery_health) : '')
   
   // Other category state
   const [productType, setProductType] = useState<string>('android_phone')
@@ -80,8 +128,12 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
   const [uploading, setUploading] = useState(false)
   const [formState, setFormState] = useState(initialState)
   
-  const [clientMode, setClientMode] = useState<'existing' | 'new'>('new')
-  const [selectedClientId, setSelectedClientId] = useState<string>('')
+  const [clientMode, setClientMode] = useState<'existing' | 'new'>(
+    initialValues?.seller_client_id ? 'existing' : 'new'
+  )
+  const [selectedClientId, setSelectedClientId] = useState<string>(
+    initialValues?.seller_client_id ?? ''
+  )
   const [clientSearch, setClientSearch] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -126,7 +178,14 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 
+  // Resets only run on real changes (not on mount) so prefilled values survive.
+  const prevCategory = useRef(category)
+  const prevModelId = useRef(modelId)
+  const prevChip = useRef(chip)
+
   useEffect(() => {
+    if (prevCategory.current === category) return
+    prevCategory.current = category
     setModelId('')
     setChip('')
     setMemory('')
@@ -142,6 +201,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
   }, [category])
 
   useEffect(() => {
+    if (prevModelId.current === modelId) return
+    prevModelId.current = modelId
     setChip('')
     setMemory('')
     setStorage('')
@@ -154,12 +215,14 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
   }, [modelId])
 
   useEffect(() => {
+    if (prevChip.current === chip) return
+    prevChip.current = chip
     setMemory('')
     setStorage('')
   }, [chip])
 
   const showBatteryHealth = selectedModel?.supports_battery_health && condition !== 'sealed'
-  const showBatteryCycles = selectedModel?.supports_cycles && condition !== 'sealed' && batteryHealth === '100'
+  const showBatteryCycles = selectedModel?.supports_cycles && condition !== 'sealed'
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -254,9 +317,23 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
       const result = await createDeviceAction(null, formData)
       
       if (result.error) {
+        onSubmitResult?.({ success: false, error: result.error })
         setFormState({ error: result.error, success: false })
       } else if (result.success) {
+        const priceRaw = String(formData.get('listing_price') ?? '').replace(',', '.')
+        const priceNum = priceRaw.trim() ? Number(priceRaw) : NaN
+        onSubmitResult?.({
+          success: true,
+          deviceId: result.deviceId ?? deviceUuid,
+          summary: {
+            modelName: models.find(m => m.id === String(formData.get('model_id') ?? ''))?.name ?? '',
+            storage: String(formData.get('storage') ?? '').trim(),
+            color: String(formData.get('color') ?? '').trim(),
+            listingPrice: Number.isFinite(priceNum) ? priceNum : null
+          }
+        })
         setFormState({ error: '', success: true })
+        setPrefill(undefined)
         formRef.current?.reset()
         setCategory('iphone')
         setModelId('')
@@ -282,8 +359,11 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
         setClientMode('new')
         setSelectedClientId('')
         setClientSearch('')
+      } else {
+        onSubmitResult?.({ success: false, error: 'Respuesta inesperada del servidor.' })
       }
     } catch (error: any) {
+      onSubmitResult?.({ success: false, error: error.message || 'Error inesperado.' })
       setFormState({ error: error.message || 'Error inesperado.', success: false })
     } finally {
       setUploading(false)
@@ -296,6 +376,14 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
   const sectionTitleClass = "text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2"
 
   if (formState.success) {
+    if (embedded) {
+      return (
+        <div id={formId} className="bg-[#0B0B0E] border border-[#22c55e]/20 p-5 rounded-2xl flex items-center gap-3">
+          <span className="material-symbols-outlined text-[#22c55e] text-3xl">check_circle</span>
+          <span className="text-sm font-semibold text-white">Dispositivo guardado correctamente.</span>
+        </div>
+      )
+    }
     return (
       <div className="bg-[#0B0B0E] border border-[#22c55e]/20 p-8 rounded-2xl flex flex-col items-center justify-center text-center gap-4">
         <span className="material-symbols-outlined text-[#22c55e] text-5xl">check_circle</span>
@@ -310,6 +398,498 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
           Añadir otro dispositivo
         </button>
       </div>
+    )
+  }
+
+  if (mode === 'quick') {
+    return (
+      <form id={formId} ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-6 lg:gap-8 pb-12">
+        <input type="hidden" name="category" value="iphone" />
+
+        {/* 1. SECCIÓN PRINCIPAL: DATOS ESENCIALES */}
+        <section className={sectionClass}>
+          <div className="flex items-center justify-between border-b border-[#1F1F24] pb-3">
+            <h3 className={sectionTitleClass}>
+              <span className="material-symbols-outlined text-[18px] text-[#d7baff]">bolt</span>
+              Datos esenciales del iPhone
+            </h3>
+            <span className="text-[11px] font-semibold text-[#d7baff] bg-[#7a32d4]/10 border border-[#7a32d4]/30 px-2.5 py-1 rounded-full">
+              Revisión rápida
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {/* Modelo */}
+            <div className="flex flex-col gap-1.5">
+              <label className={labelClass}>Modelo *</label>
+              <select
+                name="model_id"
+                value={modelId}
+                onChange={e => setModelId(e.target.value)}
+                required
+                className={inputClass}
+              >
+                <option value="">Selecciona un modelo...</option>
+                {availableModels.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Capacidad y Color */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className={labelClass}>Capacidad *</label>
+                <select
+                  name="storage"
+                  value={storage}
+                  onChange={e => setStorage(e.target.value)}
+                  required={availableStorage.length > 0}
+                  className={inputClass}
+                  disabled={availableStorage.length === 0}
+                >
+                  <option value="">{availableStorage.length > 0 ? "Selecciona..." : "N/A"}</option>
+                  {availableStorage.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className={labelClass}>Color *</label>
+                <select
+                  name="color"
+                  value={color}
+                  onChange={e => setColor(e.target.value)}
+                  required={availableColors.length > 0}
+                  className={inputClass}
+                  disabled={availableColors.length === 0}
+                >
+                  <option value="">{availableColors.length > 0 ? "Selecciona..." : "N/A"}</option>
+                  {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* IMEI / Serie */}
+            <div className="flex flex-col gap-1.5">
+              <label className={labelClass}>IMEI / Número de serie (Opcional)</label>
+              <input
+                type="text"
+                name="imei_serial"
+                defaultValue={prefill?.imei_serial ?? ''}
+                placeholder="Introduce IMEI o Serie"
+                className={inputClass}
+              />
+            </div>
+
+            {/* Salud de batería y Ciclos de carga */}
+            {(showBatteryHealth || showBatteryCycles) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {showBatteryHealth && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className={labelClass}>Salud de batería (%) *</label>
+                    <input
+                      type="number"
+                      name="battery_health"
+                      min="0"
+                      max="100"
+                      value={batteryHealth}
+                      onChange={e => setBatteryHealth(e.target.value)}
+                      required
+                      placeholder="Ej. 89"
+                      className={inputClass}
+                    />
+                  </div>
+                )}
+                {showBatteryCycles && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className={labelClass}>Ciclos de carga (Opcional)</label>
+                    <input
+                      type="number"
+                      name="battery_cycles"
+                      min="0"
+                      defaultValue={prefill?.battery_cycles ?? ''}
+                      placeholder="Ej. 317"
+                      className={inputClass}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Estado físico */}
+            <div className="flex flex-col gap-1.5">
+              <label className={labelClass}>Estado físico *</label>
+              <select
+                name="condition"
+                value={condition}
+                onChange={e => setCondition(e.target.value)}
+                required
+                className={inputClass}
+              >
+                <option value="sealed">Precintado</option>
+                <option value="like_new">Como nuevo</option>
+                <option value="good">Buen estado</option>
+                <option value="marked">Con marcas</option>
+              </select>
+            </div>
+
+            {/* Precios: Compra y Venta */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5 relative">
+                <label className={labelClass}>Precio de compra *</label>
+                <span className="absolute left-4 top-[35px] text-zinc-500">€</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  name="purchase_price"
+                  defaultValue={prefill?.purchase_price ?? ''}
+                  required
+                  placeholder="0.00"
+                  className={`${inputClass} pl-8`}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5 relative">
+                <label className={labelClass}>Precio de venta *</label>
+                <span className="absolute left-4 top-[35px] text-zinc-500">€</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  name="listing_price"
+                  defaultValue={prefill?.listing_price ?? ''}
+                  required
+                  placeholder="0.00"
+                  className={`${inputClass} pl-8 font-bold text-[#d7baff] border-[#7a32d4]/30 bg-[#7a32d4]/5`}
+                />
+              </div>
+            </div>
+
+            {/* Controles booleanos compactos */}
+            <div className="flex flex-col gap-2 pt-3 border-t border-[#1F1F24]">
+              <label className={labelClass}>Accesorios y verificación</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                {[
+                  { name: 'has_box', label: 'Caja', defaultChecked: prefill?.has_box ?? false, icon: 'inventory_2' },
+                  { name: 'has_cable', label: 'Cable', defaultChecked: prefill?.has_cable ?? false, icon: 'cable' },
+                  { name: 'has_invoice', label: 'Factura', defaultChecked: prefill?.has_invoice ?? false, icon: 'receipt_long' },
+                  { name: 'original_parts', label: 'Piezas orig.', defaultChecked: prefill?.original_parts ?? true, icon: 'verified' },
+                  { name: 'fully_functional', label: 'Funciona 100%', defaultChecked: prefill?.fully_functional ?? true, icon: 'check_circle' },
+                ].map(field => (
+                  <label
+                    key={field.name}
+                    className="relative flex items-center justify-between p-3 rounded-xl border border-[#1F1F24] bg-[#121217] hover:bg-[#1a1a20] cursor-pointer transition-all select-none has-[:checked]:border-[#7a32d4]/40 has-[:checked]:bg-[#7a32d4]/10"
+                  >
+                    <span className="text-[13px] font-semibold text-zinc-300 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-zinc-400">{field.icon}</span>
+                      {field.label}
+                    </span>
+                    <input
+                      type="checkbox"
+                      name={field.name}
+                      defaultChecked={field.defaultChecked}
+                      className="w-4 h-4 rounded border-[#1F1F24] bg-[#0B0B0E] text-[#7a32d4] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#7a32d4]"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 2. CAMPOS SECUNDARIOS */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+          {/* Vendedor */}
+          <section className={sectionClass}>
+            <h3 className={sectionTitleClass}>
+              <span className="material-symbols-outlined text-[16px]">person</span> Vendedor
+            </h3>
+            <div className="flex flex-col gap-4">
+              <div className="flex p-1 bg-[#121217] rounded-xl border border-[#1F1F24] w-fit">
+                <button
+                  type="button"
+                  onClick={() => { setClientMode('existing'); setSelectedClientId(''); setClientSearch(''); }}
+                  className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${clientMode === 'existing' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Cliente existente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setClientMode('new'); setSelectedClientId(''); }}
+                  className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${clientMode === 'new' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'}`}
+                >
+                  Nuevo cliente
+                </button>
+              </div>
+
+              {clientMode === 'existing' && (
+                <div className="flex flex-col gap-4">
+                  {selectedClient ? (
+                    <div className="bg-[#121217] border border-[#7a32d4]/30 rounded-xl p-4 flex flex-col gap-2 relative">
+                      <input type="hidden" name="seller_client_id" value={selectedClient.id} />
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col">
+                          <span className="text-white font-bold">{selectedClient.name}</span>
+                          <span className="text-zinc-400 text-sm">{selectedClient.phone}{selectedClient.location ? ` · ${selectedClient.location}` : ''}</span>
+                        </div>
+                        <button type="button" onClick={() => setSelectedClientId('')} className="text-zinc-500 hover:text-white">
+                          <span className="material-symbols-outlined text-[18px]">close</span>
+                        </button>
+                      </div>
+                      <Link href={`/admin/clientes/${selectedClient.id}`} target="_blank" className="text-xs text-[#d7baff] hover:underline mt-1 w-fit">
+                        Editar cliente
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        required
+                        value=""
+                        onChange={() => {}}
+                        className="sr-only pointer-events-none"
+                        tabIndex={-1}
+                        aria-hidden="true"
+                      />
+                      <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-3 text-zinc-500 text-[18px]">search</span>
+                        <input
+                          type="text"
+                          placeholder="Buscar por nombre o teléfono..."
+                          value={clientSearch}
+                          onChange={(e) => setClientSearch(e.target.value)}
+                          className={`${inputClass} pl-10`}
+                        />
+                      </div>
+                      {clientSearch && filteredClients.length > 0 && (
+                        <div className="flex flex-col bg-[#121217] border border-[#1F1F24] rounded-xl overflow-hidden max-h-[200px] overflow-y-auto">
+                          {filteredClients.map(client => (
+                            <button
+                              key={client.id}
+                              type="button"
+                              onClick={() => setSelectedClientId(client.id)}
+                              className="flex flex-col items-start p-3 hover:bg-[#1F1F24] transition-colors border-b border-[#1F1F24] last:border-0 text-left"
+                            >
+                              <span className="text-white text-sm font-semibold">{client.name}</span>
+                              <span className="text-zinc-400 text-xs">{client.phone}{client.location ? ` · ${client.location}` : ''}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {clientSearch && filteredClients.length === 0 && (
+                        <div className="text-center p-4 text-sm text-zinc-500">
+                          No se encontraron clientes.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {clientMode === 'new' && (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Nombre *</label>
+                      <input
+                        type="text"
+                        name="seller_name"
+                        required
+                        defaultValue={prefill?.seller_name ?? ''}
+                        className={inputClass}
+                        placeholder="Ej. Juan Pérez"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Teléfono *</label>
+                      <input
+                        type="text"
+                        name="seller_phone"
+                        required
+                        defaultValue={prefill?.seller_phone ?? ''}
+                        className={inputClass}
+                        placeholder="Ej. 600 000 000"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className={labelClass}>Ubicación (Opcional)</label>
+                    <input
+                      type="text"
+                      name="seller_location"
+                      defaultValue={prefill?.seller_location ?? ''}
+                      className={inputClass}
+                      placeholder="Ej. Las Palmas"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* Compra, Garantía y Notas */}
+          <section className={sectionClass}>
+            <h3 className={sectionTitleClass}>
+              <span className="material-symbols-outlined text-[16px]">receipt_long</span> Datos adicionales
+            </h3>
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className={labelClass}>Fecha de compra *</label>
+                  <input
+                    type="date"
+                    name="purchased_at"
+                    required
+                    defaultValue={prefill?.purchased_at ?? new Date().toISOString().split('T')[0]}
+                    className={`${inputClass} [color-scheme:dark]`}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className={labelClass}>Lugar de compra (Opcional)</label>
+                  <input
+                    type="text"
+                    name="purchase_location"
+                    defaultValue={prefill?.purchase_location ?? ''}
+                    className={inputClass}
+                    placeholder="Ej. Particular"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className={labelClass}>Garantía oficial hasta (Opcional)</label>
+                <input
+                  type="date"
+                  name="warranty_until"
+                  defaultValue={prefill?.warranty_until ?? ''}
+                  className={`${inputClass} [color-scheme:dark]`}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className={labelClass}>Notas internas (Opcional)</label>
+                <textarea
+                  name="internal_notes"
+                  rows={3}
+                  defaultValue={prefill?.internal_notes ?? ''}
+                  className={`${inputClass} resize-none`}
+                  placeholder="Notas visibles solo para administradores."
+                />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Imagen de catálogo si existe */}
+        {modelId && color && (
+          <section className={sectionClass}>
+            <h3 className={sectionTitleClass}>
+              <span className="material-symbols-outlined text-[16px]">image</span> Imagen de catálogo
+            </h3>
+            {selectedCatalogImage ? (
+              <div className="flex items-center gap-4 bg-[#121217] p-4 rounded-xl border border-[#1F1F24]">
+                <div className="w-16 h-16 shrink-0 bg-white rounded-lg flex items-center justify-center p-1">
+                  <img
+                    src={`${supabaseUrl}/storage/v1/object/public/model-images/${selectedCatalogImage.storage_path}`}
+                    alt="Catálogo"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-white">Imagen asignada</span>
+                  <span className="text-xs text-zinc-400">Visible en la tienda pública (prioritaria).</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4 bg-[#121217] p-4 rounded-xl border border-[#1F1F24]">
+                <div className="w-16 h-16 shrink-0 bg-[#1F1F24] rounded-lg flex items-center justify-center text-zinc-600">
+                  <span className="material-symbols-outlined">image_not_supported</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-semibold text-white">Sin imagen asignada</span>
+                  <Link href="/admin/modelos" target="_blank" className="text-xs font-semibold text-[#d7baff] hover:underline">
+                    Gestionar en Modelos
+                  </Link>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* 3. FOTOS REALES (OPCIONAL) */}
+        <section className={sectionClass}>
+          <div className="flex justify-between items-end mb-2">
+            <div className="flex items-center gap-2">
+              <h3 className={sectionTitleClass}>
+                <span className="material-symbols-outlined text-[16px]">photo_camera</span> Fotos reales
+              </h3>
+              <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                Opcional
+              </span>
+            </div>
+            <span className="text-[11px] text-zinc-500 font-semibold uppercase">
+              Máx 8MB/foto · El catálogo prioriza la imagen oficial
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="aspect-square flex flex-col items-center justify-center bg-[#121217] border-2 border-dashed border-[#2a2a30] rounded-xl text-zinc-500 hover:text-[#d7baff] hover:border-[#d7baff]/50 transition-colors hover:bg-[#7a32d4]/5"
+            >
+              <span className="material-symbols-outlined text-2xl mb-1">add_photo_alternate</span>
+              <span className="text-[11px] font-semibold">Añadir foto</span>
+            </button>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              multiple
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+              className="hidden"
+            />
+
+            {imagePreviews.map((preview, idx) => (
+              <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-[#1F1F24] group bg-[#121217]">
+                <img src={preview} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removeImage(idx)}
+                  className="absolute top-1.5 right-1.5 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
+                  title="Eliminar foto"
+                >
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {formState.error && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm font-semibold text-center">
+            {formState.error}
+          </div>
+        )}
+
+        {!embedded && <div className="flex justify-end pt-2">
+          <button
+            type="submit"
+            disabled={uploading}
+            className="w-full lg:w-auto bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm py-4 px-10 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {uploading ? (
+              'Procesando...'
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+                Guardar dispositivo
+              </>
+            )}
+          </button>
+        </div>}
+      </form>
     )
   }
 
@@ -841,7 +1421,7 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
 
               <div className="flex flex-col gap-1.5">
                 <label className={labelClass}>IMEI / Número de serie (Opcional)</label>
-                <input type="text" name="imei_serial" placeholder="Introduce IMEI o Serie" className={inputClass} />
+                <input type="text" name="imei_serial" defaultValue={prefill?.imei_serial ?? ''} placeholder="Introduce IMEI o Serie" className={inputClass} />
               </div>
             </div>
           </section>
@@ -874,7 +1454,7 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                   {showBatteryCycles && (
                     <div className="flex flex-col gap-1.5">
                       <label className={labelClass}>Ciclos de carga</label>
-                      <input type="number" name="battery_cycles" min="0" required className={inputClass} />
+                      <input type="number" name="battery_cycles" min="0" defaultValue={prefill?.battery_cycles ?? ''} placeholder="Ej. 317" className={inputClass} />
                     </div>
                   )}
                 </div>
@@ -889,11 +1469,11 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
             </h3>
             <div className="flex flex-col gap-3">
               {[
-                { name: 'has_box', label: 'Tiene caja', defaultChecked: false },
-                { name: 'has_cable', label: 'Tiene cable', defaultChecked: false },
-                { name: 'has_invoice', label: 'Tiene factura', defaultChecked: false },
-                { name: 'original_parts', label: 'Piezas originales', defaultChecked: true },
-                { name: 'fully_functional', label: 'Funcionamiento completo', defaultChecked: true }
+                { name: 'has_box', label: 'Tiene caja', defaultChecked: prefill?.has_box ?? false },
+                { name: 'has_cable', label: 'Tiene cable', defaultChecked: prefill?.has_cable ?? false },
+                { name: 'has_invoice', label: 'Tiene factura', defaultChecked: prefill?.has_invoice ?? false },
+                { name: 'original_parts', label: 'Piezas originales', defaultChecked: prefill?.original_parts ?? true },
+                { name: 'fully_functional', label: 'Funcionamiento completo', defaultChecked: prefill?.fully_functional ?? true }
               ].map(field => (
                 <div key={field.name} className="flex justify-between items-center py-2.5 border-b border-[#1F1F24] last:border-0">
                   <span className="text-zinc-300 text-[14px] font-medium">{field.label}</span>
@@ -906,7 +1486,7 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
               
               <div className="flex flex-col gap-1.5 mt-2">
                 <label className={labelClass}>Garantía oficial hasta (Opcional)</label>
-                <input type="date" name="warranty_until" className={`${inputClass} [color-scheme:dark]`} />
+                <input type="date" name="warranty_until" defaultValue={prefill?.warranty_until ?? ''} className={`${inputClass} [color-scheme:dark]`} />
               </div>
             </div>
           </section>
@@ -926,29 +1506,41 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 <div className="flex flex-col gap-1.5 relative">
                   <label className={labelClass}>Precio de compra</label>
                   <span className="absolute left-4 top-[35px] text-zinc-500">€</span>
-                  <input type="number" step="0.01" min="0" name="purchase_price" required className={`${inputClass} pl-8`} />
+                  <input type="number" step="0.01" min="0" name="purchase_price" defaultValue={prefill?.purchase_price ?? ''} required className={`${inputClass} pl-8`} />
                 </div>
                 <div className="flex flex-col gap-1.5 relative">
                   <label className={labelClass}>Precio de publicación</label>
                   <span className="absolute left-4 top-[35px] text-zinc-500">€</span>
-                  <input type="number" step="0.01" min="0" name="listing_price" required className={`${inputClass} pl-8 font-bold text-[#d7baff] border-[#7a32d4]/30 bg-[#7a32d4]/5`} />
+                  <input type="number" step="0.01" min="0" name="listing_price" defaultValue={prefill?.listing_price ?? ''} required className={`${inputClass} pl-8 font-bold text-[#d7baff] border-[#7a32d4]/30 bg-[#7a32d4]/5`} />
                 </div>
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className={labelClass}>Fecha de compra</label>
-                  <input type="date" name="purchased_at" required defaultValue={new Date().toISOString().split('T')[0]} className={`${inputClass} [color-scheme:dark]`} />
+                  <input
+                    type="date"
+                    name="purchased_at"
+                    required
+                    defaultValue={prefill?.purchased_at ?? new Date().toISOString().split('T')[0]}
+                    className={`${inputClass} [color-scheme:dark]`}
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className={labelClass}>Lugar de compra (Opcional)</label>
-                  <input type="text" name="purchase_location" className={inputClass} placeholder="Ej. Tienda física" />
+                  <input
+                    type="text"
+                    name="purchase_location"
+                    defaultValue={prefill?.purchase_location ?? ''}
+                    className={inputClass}
+                    placeholder="Ej. Tienda física"
+                  />
                 </div>
               </div>
               
               <div className="flex flex-col gap-1.5">
                 <label className={labelClass}>Notas internas (Opcional)</label>
-                <textarea name="internal_notes" rows={3} className={`${inputClass} resize-none`} placeholder="Notas visibles solo para administradores."></textarea>
+                <textarea name="internal_notes" rows={3} defaultValue={prefill?.internal_notes ?? ''} className={`${inputClass} resize-none`} placeholder="Notas visibles solo para administradores."></textarea>
               </div>
             </div>
           </section>
@@ -996,6 +1588,15 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                     </div>
                   ) : (
                     <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        required
+                        value=""
+                        onChange={() => {}}
+                        className="sr-only pointer-events-none"
+                        tabIndex={-1}
+                        aria-hidden="true"
+                      />
                       <div className="relative">
                         <span className="material-symbols-outlined absolute left-3 top-3 text-zinc-500 text-[18px]">search</span>
                         <input
@@ -1036,16 +1637,36 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label className={labelClass}>Nombre *</label>
-                      <input type="text" name="seller_name" required className={inputClass} placeholder="Ej. Juan Pérez" />
+                      <input
+                        type="text"
+                        name="seller_name"
+                        required
+                        defaultValue={prefill?.seller_name ?? ''}
+                        className={inputClass}
+                        placeholder="Ej. Juan Pérez"
+                      />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className={labelClass}>Teléfono *</label>
-                      <input type="text" name="seller_phone" required className={inputClass} placeholder="Ej. 600 000 000" />
+                      <input
+                        type="text"
+                        name="seller_phone"
+                        required
+                        defaultValue={prefill?.seller_phone ?? ''}
+                        className={inputClass}
+                        placeholder="Ej. 600 000 000"
+                      />
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className={labelClass}>Ubicación (Opcional)</label>
-                    <input type="text" name="seller_location" className={inputClass} placeholder="Ej. Las Palmas" />
+                    <input
+                      type="text"
+                      name="seller_location"
+                      defaultValue={prefill?.seller_location ?? ''}
+                      className={inputClass}
+                      placeholder="Ej. Las Palmas"
+                    />
                   </div>
                 </>
               )}

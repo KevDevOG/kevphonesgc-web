@@ -291,7 +291,7 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
   }
 
   const showBatteryHealth = selectedModel?.supports_battery_health && condition !== 'sealed'
-  const showBatteryCycles = selectedModel?.supports_cycles && condition !== 'sealed' && batteryHealth === '100'
+  const showBatteryCycles = selectedModel?.supports_cycles && condition !== 'sealed'
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -1002,7 +1002,7 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                   {showBatteryCycles && (
                     <div className="flex flex-col gap-1.5">
                       <label className={labelClass}>Ciclos de carga</label>
-                      <input type="number" name="battery_cycles" min="0" value={batteryCycles} onChange={e => setBatteryCycles(e.target.value)} required className={inputClass} />
+                      <input type="number" name="battery_cycles" min="0" value={batteryCycles} onChange={e => setBatteryCycles(e.target.value)} className={inputClass} placeholder="Ej. 317" />
                     </div>
                   )}
                 </div>

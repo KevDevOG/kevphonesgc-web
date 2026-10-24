@@ -6,9 +6,11 @@ import Link from 'next/link'
 import { deleteDeviceAction, publishDeviceAction } from '@/actions/devices'
 import { EditTradeInForm } from '@/components/admin/stock/EditTradeInForm'
 import { CancelTradeInDialog } from '@/components/admin/stock/CancelTradeInDialog'
+import { StoryGeneratorModal } from '@/components/admin/stock/StoryGeneratorModal'
 
 type Device = {
   id: string
+  model_id?: string
   storage: string | null
   color: string | null
   size: string | null
@@ -176,7 +178,15 @@ type TradeInContext = {
   }
 } | null
 
-export function DeviceDetail({ device, tradeInContext }: { device: Device, tradeInContext?: TradeInContext }) {
+export function DeviceDetail({ 
+  device, 
+  tradeInContext,
+  catalogImages
+}: { 
+  device: Device
+  tradeInContext?: TradeInContext
+  catalogImages?: { model_id: string; color: string; storage_path: string }[]
+}) {
   const router = useRouter()
   const [showConfirmDelete, setShowConfirmDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -187,6 +197,8 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
 
   const [isEditingTradeIn, setIsEditingTradeIn] = useState(false)
   const [isCancelingTradeIn, setIsCancelingTradeIn] = useState(false)
+
+  const [showStoryGenerator, setShowStoryGenerator] = useState(false)
 
   const [activeImageIndex, setActiveImageIndex] = useState(0)
 
@@ -385,6 +397,19 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
                 {publishError}
               </div>
             )}
+
+            {/* Generar contenido para iPhone */}
+            {device.device_models?.category === 'iphone' && (
+              <button
+                type="button"
+                onClick={() => setShowStoryGenerator(true)}
+                className="w-full bg-gradient-to-r from-[#7a32d4] to-[#9333ea] hover:from-[#6d28d9] hover:to-[#7e22ce] text-white font-bold text-sm py-3.5 px-4 rounded-xl transition-all shadow-lg shadow-[#7a32d4]/20 flex items-center justify-center gap-2 active:scale-[0.99]"
+              >
+                <span className="material-symbols-outlined text-[20px] text-yellow-300">auto_awesome</span>
+                Generar contenido
+              </button>
+            )}
+
             {device.status === 'available' && (
               <>
                 {!device.is_published && (
@@ -769,6 +794,16 @@ export function DeviceDetail({ device, tradeInContext }: { device: Device, trade
         <CancelTradeInDialog 
           context={tradeInContext} 
           onClose={() => setIsCancelingTradeIn(false)} 
+        />
+      )}
+
+      {/* Social Story Generator Modal */}
+      {showStoryGenerator && (
+        <StoryGeneratorModal
+          device={device as any}
+          catalogImages={catalogImages}
+          isOpen={showStoryGenerator}
+          onClose={() => setShowStoryGenerator(false)}
         />
       )}
     </div>

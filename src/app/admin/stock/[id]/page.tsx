@@ -24,6 +24,7 @@ export default async function DeviceDetailPage({ params }: PageProps) {
     .from('devices')
     .select(`
       id,
+      model_id,
       storage,
       color,
       size,
@@ -44,6 +45,7 @@ export default async function DeviceDetailPage({ params }: PageProps) {
       fully_functional,
       purchase_price,
       listing_price,
+      discount_price,
       purchase_location,
       purchased_at,
       status,
@@ -74,6 +76,13 @@ export default async function DeviceDetailPage({ params }: PageProps) {
   if (error || !device) {
     notFound()
   }
+
+  const { data: catalogImages } = (device as any).model_id
+    ? await supabase
+        .from('device_model_catalog_images')
+        .select('model_id, color, storage_path')
+        .eq('model_id', (device as any).model_id)
+    : { data: [] }
 
   const images = (device.device_images || []).sort((a: any, b: any) => (a.position || 0) - (b.position || 0))
 
@@ -167,7 +176,11 @@ export default async function DeviceDetailPage({ params }: PageProps) {
 
   return (
     <AdminPageShell>
-      <DeviceDetail device={{...device, clients: Array.isArray(device.clients) ? device.clients[0] : device.clients, device_images: images} as any} tradeInContext={tradeInContext} />
+      <DeviceDetail 
+        device={{...device, clients: Array.isArray(device.clients) ? device.clients[0] : device.clients, device_images: images} as any} 
+        tradeInContext={tradeInContext} 
+        catalogImages={catalogImages || []}
+      />
     </AdminPageShell>
   )
 }

@@ -309,7 +309,7 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
     batteryCycles = null
   }
   
-  if (!model.supports_cycles || batteryHealth !== 100) {
+  if (!model.supports_cycles) {
     batteryCycles = null
   }
   
@@ -395,7 +395,7 @@ export async function createDeviceAction(prevState: any, formData: FormData) {
   revalidatePath("/admin/stock")
   revalidatePath("/")
 
-  return { success: true }
+  return { success: true, deviceId }
 }
 
 export async function deleteDeviceAction(deviceId: string) {
@@ -792,7 +792,7 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
     batteryCycles = null
   }
   
-  if (!model.supports_cycles || batteryHealth !== 100) {
+  if (!model.supports_cycles) {
     batteryCycles = null
   }
   
