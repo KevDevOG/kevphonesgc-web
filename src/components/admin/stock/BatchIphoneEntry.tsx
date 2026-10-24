@@ -344,13 +344,56 @@ export function BatchIphoneEntry(props: FormProps) {
         setError(result.error)
         return
       }
-      const sharedVals = getSharedValues()
-      const shouldApply = isSharedDataComplete()
+
+      let effectiveSellerMode = sharedSellerMode
+      let effectiveClientId = sharedClientId
+      let effectiveSellerName = sharedSellerName
+      let effectiveSellerPhone = sharedSellerPhone
+      let effectiveSellerLocation = sharedSellerLocation
+
+      if (result.seller) {
+        const { name, phone, location } = result.seller
+        if (name || phone || location) {
+          effectiveSellerMode = 'new'
+          effectiveClientId = ''
+          setSharedSellerMode('new')
+          setSharedClientId('')
+          if (name) {
+            effectiveSellerName = name
+            setSharedSellerName(name)
+          }
+          if (phone) {
+            effectiveSellerPhone = phone
+            setSharedSellerPhone(phone)
+          }
+          if (location) {
+            effectiveSellerLocation = location
+            setSharedSellerLocation(location)
+          }
+        }
+      }
+
+      const effectiveSharedVals: Partial<NewDeviceInitialValues> = {
+        purchased_at: sharedPurchasedAt.trim() || null,
+        purchase_location: sharedPurchaseLocation.trim() || null,
+        seller_client_id: effectiveSellerMode === 'existing' ? (effectiveClientId || null) : null,
+        seller_name: effectiveSellerMode === 'new' ? (effectiveSellerName.trim() || null) : null,
+        seller_phone: effectiveSellerMode === 'new' ? (effectiveSellerPhone.trim() || null) : null,
+        seller_location: effectiveSellerMode === 'new' ? (effectiveSellerLocation.trim() || null) : null,
+      }
+
+      const shouldApply = Boolean(
+        sharedPurchasedAt &&
+        (effectiveSellerMode === 'existing'
+          ? effectiveClientId
+          : (effectiveSellerName.trim() && effectiveSellerPhone.trim()))
+      )
+
       const next: Draft[] = result.devices.map(d => ({
         id: crypto.randomUUID(),
         values: {
           ...d.values,
-          ...(shouldApply ? sharedVals : {}),
+          ...(shouldApply ? effectiveSharedVals : {}),
         },
         warnings: d.warnings,
         version: 0,

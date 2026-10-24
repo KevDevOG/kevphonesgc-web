@@ -18,40 +18,73 @@ export type QuickEntryResult =
 
 const nullable = (type: string) => ({ type: [type, 'null'] })
 
+const DEVICE_REQUIRED = [
+  'model', 'storage', 'color', 'imei_serial', 'battery_health', 'battery_cycles',
+  'condition', 'has_box', 'has_cable', 'has_invoice', 'warranty', 'original_parts',
+  'fully_functional', 'purchase_price', 'listing_price', 'internal_notes',
+]
+
+const DEVICE_PROPERTIES = {
+  model: nullable('string'),
+  storage: nullable('string'),
+  color: nullable('string'),
+  imei_serial: nullable('string'),
+  battery_health: nullable('number'),
+  battery_cycles: nullable('number'),
+  condition: { type: ['string', 'null'], enum: [...CONDITIONS, null] },
+  has_box: nullable('boolean'),
+  has_cable: nullable('boolean'),
+  has_invoice: nullable('boolean'),
+  warranty: nullable('string'),
+  original_parts: nullable('boolean'),
+  fully_functional: nullable('boolean'),
+  purchase_price: nullable('number'),
+  listing_price: nullable('number'),
+  internal_notes: nullable('string'),
+}
+
 const RESPONSE_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   required: [
-    'model', 'storage', 'color', 'imei_serial', 'battery_health', 'battery_cycles',
-    'condition', 'has_box', 'has_cable', 'has_invoice', 'warranty', 'original_parts',
-    'fully_functional', 'purchase_price', 'listing_price', 'internal_notes',
+    ...DEVICE_REQUIRED,
+    'seller_name',
+    'seller_phone',
+    'seller_location',
   ],
   properties: {
-    model: nullable('string'),
-    storage: nullable('string'),
-    color: nullable('string'),
-    imei_serial: nullable('string'),
-    battery_health: nullable('number'),
-    battery_cycles: nullable('number'),
-    condition: { type: ['string', 'null'], enum: [...CONDITIONS, null] },
-    has_box: nullable('boolean'),
-    has_cable: nullable('boolean'),
-    has_invoice: nullable('boolean'),
-    warranty: nullable('string'),
-    original_parts: nullable('boolean'),
-    fully_functional: nullable('boolean'),
-    purchase_price: nullable('number'),
-    listing_price: nullable('number'),
-    internal_notes: nullable('string'),
+    ...DEVICE_PROPERTIES,
+    seller_name: nullable('string'),
+    seller_phone: nullable('string'),
+    seller_location: nullable('string'),
+  },
+}
+
+const BATCH_DEVICE_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: DEVICE_REQUIRED,
+  properties: DEVICE_PROPERTIES,
+}
+
+const BATCH_SELLER_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['name', 'phone', 'location'],
+  properties: {
+    name: nullable('string'),
+    phone: nullable('string'),
+    location: nullable('string'),
   },
 }
 
 const BATCH_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['devices'],
+  required: ['seller', 'devices'],
   properties: {
-    devices: { type: 'array', items: RESPONSE_SCHEMA },
+    seller: BATCH_SELLER_SCHEMA,
+    devices: { type: 'array', items: BATCH_DEVICE_SCHEMA },
   },
 }
 
@@ -105,6 +138,38 @@ function asDate(v: unknown): string | null {
   if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v.trim())) return null
   const d = new Date(`${v.trim()}T00:00:00Z`)
   return Number.isNaN(d.getTime()) ? null : v.trim()
+}
+
+function normalizePhone(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+
+  // Remove spaces, hyphens, dots, parentheses
+  const cleaned = trimmed.replace(/[\s\-\.\(\)]+/g, '')
+  if (!cleaned) return null
+
+  // Standard Spanish 9-digit phone (starts with 6, 7, 8, or 9)
+  if (/^[6789]\d{8}$/.test(cleaned)) {
+    return cleaned
+  }
+
+  // Spanish phone explicitly provided with country code +34 or 0034
+  // (Do not invent country code if not present, but preserve if user provided it)
+  if (/^\+34[6789]\d{8}$/.test(cleaned)) {
+    return cleaned
+  }
+  if (/^0034[6789]\d{8}$/.test(cleaned)) {
+    return `+34${cleaned.slice(4)}`
+  }
+
+  // Any other international number explicitly provided with leading +
+  if (/^\+\d{8,15}$/.test(cleaned)) {
+    return cleaned
+  }
+
+  // If ambiguous or numeric string not matching phone rules (e.g. 15-digit IMEI, 3-digit price/cycles), keep null
+  return null
 }
 
 type CatalogModel = { id: string; name: string }
@@ -313,6 +378,9 @@ export async function parseIphoneQuickEntryAction(text: string, hintModelId?: st
     'has_box, has_cable, has_invoice, original_parts, fully_functional: true/false solo si el texto lo dice; si no, null.',
     'warranty: fecha de fin de garantía en formato YYYY-MM-DD solo si se indica una fecha concreta; si no, null.',
     'purchase_price = precio de compra en euros; listing_price = precio de venta/publicación en euros.',
+    'seller_name: nombre o nombre y apellidos del vendedor si se menciona expresamente (ej. "Daniel"); si no, null. Nunca inventes nombres.',
+    'seller_phone: teléfono de contacto del vendedor si se indica explícitamente (ej. "612345678"); si no se menciona o es ambiguo, null. Nunca confundas con IMEI, ciclos, precio, capacidad o serie. No inventes código de país.',
+    'seller_location: municipio o localidad del vendedor si se menciona expresamente (ej. "Telde", "Arucas"); no deducir del teléfono ni inventar; si no, null.',
     'internal_notes: observaciones relevantes del texto que no encajen en otros campos; si no hay, null.',
     `Catálogo disponible: ${JSON.stringify(catalogForPrompt(catalog))}`,
   ].join('\n')
@@ -357,12 +425,30 @@ function buildDeviceValues(
   values.listing_price = asPrice(parsed.listing_price)
   values.internal_notes = asString(parsed.internal_notes, 1000)
 
+  if (typeof parsed.seller_name === 'string') {
+    values.seller_name = asString(parsed.seller_name, 100)
+  }
+  if (typeof parsed.seller_phone === 'string') {
+    values.seller_phone = normalizePhone(parsed.seller_phone)
+  }
+  if (typeof parsed.seller_location === 'string') {
+    values.seller_location = asString(parsed.seller_location, 100)
+  }
+
   return { values, warnings }
 }
 
 export type BatchQuickEntryResult =
   | { error: string }
-  | { error?: undefined; devices: { values: NewDeviceInitialValues; warnings: string[] }[] }
+  | {
+      error?: undefined
+      seller?: {
+        name: string | null
+        phone: string | null
+        location: string | null
+      }
+      devices: { values: NewDeviceInitialValues; warnings: string[] }[]
+    }
 
 /**
  * Batch extraction: one transcript describing several iPhone -> one validated draft per device
@@ -389,11 +475,16 @@ export async function parseIphoneBatchAction(text: string): Promise<BatchQuickEn
   if ('error' in catalog) return { error: catalog.error }
 
   const systemPrompt = [
-    'Extraes datos de VARIOS iPhone a partir de una transcripción en español de un audio de un administrador de una tienda.',
-    'Devuelve SOLO JSON con la forma {"devices": [...]}, un elemento por iPhone, en el mismo orden en que se describen.',
+    'Extraes datos de VARIOS iPhone a partir de una transcripción en español de un audio o texto de un administrador de una tienda.',
+    'Devuelve SOLO JSON con la forma {"seller": {"name": ..., "phone": ..., "location": ...}, "devices": [...]}.',
+    'seller: información común del vendedor o cliente si se menciona a nivel de lote (ej. "Son de Daniel, de Telde, teléfono 612345678" o "Todos son de María, de Arucas").',
+    'seller.name: nombre del vendedor; si no se indica expresamente, null. Nunca inventes nombres.',
+    'seller.phone: teléfono del vendedor solo si se indica explícitamente; si no se menciona o es ambiguo, null. No confundir con IMEI, ciclos, precio, capacidad ni serie. No inventes código de país.',
+    'seller.location: localidad o municipio del vendedor si se menciona expresamente; si no, null. No deducir a partir del teléfono ni inventar.',
+    'devices: un elemento por cada iPhone descrito, en el mismo orden en que se describen.',
     'No fusiones dos iPhone distintos en uno. No dividas un iPhone en varios salvo que se describan claramente por separado.',
-    'Las frases compartidas como "todos con caja y cable" o "todos como nuevo" se aplican a todos los iPhone cuando no haya ambigüedad; si es ambiguo, null.',
-    'REGLA CRÍTICA: nunca inventes información. Si un dato no aparece de forma explícita, devuelve null para ese iPhone.',
+    'Las frases compartidas sobre dispositivos como "todos con caja y cable" o "todos como nuevo" se aplican a todos los iPhone cuando no haya ambigüedad; si es ambiguo, null.',
+    'REGLA CRÍTICA: nunca inventes información. Si un dato no aparece de forma explícita, devuelve null.',
     'Para model, storage y color usa exactamente los valores del catálogo; si no encaja con seguridad, null.',
     'condition: sealed (precintado), like_new (como nuevo), good (buen estado), marked (con marcas) o null.',
     'battery_health es un porcentaje (0-100). battery_cycles es un número de ciclos.',
@@ -416,6 +507,17 @@ export async function parseIphoneBatchAction(text: string): Promise<BatchQuickEn
   })
   if ('error' in result) return { error: result.error }
 
+  const rawSeller = result.data.seller
+  let seller: { name: string | null; phone: string | null; location: string | null } | undefined = undefined
+  if (rawSeller && typeof rawSeller === 'object' && !Array.isArray(rawSeller)) {
+    const s = rawSeller as Record<string, unknown>
+    seller = {
+      name: asString(s.name, 100),
+      phone: normalizePhone(s.phone),
+      location: asString(s.location, 100),
+    }
+  }
+
   const rawDevices = result.data.devices
   if (!Array.isArray(rawDevices) || rawDevices.length === 0) {
     return { error: 'No se detectó ningún iPhone en la transcripción.' }
@@ -427,7 +529,7 @@ export async function parseIphoneBatchAction(text: string): Promise<BatchQuickEn
     .map(d => buildDeviceValues(catalog, d))
 
   if (devices.length === 0) return { error: 'No se detectó ningún iPhone en la transcripción.' }
-  return { devices }
+  return { seller, devices }
 }
 
 // Magic-byte sniffing so the declared MIME type can't be spoofed.

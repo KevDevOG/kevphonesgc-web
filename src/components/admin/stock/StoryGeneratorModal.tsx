@@ -75,7 +75,8 @@ export function StoryGeneratorModal({
   const [customPrice, setCustomPrice] = useState<string>('')
   const [isRendering, setIsRendering] = useState<boolean>(true)
   const [isExporting, setIsExporting] = useState<boolean>(false)
-  const [canShare, setCanShare] = useState<boolean>(false)
+  const [canShareFiles, setCanShareFiles] = useState<boolean>(false)
+  const [copiedText, setCopiedText] = useState<boolean>(false)
   const [shareFeedback, setShareFeedback] = useState<string | null>(null)
   const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null)
 
@@ -104,10 +105,17 @@ export function StoryGeneratorModal({
     setSelectedImage(defaultImage)
   }, [defaultImage])
 
-  // Check Web Share API support
+  // Check native file sharing support
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'navigator' in window && 'canShare' in navigator) {
-      setCanShare(true)
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'canShare' in navigator && 'share' in navigator) {
+      try {
+        const testFile = new File([''], 'test.png', { type: 'image/png' })
+        if (navigator.canShare({ files: [testFile] })) {
+          setCanShareFiles(true)
+        }
+      } catch {
+        setCanShareFiles(false)
+      }
     }
   }, [])
 
@@ -193,12 +201,26 @@ export function StoryGeneratorModal({
 
   if (!isOpen) return null
 
-  // Filename generator
-  const getExportFilename = () => {
-    const sanitizedModel = modelName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-    const sanitizedColor = (device.color || 'phone').toLowerCase().replace(/[^a-z0-9]+/g, '-')
-    return `story-kevphones-${sanitizedModel}-${sanitizedColor}-${template}.png`
-  }
+  // Filename generator: kevphones-{model}-{color}.png
+  const getExportFilename = useCallback(() => {
+    const sanitizedModel = modelName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    const sanitizedColor = (device.color || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    if (sanitizedColor) {
+      return `kevphones-${sanitizedModel}-${sanitizedColor}.png`
+    }
+    return `kevphones-${sanitizedModel || 'device'}.png`
+  }, [modelName, device.color])
+
+  const handleDownloadBlob = useCallback((blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, [])
 
   // Download Handler
   const handleDownload = async () => {
@@ -209,24 +231,17 @@ export function StoryGeneratorModal({
         canvasRef.current!.toBlob(res, 'image/png')
       )
       if (!blob) throw new Error('No se pudo generar el PNG')
-
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = getExportFilename()
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      handleDownloadBlob(blob, getExportFilename())
     } catch (err) {
       console.error('Download error:', err)
-      alert('Error al descargar la imagen')
+      setShareFeedback('Error al descargar la imagen')
+      setTimeout(() => setShareFeedback(null), 3000)
     } finally {
       setIsExporting(false)
     }
   }
 
-  // Web Share API Handler
+  // Web Share API Handler with native PNG file sharing
   const handleShare = async () => {
     if (!canvasRef.current) return
     setIsExporting(true)
@@ -241,24 +256,117 @@ export function StoryGeneratorModal({
       const filename = getExportFilename()
       const file = new File([blob], filename, { type: 'image/png' })
 
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          files: [file],
-          title: `${modelName} - KevPhonesGC`,
-          text: `${modelName} ${device.storage || ''} ${device.color || ''} en KevPhones.es.`
+          files: [file]
         })
-        setShareFeedback('¡Historia compartida con éxito!')
       } else {
-        handleDownload()
+        handleDownloadBlob(blob, filename)
+        setShareFeedback('La función de compartir no está disponible. Descargando PNG...')
+        setTimeout(() => setShareFeedback(null), 3000)
       }
     } catch (err: any) {
-      if (err.name !== 'AbortError') {
+      if (err?.name !== 'AbortError') {
         console.error('Share error:', err)
-        setShareFeedback('No se pudo compartir. Puedes descargarla directamente.')
+        setShareFeedback('No se pudo compartir. Descargando imagen...')
+        try {
+          const blob = await new Promise<Blob | null>(res =>
+            canvasRef.current!.toBlob(res, 'image/png')
+          )
+          if (blob) handleDownloadBlob(blob, getExportFilename())
+        } catch {
+          // ignore
+        }
+        setTimeout(() => setShareFeedback(null), 4000)
       }
     } finally {
       setIsExporting(false)
-      setTimeout(() => setShareFeedback(null), 4000)
+    }
+  }
+
+  // Concise publication text using only public, non-confidential device specs
+  const generatePublicationText = useCallback(() => {
+    const lines: string[] = []
+
+    const formattedStorage = device.storage
+      ? device.storage.replace(/(\d+)\s*(GB|TB)/i, '$1 $2')
+      : null
+
+    const titleParts = [
+      modelName,
+      formattedStorage,
+      device.color || null
+    ].filter(Boolean)
+
+    if (titleParts.length > 0) {
+      lines.push(titleParts.join(' '))
+    }
+
+    if (device.condition) {
+      const conditionMap: Record<string, string> = {
+        sealed: 'Precintado',
+        like_new: 'Como nuevo',
+        good: 'Buen estado',
+        marked: 'Con marcas'
+      }
+      lines.push(`Estado: ${conditionMap[device.condition] || device.condition}`)
+    }
+
+    if (device.battery_health != null && Number.isFinite(device.battery_health)) {
+      lines.push(`Batería: ${device.battery_health}%`)
+    }
+
+    if (device.has_box && device.has_cable) {
+      lines.push('Con caja y cable')
+    } else if (device.has_box) {
+      lines.push('Con caja')
+    } else if (device.has_cable) {
+      lines.push('Con cable')
+    }
+
+    if (device.warranty_until) {
+      const d = new Date(device.warranty_until)
+      if (!isNaN(d.getTime()) && d > new Date()) {
+        const formattedDate = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        lines.push(`Garantía hasta ${formattedDate}`)
+      }
+    }
+
+    if (effectivePrice != null && Number.isFinite(effectivePrice)) {
+      lines.push(`${effectivePrice} €`)
+    }
+
+    lines.push('')
+    lines.push('Disponible en KevPhones.es')
+
+    return lines.join('\n')
+  }, [
+    modelName,
+    device.storage,
+    device.color,
+    device.condition,
+    device.battery_health,
+    device.has_box,
+    device.has_cable,
+    device.warranty_until,
+    effectivePrice
+  ])
+
+  // Copy publication text to clipboard
+  const handleCopyText = async () => {
+    try {
+      const text = generatePublicationText()
+      await navigator.clipboard.writeText(text)
+      setCopiedText(true)
+      setShareFeedback('Texto copiado')
+      setTimeout(() => {
+        setCopiedText(false)
+        setShareFeedback(null)
+      }, 2500)
+    } catch (err) {
+      console.error('Clipboard copy error:', err)
+      setShareFeedback('No se pudo copiar el texto al portapapeles')
+      setTimeout(() => setShareFeedback(null), 3000)
     }
   }
 
@@ -497,29 +605,51 @@ export function StoryGeneratorModal({
             )}
 
             {/* 5. Main Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-2.5 pt-2 mt-auto">
-              <button
-                type="button"
-                onClick={handleDownload}
-                disabled={isRendering || isExporting}
-                className="flex-1 bg-gradient-to-r from-[#7a32d4] via-[#9333ea] to-[#a855f7] hover:from-[#6d28d9] hover:to-[#9333ea] text-white font-bold text-sm py-3.5 px-4 rounded-xl transition-all shadow-lg shadow-[#7a32d4]/25 flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-[20px]">download</span>
-                {isExporting ? 'Descargando...' : 'Descargar PNG (1080×1920)'}
-              </button>
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2.5 pt-2 mt-auto">
+              {canShareFiles ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    disabled={isRendering || isExporting}
+                    className="flex-1 min-w-[160px] bg-gradient-to-r from-[#7a32d4] via-[#9333ea] to-[#a855f7] hover:from-[#6d28d9] hover:to-[#9333ea] text-white font-bold text-sm py-3.5 px-4 rounded-xl transition-all shadow-lg shadow-[#7a32d4]/25 flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">share</span>
+                    <span>{isExporting ? 'Preparando...' : 'Compartir Story'}</span>
+                  </button>
 
-              {canShare && (
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    disabled={isRendering || isExporting}
+                    className="bg-[#1b1b24] hover:bg-[#252532] border border-[#2a2a3a] text-white font-bold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    title="Descargar PNG (1080×1920)"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">download</span>
+                    <span>Descargar PNG</span>
+                  </button>
+                </>
+              ) : (
                 <button
                   type="button"
-                  onClick={handleShare}
+                  onClick={handleDownload}
                   disabled={isRendering || isExporting}
-                  className="bg-[#1b1b24] hover:bg-[#252532] border border-[#2a2a3a] text-white font-bold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                  title="Compartir historia directamente en Instagram o WhatsApp"
+                  className="flex-1 min-w-[160px] bg-gradient-to-r from-[#7a32d4] via-[#9333ea] to-[#a855f7] hover:from-[#6d28d9] hover:to-[#9333ea] text-white font-bold text-sm py-3.5 px-4 rounded-xl transition-all shadow-lg shadow-[#7a32d4]/25 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <span className="material-symbols-outlined text-[20px]">share</span>
-                  Compartir
+                  <span className="material-symbols-outlined text-[20px]">download</span>
+                  <span>{isExporting ? 'Descargando...' : 'Descargar PNG'}</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={handleCopyText}
+                className="bg-[#1b1b24] hover:bg-[#252532] border border-[#2a2a3a] text-white font-bold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                title="Copiar texto de publicación"
+              >
+                <span className="material-symbols-outlined text-[20px]">{copiedText ? 'check' : 'content_copy'}</span>
+                <span>{copiedText ? 'Texto copiado' : 'Copiar texto'}</span>
+              </button>
             </div>
           </div>
         </div>
