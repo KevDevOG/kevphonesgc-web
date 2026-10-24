@@ -297,9 +297,22 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
         title="Stock" 
         subtitle="Gestiona tus dispositivos disponibles y vendidos." 
         action={
-          <Link href="/admin/stock/nuevo" className="inline-flex justify-center items-center gap-2 bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm py-2.5 px-4 rounded-xl transition-colors w-full lg:w-auto">
-            <span className="material-symbols-outlined text-[20px]">add</span> Añadir dispositivo
-          </Link>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+            <Link 
+              href="/admin/stock/rapido" 
+              className="inline-flex justify-center items-center gap-2 bg-[#7a32d4] hover:bg-[#8b46e0] text-white font-bold text-sm py-2.5 px-4 rounded-xl transition-all shadow-sm shadow-[#7a32d4]/25 w-full sm:w-auto"
+            >
+              <span className="material-symbols-outlined text-[20px]">bolt</span>
+              <span>Añadir rápido</span>
+            </Link>
+            <Link 
+              href="/admin/stock/nuevo" 
+              className="inline-flex justify-center items-center gap-2 bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm py-2.5 px-4 rounded-xl transition-colors w-full sm:w-auto"
+            >
+              <span className="material-symbols-outlined text-[20px]">add</span>
+              <span>Añadir dispositivo</span>
+            </Link>
+          </div>
         }
       />
 
@@ -367,9 +380,18 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
               {view === 'available' ? 'Ahora mismo no hay dispositivos disponibles.' : 'Todavía no hay dispositivos vendidos.'}
             </p>
             {view === 'available' && (
-              <Link href="/admin/stock/nuevo" className="inline-block mt-4 text-[#d7baff] font-semibold text-sm hover:underline">
-                + Añadir dispositivo
-              </Link>
+              <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
+                <Link 
+                  href="/admin/stock/rapido" 
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#7a32d4] hover:bg-[#8b46e0] py-2 px-3.5 rounded-xl transition-all shadow-sm shadow-[#7a32d4]/25"
+                >
+                  <span className="material-symbols-outlined text-[16px]">bolt</span>
+                  Añadir rápido
+                </Link>
+                <Link href="/admin/stock/nuevo" className="inline-block text-[#d7baff] font-semibold text-sm hover:underline">
+                  + Añadir dispositivo
+                </Link>
+              </div>
             )}
           </div>
         ) : (
