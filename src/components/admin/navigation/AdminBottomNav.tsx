@@ -27,8 +27,9 @@ export function AdminBottomNav() {
   const isSolicitudes = isActive('/admin/solicitudes')
   const isConfiguracion = isActive('/admin/configuracion')
   const isResenas = isActive('/admin/resenas')
+  const isWhatsapp = isActive('/admin/whatsapp')
   
-  const isMas = isGastos || isMovimientos || isModelos || isSolicitudes || isConfiguracion || isResenas || showMoreMenu
+  const isMas = isGastos || isMovimientos || isModelos || isSolicitudes || isConfiguracion || isResenas || isWhatsapp || showMoreMenu
 
   const SidebarItem = ({ href, icon, label, active }: { href: string, icon: string, label: string, active: boolean }) => (
     <Link 
@@ -83,6 +84,7 @@ export function AdminBottomNav() {
           <SidebarItem href="/admin/movimientos" icon="sync_alt" label="Movimientos" active={isMovimientos} />
           
           <div className="mt-8 mb-3 px-8 text-[11px] font-bold uppercase tracking-wider text-zinc-600">Sistema</div>
+          <SidebarItem href="/admin/whatsapp" icon="chat" label="WhatsApp" active={isWhatsapp} />
           <SidebarItem href="/admin/cotizador" icon="calculate" label="Cotizador" active={isActive('/admin/cotizador')} />
           <SidebarItem href="/admin/modelos" icon="devices" label="Modelos" active={isModelos} />
           <SidebarItem href="/admin/resenas" icon="reviews" label="Reseñas" active={isResenas} />
@@ -105,6 +107,7 @@ export function AdminBottomNav() {
             <MobileMoreItem href="/admin/solicitudes" icon="inbox" label="Solicitudes" active={isSolicitudes} />
             <MobileMoreItem href="/admin/gastos" icon="receipt_long" label="Gastos" active={isGastos} />
             <MobileMoreItem href="/admin/movimientos" icon="sync_alt" label="Movimientos" active={isMovimientos} />
+            <MobileMoreItem href="/admin/whatsapp" icon="chat" label="WhatsApp" active={isWhatsapp} />
             <MobileMoreItem href="/admin/cotizador" icon="calculate" label="Cotizador" active={isActive('/admin/cotizador')} />
             <MobileMoreItem href="/admin/modelos" icon="devices" label="Modelos" active={isModelos} />
             <MobileMoreItem href="/admin/resenas" icon="reviews" label="Reseñas" active={isResenas} />
