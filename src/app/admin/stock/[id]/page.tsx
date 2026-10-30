@@ -51,6 +51,8 @@ export default async function DeviceDetailPage({ params }: PageProps) {
       status,
       is_published,
       internal_notes,
+      custom_product_type,
+      custom_specs,
       created_at,
       device_models (
         category,
@@ -91,7 +93,7 @@ export default async function DeviceDetailPage({ params }: PageProps) {
   // Is this device sold in a trade-in?
   const { data: salesData } = await supabase
     .from('sales')
-    .select('id, final_sale_price, sold_at, device_id, sale_location, observations')
+    .select('id, final_sale_price, sold_at, device_id, sale_location, observations, clients(name, phone, location)')
     .eq('device_id', id)
     .maybeSingle()
     
@@ -178,6 +180,7 @@ export default async function DeviceDetailPage({ params }: PageProps) {
     <AdminPageShell>
       <DeviceDetail 
         device={{...device, clients: Array.isArray(device.clients) ? device.clients[0] : device.clients, device_images: images} as any} 
+        saleData={salesData ? { ...salesData, clients: Array.isArray(salesData.clients) ? salesData.clients[0] || null : salesData.clients } : null}
         tradeInContext={tradeInContext} 
         catalogImages={catalogImages || []}
       />

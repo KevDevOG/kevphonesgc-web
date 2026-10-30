@@ -1,145 +1,128 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 
+const groups = [
+  { label: 'Operaciones', items: [
+    { href: '/admin', icon: 'dashboard', label: 'Inicio' },
+    { href: '/admin/stock', icon: 'inventory_2', label: 'Stock' },
+    { href: '/admin/stock/rapido', icon: 'add_box', label: 'Entrada rápida' },
+    { href: '/admin/solicitudes', icon: 'inbox', label: 'Solicitudes' },
+    { href: '/admin/clientes', icon: 'group', label: 'Clientes' },
+  ] },
+  { label: 'Contabilidad', items: [
+    { href: '/admin/finanzas', icon: 'account_balance', label: 'Finanzas' },
+    { href: '/admin/estadisticas', icon: 'analytics', label: 'Estadísticas' },
+    { href: '/admin/gastos', icon: 'receipt_long', label: 'Gastos' },
+    { href: '/admin/movimientos', icon: 'sync_alt', label: 'Movimientos' },
+    { href: '/admin/actividad', icon: 'history', label: 'Actividad' },
+  ] },
+  { label: 'Catálogo y sistema', items: [
+    { href: '/admin/cotizador', icon: 'calculate', label: 'Cotizador' },
+    { href: '/admin/modelos', icon: 'devices', label: 'Modelos' },
+    { href: '/admin/resenas', icon: 'reviews', label: 'Reseñas' },
+    { href: '/admin/whatsapp', icon: 'chat', label: 'WhatsApp' },
+    { href: '/admin/configuracion', icon: 'settings', label: 'Configuración' },
+  ] },
+]
+const items = groups.flatMap(group => group.items)
+const primary = ['/admin', '/admin/stock', '/admin/solicitudes', '/admin/finanzas'].map(href => items.find(item => item.href === href)!)
+
+type Item = typeof items[number]
+function Icon({ name }: { name: string }) {
+  return <span aria-hidden="true" className="material-symbols-outlined">{name}</span>
+}
+
 export function AdminBottomNav() {
   const pathname = usePathname()
-  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [openPath, setOpenPath] = useState<string | null>(null)
+  const showMoreMenu = openPath !== null && openPath === pathname
+  const panelRef = useRef<HTMLDivElement>(null)
+  const moreRef = useRef<HTMLButtonElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
 
-  if (!pathname || pathname === '/admin/login') {
-    return null
-  }
+  useEffect(() => {
+    if (!showMoreMenu) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    closeRef.current?.focus({ preventScroll: true })
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenPath(null)
+      if (event.key !== 'Tab' || !panelRef.current) return
+      const controls = panelRef.current.querySelectorAll<HTMLElement>('button, a[href]')
+      const first = controls[0]
+      const last = controls[controls.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last?.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first?.focus()
+      }
+    }
+    const desktop = window.matchMedia('(min-width: 1024px)')
+    const closeOnDesktop = () => { if (desktop.matches) setOpenPath(null) }
+    desktop.addEventListener('change', closeOnDesktop)
+    window.addEventListener('keydown', handleKey)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKey)
+      desktop.removeEventListener('change', closeOnDesktop)
+      moreRef.current?.focus({ preventScroll: true })
+    }
+  }, [showMoreMenu])
 
-  const isActive = (path: string, exact = false) => {
-    if (exact) return pathname === path
-    return pathname.startsWith(path)
-  }
+  if (!pathname || pathname === '/admin/login') return null
 
-  const isInicio = isActive('/admin', true)
-  const isStock = isActive('/admin/stock')
-  const isFinanzas = isActive('/admin/finanzas')
-  const isClientes = isActive('/admin/clientes')
-  const isGastos = isActive('/admin/gastos')
-  const isMovimientos = isActive('/admin/movimientos')
-  const isModelos = isActive('/admin/modelos')
-  const isSolicitudes = isActive('/admin/solicitudes')
-  const isConfiguracion = isActive('/admin/configuracion')
-  const isResenas = isActive('/admin/resenas')
-  const isWhatsapp = isActive('/admin/whatsapp')
-  
-  const isMas = isGastos || isMovimientos || isModelos || isSolicitudes || isConfiguracion || isResenas || isWhatsapp || showMoreMenu
-
-  const SidebarItem = ({ href, icon, label, active }: { href: string, icon: string, label: string, active: boolean }) => (
-    <Link 
-      href={href}
-      className={`flex items-center gap-3 px-4 py-3 mx-4 my-0.5 rounded-xl transition-all ${
-        active 
-          ? 'bg-[#7a32d4]/15 text-[#d7baff] font-semibold' 
-          : 'text-zinc-400 hover:bg-[#1F1F24] hover:text-white'
-      }`}
-    >
-      <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{icon}</span>
-      <span className="text-[14px]">{label}</span>
-    </Link>
-  )
-
-  const MobileMoreItem = ({ href, icon, label, active }: { href: string, icon: string, label: string, active: boolean }) => (
-    <Link 
-      href={href} 
-      onClick={() => setShowMoreMenu(false)}
-      className={`flex items-center gap-3 p-3.5 rounded-xl transition-colors ${
-        active 
-          ? 'bg-[#7a32d4]/15 text-[#d7baff] font-semibold' 
-          : 'text-zinc-400 hover:bg-[#1F1F24] hover:text-white font-medium'
-      }`}
-    >
-      <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}>{icon}</span>
-      <span className="text-[15px]">{label}</span>
+  // Prefer the most specific route: Entrada rápida must not also select Stock.
+  const activeHref = items.filter(item => pathname === item.href || (item.href !== '/admin' && pathname.startsWith(`${item.href}/`)))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href
+  const isMoreActive = showMoreMenu || (!!activeHref && !primary.some(item => item.href === activeHref))
+  const renderItem = (item: Item, mobile = false) => (
+    <Link key={item.href} href={item.href} onClick={() => setOpenPath(null)}
+      aria-current={activeHref === item.href ? 'page' : undefined}
+      className={mobile ? 'admin-nav__mobile-item' : 'admin-nav__item'}>
+      <Icon name={item.icon} /><span>{item.label}</span>
     </Link>
   )
 
   return (
     <>
-      {/* DESKTOP SIDEBAR (lg+) */}
-      <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 w-[260px] bg-[#0B0B0E] border-r border-[#1F1F24] z-50 overflow-y-auto">
-        <div className="px-6 py-8 flex flex-col mb-4 gap-4">
-          <img src="/brand/kevphonesgc-logo.PNG" alt="KevPhonesGC" className="w-[48px] h-[48px] rounded-xl object-cover" />
-          <div>
-            <h2 className="text-white font-bold text-xl tracking-tight leading-none mb-1.5">KevPhonesGC</h2>
-            <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold">Panel Admin</p>
-          </div>
-        </div>
-
-        <nav className="flex-1 flex flex-col pb-8">
-          <SidebarItem href="/admin" icon="dashboard" label="Inicio" active={isInicio} />
-          <SidebarItem href="/admin/stock" icon="inventory_2" label="Stock" active={isStock} />
-          <SidebarItem href="/admin/finanzas" icon="account_balance" label="Finanzas" active={isFinanzas} />
-          <SidebarItem href="/admin/solicitudes" icon="inbox" label="Solicitudes" active={isSolicitudes} />
-          <SidebarItem href="/admin/clientes" icon="group" label="Clientes" active={isClientes} />
-          
-          <div className="mt-8 mb-3 px-8 text-[11px] font-bold uppercase tracking-wider text-zinc-600">Operaciones</div>
-          <SidebarItem href="/admin/gastos" icon="receipt_long" label="Gastos" active={isGastos} />
-          <SidebarItem href="/admin/movimientos" icon="sync_alt" label="Movimientos" active={isMovimientos} />
-          
-          <div className="mt-8 mb-3 px-8 text-[11px] font-bold uppercase tracking-wider text-zinc-600">Sistema</div>
-          <SidebarItem href="/admin/whatsapp" icon="chat" label="WhatsApp" active={isWhatsapp} />
-          <SidebarItem href="/admin/cotizador" icon="calculate" label="Cotizador" active={isActive('/admin/cotizador')} />
-          <SidebarItem href="/admin/modelos" icon="devices" label="Modelos" active={isModelos} />
-          <SidebarItem href="/admin/resenas" icon="reviews" label="Reseñas" active={isResenas} />
-          <SidebarItem href="/admin/configuracion" icon="settings" label="Configuración" active={isConfiguracion} />
+      <aside className="admin-nav__sidebar">
+        <Link href="/admin" className="admin-nav__brand">
+          <img src="/brand/kevphonesgc-logo.PNG" alt="" width={36} height={36} />
+          <span>KevPhonesGC<small>Administración</small></span>
+        </Link>
+        <nav aria-label="Navegación de administración">
+          {groups.map(group => <section key={group.label} className="admin-nav__group">
+            <h2>{group.label}</h2>{group.items.map(item => renderItem(item))}
+          </section>)}
+          <Link href="/" className="admin-nav__utility"><Icon name="open_in_browser" /><span>Ver web</span></Link>
         </nav>
       </aside>
 
-      {/* MOBILE MORE MENU */}
-      {showMoreMenu && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity lg:hidden"
-          onClick={() => setShowMoreMenu(false)}
-        />
-      )}
-      
-      {showMoreMenu && (
-        <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 w-full bg-[#0B0B0E] border-t border-[#1F1F24] z-50 p-4 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] lg:hidden max-h-[70vh] overflow-y-auto">
-          <div className="w-10 h-1 bg-[#1F1F24] rounded-full mx-auto mb-4"></div>
-          <div className="flex flex-col gap-1 max-w-sm mx-auto">
-            <MobileMoreItem href="/admin/solicitudes" icon="inbox" label="Solicitudes" active={isSolicitudes} />
-            <MobileMoreItem href="/admin/gastos" icon="receipt_long" label="Gastos" active={isGastos} />
-            <MobileMoreItem href="/admin/movimientos" icon="sync_alt" label="Movimientos" active={isMovimientos} />
-            <MobileMoreItem href="/admin/whatsapp" icon="chat" label="WhatsApp" active={isWhatsapp} />
-            <MobileMoreItem href="/admin/cotizador" icon="calculate" label="Cotizador" active={isActive('/admin/cotizador')} />
-            <MobileMoreItem href="/admin/modelos" icon="devices" label="Modelos" active={isModelos} />
-            <MobileMoreItem href="/admin/resenas" icon="reviews" label="Reseñas" active={isResenas} />
-            <MobileMoreItem href="/admin/configuracion" icon="settings" label="Configuración" active={isConfiguracion} />
+      {showMoreMenu && <div className="admin-nav__overlay" onClick={() => setOpenPath(null)}>
+        <div ref={panelRef} id="admin-more-menu" className="admin-nav__sheet" role="dialog" aria-modal="true" aria-labelledby="admin-more-title" onClick={event => event.stopPropagation()}>
+          <div className="admin-nav__sheet-header">
+            <h2 id="admin-more-title">Más opciones</h2>
+            <button ref={closeRef} type="button" aria-label="Cerrar menú" onClick={() => setOpenPath(null)}><Icon name="close" /></button>
           </div>
+          <nav aria-label="Más destinos de administración">
+            {groups.map(group => {
+              const secondary = group.items.filter(item => !primary.some(link => link.href === item.href))
+              return <section key={group.label} className="admin-nav__group"><h3>{group.label}</h3>{secondary.map(item => renderItem(item))}</section>
+            })}
+            <Link href="/" className="admin-nav__utility" onClick={() => setOpenPath(null)}><Icon name="open_in_browser" /><span>Ver web</span></Link>
+          </nav>
         </div>
-      )}
+      </div>}
 
-      {/* MOBILE BOTTOM NAV */}
-      <nav className="lg:hidden bg-[#0B0B0E]/95 backdrop-blur-md fixed bottom-0 w-full z-50 flex justify-around items-center h-[calc(3.5rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] px-2 left-0 border-t border-[#1F1F24]">
-        <Link href="/admin" className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${isInicio ? 'text-[#d7baff]' : 'text-zinc-500 hover:text-[#d7baff]'}`}>
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isInicio ? "'FILL' 1" : "'FILL' 0" }}>dashboard</span>
-          <span className="text-[10px] font-semibold mt-0.5">Inicio</span>
-        </Link>
-        <Link href="/admin/stock" className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${isStock ? 'text-[#d7baff]' : 'text-zinc-500 hover:text-[#d7baff]'}`}>
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isStock ? "'FILL' 1" : "'FILL' 0" }}>inventory_2</span>
-          <span className="text-[10px] font-semibold mt-0.5">Stock</span>
-        </Link>
-        <Link href="/admin/finanzas" className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${isFinanzas ? 'text-[#d7baff]' : 'text-zinc-500 hover:text-[#d7baff]'}`}>
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isFinanzas ? "'FILL' 1" : "'FILL' 0" }}>account_balance</span>
-          <span className="text-[10px] font-semibold mt-0.5">Finanzas</span>
-        </Link>
-        <Link href="/admin/clientes" className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${isClientes ? 'text-[#d7baff]' : 'text-zinc-500 hover:text-[#d7baff]'}`}>
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isClientes ? "'FILL' 1" : "'FILL' 0" }}>group</span>
-          <span className="text-[10px] font-semibold mt-0.5">Clientes</span>
-        </Link>
-        <button 
-          onClick={() => setShowMoreMenu(!showMoreMenu)}
-          className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${isMas ? 'text-[#d7baff]' : 'text-zinc-500 hover:text-[#d7baff]'}`}
-        >
-          <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isMas ? "'FILL' 1" : "'FILL' 0" }}>more_horiz</span>
-          <span className="text-[10px] font-semibold mt-0.5">Más</span>
+      <nav aria-label="Navegación principal móvil de administración" className="admin-nav__bottom">
+        {primary.map(item => renderItem(item, true))}
+        <button ref={moreRef} type="button" className="admin-nav__mobile-item" data-active={isMoreActive} aria-expanded={showMoreMenu} aria-controls={showMoreMenu ? 'admin-more-menu' : undefined} onClick={() => setOpenPath(showMoreMenu ? null : pathname)}>
+          <Icon name="more_horiz" /><span>Más</span>
         </button>
       </nav>
     </>

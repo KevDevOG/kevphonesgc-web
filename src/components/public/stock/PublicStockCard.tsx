@@ -5,6 +5,33 @@ interface PublicStockCardProps {
   onSelect: () => void
 }
 
+// warranty_until is a SQL date (YYYY-MM-DD), valid through that entire local day.
+// Shared with the detail modal so validation and expiry rules cannot diverge.
+export function getActiveWarrantyExpiry(warrantyUntil: string | null): Date | null {
+  if (!warrantyUntil || !/^\d{4}-\d{2}-\d{2}$/.test(warrantyUntil)) return null
+
+  const [year, month, day] = warrantyUntil.split('-').map(Number)
+  const expiry = new Date(`${warrantyUntil}T00:00:00`)
+  // Reject invalid dates, including values that JavaScript normalizes (e.g. February 31).
+  if (
+    expiry.getFullYear() !== year ||
+    expiry.getMonth() !== month - 1 ||
+    expiry.getDate() !== day
+  ) return null
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return expiry >= today ? expiry : null
+}
+
+// Same public condition labels used by the existing product detail UI.
+const CONDITION_LABELS: Record<string, string> = {
+  sealed: 'Precintado',
+  like_new: 'Como nuevo',
+  good: 'Buen estado',
+  marked: 'Con marcas'
+}
+
 const otherProductTypeMap: Record<string, string> = {
   android_phone: 'Móvil Android',
   laptop: 'Portátil',
@@ -132,131 +159,84 @@ export function PublicStockCard({ device, onSelect }: PublicStockCardProps) {
       }).format(device.listing_price)
     : null
 
+  const conditionLabel = CONDITION_LABELS[device.condition]
   const isNew = device.condition === 'sealed'
-  const hasWarranty = !!device.warranty_until
+  const hasWarranty = getActiveWarrantyExpiry(device.warranty_until) !== null
   const displayTitle = getDeviceTitle(device)
   const productTypeLabel = device.category === 'other' ? getOtherProductTypeLabel(device.custom_product_type) : null
 
   return (
-    <button 
+    <button
+      type="button"
       onClick={onSelect}
-      className="text-left w-full bg-[#050506] border border-[#1F1F24] rounded-3xl overflow-hidden flex flex-col group hover:border-[#383840] transition-all duration-300 relative active:scale-[0.99]"
+      className="kevphones-stock-card"
       aria-label={`Ver detalles de ${displayTitle}`}
     >
-      
-      {/* Top Badges */}
-      <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 items-start">
-        {device.discount_price && (
-          <span className="px-2.5 py-0.5 bg-[#7a32d4]/20 backdrop-blur-md text-[#d7baff] border border-[#7a32d4]/30 text-[10px] font-bold rounded-full tracking-wide">
-            Oferta
-          </span>
-        )}
-        {isNew && (
-          <span className="px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-white border border-white/10 text-[10px] font-medium rounded-full tracking-wide">
-            Precintado
-          </span>
-        )}
-      </div>
-
-      {/* Image Area */}
-      <div className="w-full h-56 sm:h-[240px] bg-[#0A0A0C] flex items-center justify-center p-6 relative overflow-hidden group-hover:bg-[#0C0C0F] transition-colors duration-300">
-        <div className="absolute inset-0 bg-purple-900/5 blur-[50px] rounded-full scale-50 group-hover:scale-100 transition-transform duration-700 pointer-events-none opacity-0 group-hover:opacity-100"></div>
+      <div className="kevphones-stock-card__image">
         {device.catalog_image_url ? (
-          <img 
-            src={device.catalog_image_url} 
+          <img
+            loading="lazy"
+            decoding="async"
+            src={device.catalog_image_url}
             alt={`${displayTitle} ${device.color || ''}`}
-            className="w-full h-full object-contain relative z-10 group-hover:-translate-y-1 transition-transform duration-500"
           />
         ) : device.real_images && device.real_images.length > 0 ? (
-          <img 
-            src={device.real_images[0].url} 
+          <img
+            loading="lazy"
+            decoding="async"
+            src={device.real_images[0].url}
             alt={`${displayTitle} ${device.color || ''}`}
-            className="w-full h-full object-contain relative z-10 group-hover:-translate-y-1 transition-transform duration-500"
           />
         ) : (
-          <div className="flex flex-col items-center justify-center opacity-30 relative z-10">
-            <svg className="w-10 h-10 text-zinc-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="kevphones-stock-card__fallback">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
-            <span className="text-[10px] text-zinc-500 tracking-wider font-medium">Sin imagen</span>
+            <span>Sin imagen</span>
           </div>
         )}
       </div>
 
-      {/* Content Area */}
-      <div className="p-5 flex flex-col flex-1 w-full relative bg-[#050506]">
-        
-        {/* Device Name */}
-        <h3 className="text-lg font-bold text-white mb-1 leading-tight">
-          {displayTitle}
-        </h3>
-        
-        {/* Specs Line */}
-        <div className="flex flex-wrap items-center gap-1.5 mb-1.5 text-[13px] text-zinc-400 font-medium">
+      <div className="kevphones-stock-card__content">
+        <h3>{displayTitle}</h3>
+        <p className="kevphones-stock-card__specs">
           {productTypeLabel && (
-            <>
-              <span className="text-purple-400 font-semibold">{productTypeLabel}</span>
-              <span className="text-zinc-600">·</span>
-            </>
+            <><span className="kevphones-stock-card__type">{productTypeLabel}</span>{' · '}</>
           )}
           {(device.category === 'other'
             ? getOtherDeviceSpecsLine(device)
-            : device.category === 'apple_watch' 
+            : device.category === 'apple_watch'
             ? [device.size, device.connectivity, device.case_material]
             : device.category === 'airpods'
             ? [device.case_type, device.color]
             : device.category === 'ipad'
             ? [device.storage, device.connectivity, device.color]
             : [device.storage, device.color]
-          ).filter(Boolean).map((val, i, arr) => (
-            <span key={i} className="flex items-center gap-1.5">
-              {val}
-              {i < arr.length - 1 && <span className="text-zinc-600">·</span>}
-            </span>
-          ))}
-        </div>
+          ).filter(Boolean).join(' · ')}
+        </p>
 
-        {/* Battery Line */}
-        <div className="mb-3 h-4">
+        <div className="kevphones-stock-card__facts">
           {device.supports_battery_health && device.battery_health !== null && (
-            <span className="text-[12px] text-zinc-500 font-medium flex items-center gap-1">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Salud de batería: {device.battery_health}%
-            </span>
+            <span>Batería {device.battery_health}%</span>
           )}
+          {conditionLabel && <span>{conditionLabel}</span>}
+          {hasWarranty && !isNew && <span>Con garantía</span>}
         </div>
 
-        {hasWarranty && !isNew && (
-          <div className="mb-4 flex items-center">
-            <span className="px-2 py-0.5 bg-[#111114] border border-[#1F1F24] text-zinc-300 text-[10px] font-medium rounded-full tracking-wide">
-              Con garantía
-            </span>
-          </div>
-        )}
-
-        {/* BIG Price & Bottom Support */}
-        <div className="mt-auto pt-3 border-t border-[#1F1F24]/50 flex flex-col items-start w-full">
+        <div className="kevphones-stock-card__price">
           {device.discount_price ? (
-            <div className="flex items-baseline gap-2 mb-0.5">
-              <span className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-                {formattedPrice || '-'}
+            <>
+              <span className="kevphones-stock-card__amount">
+                <span className="sr-only">Precio actual: </span>{formattedPrice || '-'}
               </span>
-              <span className="text-sm font-semibold text-zinc-500 line-through">
-                {formattedListingPrice}
-              </span>
-            </div>
+              <del className="kevphones-stock-card__previous">
+                <span className="sr-only">Precio anterior: </span>{formattedListingPrice}
+              </del>
+            </>
           ) : (
-            <span className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-0.5">
-              {formattedPrice || '-'}
-            </span>
+            <span className="kevphones-stock-card__amount">{formattedPrice || '-'}</span>
           )}
-          <span className="text-[11px] text-purple-400/80 font-medium tracking-wide uppercase mt-0.5">
-            Entrega en Canarias
-          </span>
         </div>
-        
       </div>
     </button>
   )

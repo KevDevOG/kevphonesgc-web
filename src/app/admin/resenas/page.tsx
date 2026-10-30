@@ -53,9 +53,9 @@ export default async function AdminReviewsPage() {
 
   return (
     <AdminPageShell>
-      <div className="w-full max-w-6xl mx-auto pb-24">
+      <div className="admin-reviews-page">
         {errorMsg ? (
-          <div className="bg-[#93000a]/20 border border-[#93000a] text-[#ffdad6] p-4 rounded-xl text-center">
+          <div role="alert" className="admin-reviews-page__error">
             {errorMsg}
           </div>
         ) : (

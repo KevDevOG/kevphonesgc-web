@@ -214,7 +214,7 @@ export default async function ActivityPage() {
         title="Historial de movimientos" 
         subtitle="Consulta todas las operaciones del negocio en detalle."
       />
-      <div className="mt-4 pb-12">
+      <div className="admin-activity-container">
         <ActivityTable initialActivities={unifiedActivities} />
       </div>
     </AdminPageShell>

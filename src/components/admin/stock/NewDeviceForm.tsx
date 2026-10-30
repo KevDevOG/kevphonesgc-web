@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useId, useEffect, useMemo } from 'react'
 import { createDeviceAction } from '@/actions/devices'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -370,23 +370,26 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
     }
   }
 
+  const fieldId = useId()
+  const hasStickySave = !embedded && mode === 'normal'
+
   const inputClass = "w-full bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all"
-  const labelClass = "text-[13px] font-semibold text-zinc-400"
-  const sectionClass = "bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-6"
-  const sectionTitleClass = "text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2"
+  const labelClass = "admin-device-form__label"
+  const sectionClass = "admin-device-form__section"
+  const sectionTitleClass = "admin-device-form__section-title"
 
   if (formState.success) {
     if (embedded) {
       return (
-        <div id={formId} className="bg-[#0B0B0E] border border-[#22c55e]/20 p-5 rounded-2xl flex items-center gap-3">
-          <span className="material-symbols-outlined text-[#22c55e] text-3xl">check_circle</span>
+        <div id={formId} className="admin-device-form admin-device-form__success admin-device-form__success--embedded">
+          <span aria-hidden="true" className="material-symbols-outlined text-[#22c55e] text-3xl">check_circle</span>
           <span className="text-sm font-semibold text-white">Dispositivo guardado correctamente.</span>
         </div>
       )
     }
     return (
-      <div className="bg-[#0B0B0E] border border-[#22c55e]/20 p-8 rounded-2xl flex flex-col items-center justify-center text-center gap-4">
-        <span className="material-symbols-outlined text-[#22c55e] text-5xl">check_circle</span>
+      <div className="admin-device-form admin-device-form__success">
+        <span aria-hidden="true" className="material-symbols-outlined text-[#22c55e] text-5xl">check_circle</span>
         <h3 className="text-xl font-bold text-white">Dispositivo guardado correctamente.</h3>
         <p className="text-sm text-zinc-400 font-medium max-w-sm mt-1">
           Puedes añadir las fotos y publicarlo más tarde desde Stock.
@@ -403,16 +406,16 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
 
   if (mode === 'quick') {
     return (
-      <form id={formId} ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-6 lg:gap-8 pb-12">
+      <form id={formId} ref={formRef} onSubmit={handleSubmit} data-embedded={embedded} data-sticky-save={hasStickySave} className="admin-device-form admin-device-form--new">
         <input type="hidden" name="category" value="iphone" />
 
         {/* 1. SECCIÓN PRINCIPAL: DATOS ESENCIALES */}
         <section className={sectionClass}>
           <div className="flex items-center justify-between border-b border-[#1F1F24] pb-3">
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[18px] text-[#d7baff]">bolt</span>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-[#d7baff]">bolt</span>
               Datos esenciales del iPhone
-            </h3>
+            </h2>
             <span className="text-[11px] font-semibold text-[#d7baff] bg-[#7a32d4]/10 border border-[#7a32d4]/30 px-2.5 py-1 rounded-full">
               Revisión rápida
             </span>
@@ -421,9 +424,9 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
           <div className="flex flex-col gap-4">
             {/* Modelo */}
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Modelo *</label>
+              <label className={labelClass} htmlFor={`${fieldId}-model_id`}>Modelo *</label>
               <select
-                name="model_id"
+                name="model_id" id={`${fieldId}-model_id`}
                 value={modelId}
                 onChange={e => setModelId(e.target.value)}
                 required
@@ -439,9 +442,9 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
             {/* Capacidad y Color */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Capacidad *</label>
+                <label className={labelClass} htmlFor={`${fieldId}-storage`}>Capacidad *</label>
                 <select
-                  name="storage"
+                  name="storage" id={`${fieldId}-storage`}
                   value={storage}
                   onChange={e => setStorage(e.target.value)}
                   required={availableStorage.length > 0}
@@ -454,9 +457,9 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Color *</label>
+                <label className={labelClass} htmlFor={`${fieldId}-color`}>Color *</label>
                 <select
-                  name="color"
+                  name="color" id={`${fieldId}-color`}
                   value={color}
                   onChange={e => setColor(e.target.value)}
                   required={availableColors.length > 0}
@@ -471,10 +474,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
 
             {/* IMEI / Serie */}
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>IMEI / Número de serie (Opcional)</label>
+              <label className={labelClass} htmlFor={`${fieldId}-imei_serial`}>IMEI / Número de serie (Opcional)</label>
               <input
                 type="text"
-                name="imei_serial"
+                name="imei_serial" id={`${fieldId}-imei_serial`}
                 defaultValue={prefill?.imei_serial ?? ''}
                 placeholder="Introduce IMEI o Serie"
                 className={inputClass}
@@ -486,10 +489,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {showBatteryHealth && (
                   <div className="flex flex-col gap-1.5">
-                    <label className={labelClass}>Salud de batería (%) *</label>
+                    <label className={labelClass} htmlFor={`${fieldId}-battery_health`}>Salud de batería (%) *</label>
                     <input
                       type="number"
-                      name="battery_health"
+                      name="battery_health" id={`${fieldId}-battery_health`}
                       min="0"
                       max="100"
                       value={batteryHealth}
@@ -502,10 +505,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 )}
                 {showBatteryCycles && (
                   <div className="flex flex-col gap-1.5">
-                    <label className={labelClass}>Ciclos de carga (Opcional)</label>
+                    <label className={labelClass} htmlFor={`${fieldId}-battery_cycles`}>Ciclos de carga (Opcional)</label>
                     <input
                       type="number"
-                      name="battery_cycles"
+                      name="battery_cycles" id={`${fieldId}-battery_cycles`}
                       min="0"
                       defaultValue={prefill?.battery_cycles ?? ''}
                       placeholder="Ej. 317"
@@ -518,9 +521,9 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
 
             {/* Estado físico */}
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Estado físico *</label>
+              <label className={labelClass} htmlFor={`${fieldId}-condition`}>Estado físico *</label>
               <select
-                name="condition"
+                name="condition" id={`${fieldId}-condition`}
                 value={condition}
                 onChange={e => setCondition(e.target.value)}
                 required
@@ -536,13 +539,13 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
             {/* Precios: Compra y Venta */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5 relative">
-                <label className={labelClass}>Precio de compra *</label>
+                <label className={labelClass} htmlFor={`${fieldId}-purchase_price`}>Precio de compra *</label>
                 <span className="absolute left-4 top-[35px] text-zinc-500">€</span>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
-                  name="purchase_price"
+                  name="purchase_price" id={`${fieldId}-purchase_price`}
                   defaultValue={prefill?.purchase_price ?? ''}
                   required
                   placeholder="0.00"
@@ -550,13 +553,13 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 />
               </div>
               <div className="flex flex-col gap-1.5 relative">
-                <label className={labelClass}>Precio de venta *</label>
+                <label className={labelClass} htmlFor={`${fieldId}-listing_price`}>Precio de venta *</label>
                 <span className="absolute left-4 top-[35px] text-zinc-500">€</span>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
-                  name="listing_price"
+                  name="listing_price" id={`${fieldId}-listing_price`}
                   defaultValue={prefill?.listing_price ?? ''}
                   required
                   placeholder="0.00"
@@ -581,7 +584,7 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                     className="relative flex items-center justify-between p-3 rounded-xl border border-[#1F1F24] bg-[#121217] hover:bg-[#1a1a20] cursor-pointer transition-all select-none has-[:checked]:border-[#7a32d4]/40 has-[:checked]:bg-[#7a32d4]/10"
                   >
                     <span className="text-[13px] font-semibold text-zinc-300 flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[16px] text-zinc-400">{field.icon}</span>
+                      <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-zinc-400">{field.icon}</span>
                       {field.label}
                     </span>
                     <input
@@ -598,17 +601,18 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
         </section>
 
         {/* 2. CAMPOS SECUNDARIOS */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+        <div className="admin-device-form__columns">
           {/* Vendedor */}
           <section className={sectionClass}>
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[16px]">person</span> Vendedor
-            </h3>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">person</span> Vendedor
+            </h2>
             <div className="flex flex-col gap-4">
               <div className="flex p-1 bg-[#121217] rounded-xl border border-[#1F1F24] w-fit">
                 <button
                   type="button"
                   onClick={() => { setClientMode('existing'); setSelectedClientId(''); setClientSearch(''); }}
+                  aria-pressed={clientMode === 'existing'}
                   className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${clientMode === 'existing' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'}`}
                 >
                   Cliente existente
@@ -616,6 +620,7 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 <button
                   type="button"
                   onClick={() => { setClientMode('new'); setSelectedClientId(''); }}
+                  aria-pressed={clientMode === 'new'}
                   className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${clientMode === 'new' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'}`}
                 >
                   Nuevo cliente
@@ -632,8 +637,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                           <span className="text-white font-bold">{selectedClient.name}</span>
                           <span className="text-zinc-400 text-sm">{selectedClient.phone}{selectedClient.location ? ` · ${selectedClient.location}` : ''}</span>
                         </div>
-                        <button type="button" onClick={() => setSelectedClientId('')} className="text-zinc-500 hover:text-white">
-                          <span className="material-symbols-outlined text-[18px]">close</span>
+                        <button type="button" onClick={() => setSelectedClientId('')} aria-label="Cambiar cliente seleccionado" className="admin-device-form__clear-client text-zinc-500 hover:text-white">
+                          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">close</span>
                         </button>
                       </div>
                       <Link href={`/admin/clientes/${selectedClient.id}`} target="_blank" className="text-xs text-[#d7baff] hover:underline mt-1 w-fit">
@@ -652,16 +657,17 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         aria-hidden="true"
                       />
                       <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-3 text-zinc-500 text-[18px]">search</span>
+                        <span aria-hidden="true" className="material-symbols-outlined absolute left-3 top-3 text-zinc-500 text-[18px]">search</span>
                         <input
                           type="text"
+                          aria-label="Buscar cliente por nombre o teléfono"
                           placeholder="Buscar por nombre o teléfono..."
                           value={clientSearch}
                           onChange={(e) => setClientSearch(e.target.value)}
                           className={`${inputClass} pl-10`}
                         />
                       </div>
-                      {clientSearch && filteredClients.length > 0 && (
+                      {filteredClients.length > 0 && (
                         <div className="flex flex-col bg-[#121217] border border-[#1F1F24] rounded-xl overflow-hidden max-h-[200px] overflow-y-auto">
                           {filteredClients.map(client => (
                             <button
@@ -690,10 +696,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Nombre *</label>
+                      <label className={labelClass} htmlFor={`${fieldId}-seller_name`}>Nombre *</label>
                       <input
                         type="text"
-                        name="seller_name"
+                        name="seller_name" id={`${fieldId}-seller_name`}
                         required
                         defaultValue={prefill?.seller_name ?? ''}
                         className={inputClass}
@@ -701,10 +707,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Teléfono *</label>
+                      <label className={labelClass} htmlFor={`${fieldId}-seller_phone`}>Teléfono *</label>
                       <input
                         type="text"
-                        name="seller_phone"
+                        name="seller_phone" id={`${fieldId}-seller_phone`}
                         required
                         defaultValue={prefill?.seller_phone ?? ''}
                         className={inputClass}
@@ -713,10 +719,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className={labelClass}>Ubicación (Opcional)</label>
+                    <label className={labelClass} htmlFor={`${fieldId}-seller_location`}>Ubicación (Opcional)</label>
                     <input
                       type="text"
-                      name="seller_location"
+                      name="seller_location" id={`${fieldId}-seller_location`}
                       defaultValue={prefill?.seller_location ?? ''}
                       className={inputClass}
                       placeholder="Ej. Las Palmas"
@@ -729,26 +735,26 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
 
           {/* Compra, Garantía y Notas */}
           <section className={sectionClass}>
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[16px]">receipt_long</span> Datos adicionales
-            </h3>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">receipt_long</span> Datos adicionales
+            </h2>
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Fecha de compra *</label>
+                  <label className={labelClass} htmlFor={`${fieldId}-purchased_at`}>Fecha de compra *</label>
                   <input
                     type="date"
-                    name="purchased_at"
+                    name="purchased_at" id={`${fieldId}-purchased_at`}
                     required
                     defaultValue={prefill?.purchased_at ?? new Date().toISOString().split('T')[0]}
                     className={`${inputClass} [color-scheme:dark]`}
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Lugar de compra (Opcional)</label>
+                  <label className={labelClass} htmlFor={`${fieldId}-purchase_location`}>Lugar de compra (Opcional)</label>
                   <input
                     type="text"
-                    name="purchase_location"
+                    name="purchase_location" id={`${fieldId}-purchase_location`}
                     defaultValue={prefill?.purchase_location ?? ''}
                     className={inputClass}
                     placeholder="Ej. Particular"
@@ -757,19 +763,19 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Garantía oficial hasta (Opcional)</label>
+                <label className={labelClass} htmlFor={`${fieldId}-warranty_until`}>Garantía oficial hasta (Opcional)</label>
                 <input
                   type="date"
-                  name="warranty_until"
+                  name="warranty_until" id={`${fieldId}-warranty_until`}
                   defaultValue={prefill?.warranty_until ?? ''}
                   className={`${inputClass} [color-scheme:dark]`}
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Notas internas (Opcional)</label>
+                <label className={labelClass} htmlFor={`${fieldId}-internal_notes`}>Notas internas (Opcional)</label>
                 <textarea
-                  name="internal_notes"
+                  name="internal_notes" id={`${fieldId}-internal_notes`}
                   rows={3}
                   defaultValue={prefill?.internal_notes ?? ''}
                   className={`${inputClass} resize-none`}
@@ -783,9 +789,9 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
         {/* Imagen de catálogo si existe */}
         {modelId && color && (
           <section className={sectionClass}>
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[16px]">image</span> Imagen de catálogo
-            </h3>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">image</span> Imagen de catálogo
+            </h2>
             {selectedCatalogImage ? (
               <div className="flex items-center gap-4 bg-[#121217] p-4 rounded-xl border border-[#1F1F24]">
                 <div className="w-16 h-16 shrink-0 bg-white rounded-lg flex items-center justify-center p-1">
@@ -803,7 +809,7 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
             ) : (
               <div className="flex items-center gap-4 bg-[#121217] p-4 rounded-xl border border-[#1F1F24]">
                 <div className="w-16 h-16 shrink-0 bg-[#1F1F24] rounded-lg flex items-center justify-center text-zinc-600">
-                  <span className="material-symbols-outlined">image_not_supported</span>
+                  <span aria-hidden="true" className="material-symbols-outlined">image_not_supported</span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-sm font-semibold text-white">Sin imagen asignada</span>
@@ -820,9 +826,9 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
         <section className={sectionClass}>
           <div className="flex justify-between items-end mb-2">
             <div className="flex items-center gap-2">
-              <h3 className={sectionTitleClass}>
-                <span className="material-symbols-outlined text-[16px]">photo_camera</span> Fotos reales
-              </h3>
+              <h2 className={sectionTitleClass}>
+                <span aria-hidden="true" className="material-symbols-outlined text-[16px]">photo_camera</span> Fotos reales
+              </h2>
               <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
                 Opcional
               </span>
@@ -832,18 +838,19 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+          <div className="admin-device-form__photos">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="aspect-square flex flex-col items-center justify-center bg-[#121217] border-2 border-dashed border-[#2a2a30] rounded-xl text-zinc-500 hover:text-[#d7baff] hover:border-[#d7baff]/50 transition-colors hover:bg-[#7a32d4]/5"
             >
-              <span className="material-symbols-outlined text-2xl mb-1">add_photo_alternate</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-2xl mb-1">add_photo_alternate</span>
               <span className="text-[11px] font-semibold">Añadir foto</span>
             </button>
 
             <input
               type="file"
+              aria-label="Añadir fotos del dispositivo"
               ref={fileInputRef}
               onChange={handleFileChange}
               multiple
@@ -853,27 +860,24 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
 
             {imagePreviews.map((preview, idx) => (
               <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-[#1F1F24] group bg-[#121217]">
-                <img src={preview} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                <img src={preview} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => removeImage(idx)}
-                  className="absolute top-1.5 right-1.5 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
+                  className="admin-device-form__photo-remove"
                   title="Eliminar foto"
+                aria-label={`Eliminar foto ${idx + 1}`}
                 >
-                  <span className="material-symbols-outlined text-[14px]">close</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[14px]">close</span>
                 </button>
               </div>
             ))}
           </div>
         </section>
 
-        {formState.error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm font-semibold text-center">
-            {formState.error}
-          </div>
-        )}
-
-        {!embedded && <div className="flex justify-end pt-2">
+        <div className="admin-device-form__actions">
+          {formState.error && <p className="admin-device-form__error" role="alert">{formState.error}</p>}
+          {!embedded && <div className="admin-device-form__submit-row">
           <button
             type="submit"
             disabled={uploading}
@@ -883,28 +887,29 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
               'Procesando...'
             ) : (
               <>
-                <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-[18px]">cloud_upload</span>
                 Guardar dispositivo
               </>
             )}
           </button>
         </div>}
-      </form>
+      </div>
+    </form>
     )
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-6 lg:gap-8 pb-12">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+    <form ref={formRef} onSubmit={handleSubmit} data-embedded={embedded} data-sticky-save={hasStickySave} className="admin-device-form admin-device-form--new">
+      <div className="admin-device-form__columns">
         
         {/* LEFT COLUMN */}
         <div className="flex flex-col gap-6 lg:gap-8">
           
           {/* DISPOSITIVO */}
           <section className={sectionClass}>
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[16px]">smartphone</span> Dispositivo
-            </h3>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">smartphone</span> Dispositivo
+            </h2>
             
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
@@ -932,8 +937,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 <>
                   {/* Tipo de producto */}
                   <div className="flex flex-col gap-1.5">
-                    <label className={labelClass}>Tipo de producto</label>
-                    <select
+                    <label className={labelClass} htmlFor={`${fieldId}-control-1`}>Tipo de producto</label>
+                    <select id={`${fieldId}-control-1`}
                       value={productType}
                       onChange={(e) => {
                         setProductType(e.target.value)
@@ -952,8 +957,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
 
                   {productType === 'other' && (
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Tipo personalizado</label>
-                      <input
+                      <label className={labelClass} htmlFor={`${fieldId}-control-2`}>Tipo personalizado</label>
+                      <input id={`${fieldId}-control-2`}
                         type="text"
                         value={customProductType}
                         onChange={(e) => setCustomProductType(e.target.value)}
@@ -966,8 +971,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                   {/* Marca y Modelo */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Marca</label>
-                      <input
+                      <label className={labelClass} htmlFor={`${fieldId}-control-3`}>Marca</label>
+                      <input id={`${fieldId}-control-3`}
                         type="text"
                         value={customBrand}
                         onChange={(e) => setCustomBrand(e.target.value)}
@@ -977,8 +982,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Modelo / Nombre</label>
-                      <input
+                      <label className={labelClass} htmlFor={`${fieldId}-control-4`}>Modelo / Nombre</label>
+                      <input id={`${fieldId}-control-4`}
                         type="text"
                         value={customModelName}
                         onChange={(e) => setCustomModelName(e.target.value)}
@@ -993,8 +998,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                   {productType === 'android_phone' && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>RAM</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-5`}>RAM</label>
+                        <input id={`${fieldId}-control-5`}
                           type="text"
                           value={presetSpecs['RAM'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'RAM': e.target.value }))}
@@ -1003,10 +1008,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Almacenamiento</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-storage`}>Almacenamiento</label>
                         <input
                           type="text"
-                          name="storage"
+                          name="storage" id={`${fieldId}-storage`}
                           value={storage}
                           onChange={(e) => {
                             setStorage(e.target.value)
@@ -1017,10 +1022,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Color</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
                         <input
                           type="text"
-                          name="color"
+                          name="color" id={`${fieldId}-color`}
                           value={color}
                           onChange={(e) => {
                             setColor(e.target.value)
@@ -1036,8 +1041,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                   {productType === 'laptop' && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Procesador</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-6`}>Procesador</label>
+                        <input id={`${fieldId}-control-6`}
                           type="text"
                           value={presetSpecs['Procesador'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Procesador': e.target.value }))}
@@ -1046,8 +1051,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Gráfica</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-7`}>Gráfica</label>
+                        <input id={`${fieldId}-control-7`}
                           type="text"
                           value={presetSpecs['Gráfica'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Gráfica': e.target.value }))}
@@ -1056,8 +1061,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>RAM</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-8`}>RAM</label>
+                        <input id={`${fieldId}-control-8`}
                           type="text"
                           value={presetSpecs['RAM'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'RAM': e.target.value }))}
@@ -1066,10 +1071,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Almacenamiento</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-storage`}>Almacenamiento</label>
                         <input
                           type="text"
-                          name="storage"
+                          name="storage" id={`${fieldId}-storage`}
                           value={storage}
                           onChange={(e) => {
                             setStorage(e.target.value)
@@ -1080,8 +1085,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5 sm:col-span-2">
-                        <label className={labelClass}>Tamaño de pantalla</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-9`}>Tamaño de pantalla</label>
+                        <input id={`${fieldId}-control-9`}
                           type="text"
                           value={presetSpecs['Tamaño de pantalla'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Tamaño de pantalla': e.target.value }))}
@@ -1095,8 +1100,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                   {productType === 'desktop_pc' && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Procesador</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-10`}>Procesador</label>
+                        <input id={`${fieldId}-control-10`}
                           type="text"
                           value={presetSpecs['Procesador'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Procesador': e.target.value }))}
@@ -1105,8 +1110,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Gráfica</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-11`}>Gráfica</label>
+                        <input id={`${fieldId}-control-11`}
                           type="text"
                           value={presetSpecs['Gráfica'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Gráfica': e.target.value }))}
@@ -1115,8 +1120,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>RAM</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-12`}>RAM</label>
+                        <input id={`${fieldId}-control-12`}
                           type="text"
                           value={presetSpecs['RAM'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'RAM': e.target.value }))}
@@ -1125,10 +1130,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Almacenamiento</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-storage`}>Almacenamiento</label>
                         <input
                           type="text"
-                          name="storage"
+                          name="storage" id={`${fieldId}-storage`}
                           value={storage}
                           onChange={(e) => {
                             setStorage(e.target.value)
@@ -1139,8 +1144,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Placa base</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-13`}>Placa base</label>
+                        <input id={`${fieldId}-control-13`}
                           type="text"
                           value={presetSpecs['Placa base'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Placa base': e.target.value }))}
@@ -1149,8 +1154,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Fuente de alimentación</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-14`}>Fuente de alimentación</label>
+                        <input id={`${fieldId}-control-14`}
                           type="text"
                           value={presetSpecs['Fuente de alimentación'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Fuente de alimentación': e.target.value }))}
@@ -1164,8 +1169,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                   {productType === 'tablet' && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>RAM</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-15`}>RAM</label>
+                        <input id={`${fieldId}-control-15`}
                           type="text"
                           value={presetSpecs['RAM'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'RAM': e.target.value }))}
@@ -1174,10 +1179,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Almacenamiento</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-storage`}>Almacenamiento</label>
                         <input
                           type="text"
-                          name="storage"
+                          name="storage" id={`${fieldId}-storage`}
                           value={storage}
                           onChange={(e) => {
                             setStorage(e.target.value)
@@ -1188,10 +1193,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Color</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
                         <input
                           type="text"
-                          name="color"
+                          name="color" id={`${fieldId}-color`}
                           value={color}
                           onChange={(e) => {
                             setColor(e.target.value)
@@ -1207,10 +1212,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                   {productType === 'console' && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Almacenamiento</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-storage`}>Almacenamiento</label>
                         <input
                           type="text"
-                          name="storage"
+                          name="storage" id={`${fieldId}-storage`}
                           value={storage}
                           onChange={(e) => {
                             setStorage(e.target.value)
@@ -1221,10 +1226,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Color</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
                         <input
                           type="text"
-                          name="color"
+                          name="color" id={`${fieldId}-color`}
                           value={color}
                           onChange={(e) => {
                             setColor(e.target.value)
@@ -1246,7 +1251,7 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         onClick={() => setCustomSpecRows(prev => [...prev, { id: crypto.randomUUID(), name: '', value: '' }])}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-[#d7baff] hover:text-white transition-colors"
                       >
-                        <span className="material-symbols-outlined text-[16px]">add</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span>
                         + Añadir especificación
                       </button>
                     </div>
@@ -1279,7 +1284,7 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                           onClick={() => setCustomSpecRows(prev => prev.filter((_, i) => i !== idx))}
                           className="p-2 text-zinc-500 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10"
                         >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">delete</span>
                         </button>
                       </div>
                     ))}
@@ -1288,8 +1293,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
               ) : (
                 <>
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Modelo</label>
-                <select name="model_id" value={modelId} onChange={e => setModelId(e.target.value)} required className={inputClass}>
+                <label className={labelClass} htmlFor={`${fieldId}-model_id`}>Modelo</label>
+                <select name="model_id" id={`${fieldId}-model_id`} value={modelId} onChange={e => setModelId(e.target.value)} required className={inputClass}>
                   <option value="">Selecciona un modelo...</option>
                   {availableModels.map(m => (
                     <option key={m.id} value={m.id}>{m.name}</option>
@@ -1301,15 +1306,15 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 {category !== 'apple_watch' && category !== 'airpods' && (
                   <>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Capacidad</label>
-                      <select name="storage" value={storage} onChange={e => setStorage(e.target.value)} required={availableStorage.length > 0} className={inputClass} disabled={availableStorage.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-storage`}>Capacidad</label>
+                      <select name="storage" id={`${fieldId}-storage`} value={storage} onChange={e => setStorage(e.target.value)} required={availableStorage.length > 0} className={inputClass} disabled={availableStorage.length === 0}>
                         <option value="">{availableStorage.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableStorage.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Color</label>
-                      <select name="color" value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
+                      <select name="color" id={`${fieldId}-color`} value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
                         <option value="">{availableColors.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
@@ -1319,8 +1324,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
 
                 {category === 'ipad' && (
                   <div className="flex flex-col gap-1.5">
-                    <label className={labelClass}>Conectividad</label>
-                    <select name="connectivity" value={connectivity} onChange={e => setConnectivity(e.target.value)} required={availableConnectivities.length > 0} className={inputClass} disabled={availableConnectivities.length === 0}>
+                    <label className={labelClass} htmlFor={`${fieldId}-connectivity`}>Conectividad</label>
+                    <select name="connectivity" id={`${fieldId}-connectivity`} value={connectivity} onChange={e => setConnectivity(e.target.value)} required={availableConnectivities.length > 0} className={inputClass} disabled={availableConnectivities.length === 0}>
                       <option value="">{availableConnectivities.length > 0 ? "Selecciona..." : "N/A"}</option>
                       {availableConnectivities.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                     </select>
@@ -1330,29 +1335,29 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 {category === 'apple_watch' && (
                   <>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Tamaño</label>
-                      <select name="size" value={size} onChange={e => setSize(e.target.value)} required={availableSizes.length > 0} className={inputClass} disabled={availableSizes.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-size`}>Tamaño</label>
+                      <select name="size" id={`${fieldId}-size`} value={size} onChange={e => setSize(e.target.value)} required={availableSizes.length > 0} className={inputClass} disabled={availableSizes.length === 0}>
                         <option value="">{availableSizes.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableSizes.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Conectividad</label>
-                      <select name="connectivity" value={connectivity} onChange={e => setConnectivity(e.target.value)} required={availableConnectivities.length > 0} className={inputClass} disabled={availableConnectivities.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-connectivity`}>Conectividad</label>
+                      <select name="connectivity" id={`${fieldId}-connectivity`} value={connectivity} onChange={e => setConnectivity(e.target.value)} required={availableConnectivities.length > 0} className={inputClass} disabled={availableConnectivities.length === 0}>
                         <option value="">{availableConnectivities.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableConnectivities.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Material de caja</label>
-                      <select name="case_material" value={caseMaterial} onChange={e => setCaseMaterial(e.target.value)} required={availableCaseMaterials.length > 0} className={inputClass} disabled={availableCaseMaterials.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-case_material`}>Material de caja</label>
+                      <select name="case_material" id={`${fieldId}-case_material`} value={caseMaterial} onChange={e => setCaseMaterial(e.target.value)} required={availableCaseMaterials.length > 0} className={inputClass} disabled={availableCaseMaterials.length === 0}>
                         <option value="">{availableCaseMaterials.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableCaseMaterials.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Color</label>
-                      <select name="color" value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
+                      <select name="color" id={`${fieldId}-color`} value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
                         <option value="">{availableColors.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
@@ -1364,8 +1369,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                   <>
                     {availableCaseTypes.length > 0 && (
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Tipo de estuche</label>
-                        <select name="case_type" value={caseType} onChange={e => setCaseType(e.target.value)} required className={inputClass}>
+                        <label className={labelClass} htmlFor={`${fieldId}-case_type`}>Tipo de estuche</label>
+                        <select name="case_type" id={`${fieldId}-case_type`} value={caseType} onChange={e => setCaseType(e.target.value)} required className={inputClass}>
                           <option value="">Selecciona...</option>
                           {availableCaseTypes.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                         </select>
@@ -1373,8 +1378,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                     )}
                     {availableColors.length > 0 && (
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Color</label>
-                        <select name="color" value={color} onChange={e => setColor(e.target.value)} required className={inputClass}>
+                        <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
+                        <select name="color" id={`${fieldId}-color`} value={color} onChange={e => setColor(e.target.value)} required className={inputClass}>
                           <option value="">Selecciona...</option>
                           {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                         </select>
@@ -1386,29 +1391,29 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 {category === 'macbook' && (
                   <>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Chip (Procesador)</label>
-                      <select name="chip" value={chip} onChange={e => setChip(e.target.value)} required={availableChips.length > 0} className={inputClass} disabled={availableChips.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-chip`}>Chip (Procesador)</label>
+                      <select name="chip" id={`${fieldId}-chip`} value={chip} onChange={e => setChip(e.target.value)} required={availableChips.length > 0} className={inputClass} disabled={availableChips.length === 0}>
                         <option value="">{availableChips.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableChips.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Memoria Unificada</label>
-                      <select name="memory" value={memory} onChange={e => setMemory(e.target.value)} required={availableMemories.length > 0} className={inputClass} disabled={availableMemories.length === 0 || (!chip && availableChips.length > 0)}>
+                      <label className={labelClass} htmlFor={`${fieldId}-memory`}>Memoria Unificada</label>
+                      <select name="memory" id={`${fieldId}-memory`} value={memory} onChange={e => setMemory(e.target.value)} required={availableMemories.length > 0} className={inputClass} disabled={availableMemories.length === 0 || (!chip && availableChips.length > 0)}>
                         <option value="">{availableMemories.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableMemories.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Almacenamiento SSD</label>
-                      <select name="storage" value={storage} onChange={e => setStorage(e.target.value)} required={availableStorage.length > 0} className={inputClass} disabled={availableStorage.length === 0 || (!chip && availableChips.length > 0)}>
+                      <label className={labelClass} htmlFor={`${fieldId}-storage`}>Almacenamiento SSD</label>
+                      <select name="storage" id={`${fieldId}-storage`} value={storage} onChange={e => setStorage(e.target.value)} required={availableStorage.length > 0} className={inputClass} disabled={availableStorage.length === 0 || (!chip && availableChips.length > 0)}>
                         <option value="">{availableStorage.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableStorage.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Color</label>
-                      <select name="color" value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
+                      <select name="color" id={`${fieldId}-color`} value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
                         <option value="">{availableColors.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
@@ -1420,22 +1425,22 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
               )}
 
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>IMEI / Número de serie (Opcional)</label>
-                <input type="text" name="imei_serial" defaultValue={prefill?.imei_serial ?? ''} placeholder="Introduce IMEI o Serie" className={inputClass} />
+                <label className={labelClass} htmlFor={`${fieldId}-imei_serial`}>IMEI / Número de serie (Opcional)</label>
+                <input type="text" name="imei_serial" id={`${fieldId}-imei_serial`} defaultValue={prefill?.imei_serial ?? ''} placeholder="Introduce IMEI o Serie" className={inputClass} />
               </div>
             </div>
           </section>
 
           {/* ESTADO / BATERIA */}
           <section className={sectionClass}>
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[16px]">health_and_safety</span> Estado y Batería
-            </h3>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">health_and_safety</span> Estado y Batería
+            </h2>
             
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Estado físico</label>
-                <select name="condition" value={condition} onChange={e => setCondition(e.target.value)} required className={inputClass}>
+                <label className={labelClass} htmlFor={`${fieldId}-condition`}>Estado físico</label>
+                <select name="condition" id={`${fieldId}-condition`} value={condition} onChange={e => setCondition(e.target.value)} required className={inputClass}>
                   <option value="sealed">Precintado</option>
                   <option value="like_new">Como nuevo</option>
                   <option value="good">Buen estado</option>
@@ -1447,14 +1452,14 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {showBatteryHealth && (
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Salud de batería (%)</label>
-                      <input type="number" name="battery_health" min="0" max="100" value={batteryHealth} onChange={e => setBatteryHealth(e.target.value)} required className={inputClass} />
+                      <label className={labelClass} htmlFor={`${fieldId}-battery_health`}>Salud de batería (%)</label>
+                      <input type="number" name="battery_health" id={`${fieldId}-battery_health`} min="0" max="100" value={batteryHealth} onChange={e => setBatteryHealth(e.target.value)} required className={inputClass} />
                     </div>
                   )}
                   {showBatteryCycles && (
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Ciclos de carga</label>
-                      <input type="number" name="battery_cycles" min="0" defaultValue={prefill?.battery_cycles ?? ''} placeholder="Ej. 317" className={inputClass} />
+                      <label className={labelClass} htmlFor={`${fieldId}-battery_cycles`}>Ciclos de carga</label>
+                      <input type="number" name="battery_cycles" id={`${fieldId}-battery_cycles`} min="0" defaultValue={prefill?.battery_cycles ?? ''} placeholder="Ej. 317" className={inputClass} />
                     </div>
                   )}
                 </div>
@@ -1464,9 +1469,9 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
 
           {/* ACCESORIOS */}
           <section className={sectionClass}>
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[16px]">inventory_2</span> Accesorios
-            </h3>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">inventory_2</span> Accesorios
+            </h2>
             <div className="flex flex-col gap-3">
               {[
                 { name: 'has_box', label: 'Tiene caja', defaultChecked: prefill?.has_box ?? false },
@@ -1478,15 +1483,15 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 <div key={field.name} className="flex justify-between items-center py-2.5 border-b border-[#1F1F24] last:border-0">
                   <span className="text-zinc-300 text-[14px] font-medium">{field.label}</span>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" name={field.name} defaultChecked={field.defaultChecked} className="sr-only peer" />
+                    <input type="checkbox" aria-label={field.label} name={field.name} defaultChecked={field.defaultChecked} className="sr-only peer" />
                     <div className="w-11 h-6 bg-[#1F1F24] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all transition-colors peer-checked:bg-[#7a32d4]"></div>
                   </label>
                 </div>
               ))}
               
               <div className="flex flex-col gap-1.5 mt-2">
-                <label className={labelClass}>Garantía oficial hasta (Opcional)</label>
-                <input type="date" name="warranty_until" defaultValue={prefill?.warranty_until ?? ''} className={`${inputClass} [color-scheme:dark]`} />
+                <label className={labelClass} htmlFor={`${fieldId}-warranty_until`}>Garantía oficial hasta (Opcional)</label>
+                <input type="date" name="warranty_until" id={`${fieldId}-warranty_until`} defaultValue={prefill?.warranty_until ?? ''} className={`${inputClass} [color-scheme:dark]`} />
               </div>
             </div>
           </section>
@@ -1498,39 +1503,39 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
           
           {/* PRECIOS Y COMPRA */}
           <section className={sectionClass}>
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[16px]">payments</span> Compra y Precios
-            </h3>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">payments</span> Compra y Precios
+            </h2>
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5 relative">
-                  <label className={labelClass}>Precio de compra</label>
+                  <label className={labelClass} htmlFor={`${fieldId}-purchase_price`}>Precio de compra</label>
                   <span className="absolute left-4 top-[35px] text-zinc-500">€</span>
-                  <input type="number" step="0.01" min="0" name="purchase_price" defaultValue={prefill?.purchase_price ?? ''} required className={`${inputClass} pl-8`} />
+                  <input type="number" step="0.01" min="0" name="purchase_price" id={`${fieldId}-purchase_price`} defaultValue={prefill?.purchase_price ?? ''} required className={`${inputClass} pl-8`} />
                 </div>
                 <div className="flex flex-col gap-1.5 relative">
-                  <label className={labelClass}>Precio de publicación</label>
+                  <label className={labelClass} htmlFor={`${fieldId}-listing_price`}>Precio de publicación</label>
                   <span className="absolute left-4 top-[35px] text-zinc-500">€</span>
-                  <input type="number" step="0.01" min="0" name="listing_price" defaultValue={prefill?.listing_price ?? ''} required className={`${inputClass} pl-8 font-bold text-[#d7baff] border-[#7a32d4]/30 bg-[#7a32d4]/5`} />
+                  <input type="number" step="0.01" min="0" name="listing_price" id={`${fieldId}-listing_price`} defaultValue={prefill?.listing_price ?? ''} required className={`${inputClass} pl-8 font-bold text-[#d7baff] border-[#7a32d4]/30 bg-[#7a32d4]/5`} />
                 </div>
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Fecha de compra</label>
+                  <label className={labelClass} htmlFor={`${fieldId}-purchased_at`}>Fecha de compra</label>
                   <input
                     type="date"
-                    name="purchased_at"
+                    name="purchased_at" id={`${fieldId}-purchased_at`}
                     required
                     defaultValue={prefill?.purchased_at ?? new Date().toISOString().split('T')[0]}
                     className={`${inputClass} [color-scheme:dark]`}
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Lugar de compra (Opcional)</label>
+                  <label className={labelClass} htmlFor={`${fieldId}-purchase_location`}>Lugar de compra (Opcional)</label>
                   <input
                     type="text"
-                    name="purchase_location"
+                    name="purchase_location" id={`${fieldId}-purchase_location`}
                     defaultValue={prefill?.purchase_location ?? ''}
                     className={inputClass}
                     placeholder="Ej. Tienda física"
@@ -1539,22 +1544,23 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
               </div>
               
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Notas internas (Opcional)</label>
-                <textarea name="internal_notes" rows={3} defaultValue={prefill?.internal_notes ?? ''} className={`${inputClass} resize-none`} placeholder="Notas visibles solo para administradores."></textarea>
+                <label className={labelClass} htmlFor={`${fieldId}-internal_notes`}>Notas internas (Opcional)</label>
+                <textarea name="internal_notes" id={`${fieldId}-internal_notes`} rows={3} defaultValue={prefill?.internal_notes ?? ''} className={`${inputClass} resize-none`} placeholder="Notas visibles solo para administradores."></textarea>
               </div>
             </div>
           </section>
 
           {/* VENDEDOR */}
           <section className={sectionClass}>
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[16px]">person</span> Vendedor
-            </h3>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">person</span> Vendedor
+            </h2>
             <div className="flex flex-col gap-4">
               <div className="flex p-1 bg-[#121217] rounded-xl border border-[#1F1F24] w-fit">
                 <button
                   type="button"
                   onClick={() => { setClientMode('existing'); setSelectedClientId(''); setClientSearch(''); }}
+                  aria-pressed={clientMode === 'existing'}
                   className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${clientMode === 'existing' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'}`}
                 >
                   Cliente existente
@@ -1562,6 +1568,7 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 <button
                   type="button"
                   onClick={() => { setClientMode('new'); setSelectedClientId(''); }}
+                  aria-pressed={clientMode === 'new'}
                   className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${clientMode === 'new' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'}`}
                 >
                   Nuevo cliente
@@ -1578,8 +1585,8 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                           <span className="text-white font-bold">{selectedClient.name}</span>
                           <span className="text-zinc-400 text-sm">{selectedClient.phone}{selectedClient.location ? ` · ${selectedClient.location}` : ''}</span>
                         </div>
-                        <button type="button" onClick={() => setSelectedClientId('')} className="text-zinc-500 hover:text-white">
-                          <span className="material-symbols-outlined text-[18px]">close</span>
+                        <button type="button" onClick={() => setSelectedClientId('')} aria-label="Cambiar cliente seleccionado" className="admin-device-form__clear-client text-zinc-500 hover:text-white">
+                          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">close</span>
                         </button>
                       </div>
                       <Link href={`/admin/clientes/${selectedClient.id}`} target="_blank" className="text-xs text-[#d7baff] hover:underline mt-1 w-fit">
@@ -1598,16 +1605,17 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                         aria-hidden="true"
                       />
                       <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-3 text-zinc-500 text-[18px]">search</span>
+                        <span aria-hidden="true" className="material-symbols-outlined absolute left-3 top-3 text-zinc-500 text-[18px]">search</span>
                         <input
                           type="text"
+                          aria-label="Buscar cliente por nombre o teléfono"
                           placeholder="Buscar por nombre o teléfono..."
                           value={clientSearch}
                           onChange={(e) => setClientSearch(e.target.value)}
                           className={`${inputClass} pl-10`}
                         />
                       </div>
-                      {clientSearch && filteredClients.length > 0 && (
+                      {filteredClients.length > 0 && (
                         <div className="flex flex-col bg-[#121217] border border-[#1F1F24] rounded-xl overflow-hidden max-h-[200px] overflow-y-auto">
                           {filteredClients.map(client => (
                             <button
@@ -1636,10 +1644,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Nombre *</label>
+                      <label className={labelClass} htmlFor={`${fieldId}-seller_name`}>Nombre *</label>
                       <input
                         type="text"
-                        name="seller_name"
+                        name="seller_name" id={`${fieldId}-seller_name`}
                         required
                         defaultValue={prefill?.seller_name ?? ''}
                         className={inputClass}
@@ -1647,10 +1655,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Teléfono *</label>
+                      <label className={labelClass} htmlFor={`${fieldId}-seller_phone`}>Teléfono *</label>
                       <input
                         type="text"
-                        name="seller_phone"
+                        name="seller_phone" id={`${fieldId}-seller_phone`}
                         required
                         defaultValue={prefill?.seller_phone ?? ''}
                         className={inputClass}
@@ -1659,10 +1667,10 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className={labelClass}>Ubicación (Opcional)</label>
+                    <label className={labelClass} htmlFor={`${fieldId}-seller_location`}>Ubicación (Opcional)</label>
                     <input
                       type="text"
-                      name="seller_location"
+                      name="seller_location" id={`${fieldId}-seller_location`}
                       defaultValue={prefill?.seller_location ?? ''}
                       className={inputClass}
                       placeholder="Ej. Las Palmas"
@@ -1676,9 +1684,9 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
           {/* IMAGEN DE CATÁLOGO */}
           {modelId && color && (
             <section className={sectionClass}>
-              <h3 className={sectionTitleClass}>
-                <span className="material-symbols-outlined text-[16px]">image</span> Imagen de catálogo
-              </h3>
+              <h2 className={sectionTitleClass}>
+                <span aria-hidden="true" className="material-symbols-outlined text-[16px]">image</span> Imagen de catálogo
+              </h2>
               
               {selectedCatalogImage ? (
                 <div className="flex items-center gap-4 bg-[#121217] p-4 rounded-xl border border-[#1F1F24]">
@@ -1697,7 +1705,7 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
               ) : (
                 <div className="flex items-center gap-4 bg-[#121217] p-4 rounded-xl border border-[#1F1F24]">
                   <div className="w-16 h-16 shrink-0 bg-[#1F1F24] rounded-lg flex items-center justify-center text-zinc-600">
-                    <span className="material-symbols-outlined">image_not_supported</span>
+                    <span aria-hidden="true" className="material-symbols-outlined">image_not_supported</span>
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-sm font-semibold text-white">Sin imagen asignada</span>
@@ -1716,24 +1724,25 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
       {/* FULL WIDTH BOTTOM: FOTOS Y SUBMIT */}
       <section className={sectionClass}>
         <div className="flex justify-between items-end mb-2">
-          <h3 className={sectionTitleClass}>
-            <span className="material-symbols-outlined text-[16px]">photo_camera</span> Fotos reales
-          </h3>
+          <h2 className={sectionTitleClass}>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">photo_camera</span> Fotos reales
+          </h2>
           <span className="text-[11px] text-zinc-500 font-semibold uppercase">Máx 8MB/foto</span>
         </div>
         
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+        <div className="admin-device-form__photos">
           <button 
             type="button" 
             onClick={() => fileInputRef.current?.click()}
             className="aspect-square flex flex-col items-center justify-center bg-[#121217] border-2 border-dashed border-[#2a2a30] rounded-xl text-zinc-500 hover:text-[#d7baff] hover:border-[#d7baff]/50 transition-colors hover:bg-[#7a32d4]/5"
           >
-            <span className="material-symbols-outlined text-2xl mb-1">add_photo_alternate</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-2xl mb-1">add_photo_alternate</span>
             <span className="text-[11px] font-semibold">Añadir foto</span>
           </button>
           
           <input 
             type="file" 
+            aria-label="Añadir fotos del dispositivo"
             ref={fileInputRef} 
             onChange={handleFileChange} 
             multiple 
@@ -1743,27 +1752,24 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
 
           {imagePreviews.map((preview, idx) => (
             <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-[#1F1F24] group bg-[#121217]">
-              <img src={preview} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+              <img src={preview} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
               <button 
                 type="button" 
                 onClick={() => removeImage(idx)}
-                className="absolute top-1.5 right-1.5 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
+                className="admin-device-form__photo-remove"
                 title="Eliminar foto"
+                aria-label={`Eliminar foto ${idx + 1}`}
               >
-                <span className="material-symbols-outlined text-[14px]">close</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-[14px]">close</span>
               </button>
             </div>
           ))}
         </div>
       </section>
 
-      {formState.error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm font-semibold text-center">
-          {formState.error}
-        </div>
-      )}
-
-      <div className="flex justify-end pt-2">
+      <div className="admin-device-form__actions">
+          {formState.error && <p className="admin-device-form__error" role="alert">{formState.error}</p>}
+          <div className="admin-device-form__submit-row">
         <button 
           type="submit" 
           disabled={uploading}
@@ -1773,11 +1779,12 @@ export function NewDeviceForm({ models, variants, compatibilities = [], catalogI
             'Procesando...'
           ) : (
             <>
-              <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">cloud_upload</span>
               Guardar dispositivo
             </>
           )}
         </button>
+      </div>
       </div>
     </form>
   )

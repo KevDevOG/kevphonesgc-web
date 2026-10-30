@@ -22,12 +22,19 @@ export default async function StockPage() {
       model_id,
       storage,
       color,
+      size,
+      connectivity,
+      case_type,
+      case_material,
+      custom_product_type,
+      custom_specs,
       imei_serial,
       battery_health,
       battery_cycles,
       condition,
       purchase_price,
       listing_price,
+      discount_price,
       warranty_until,
       purchased_at,
       status,
@@ -35,6 +42,7 @@ export default async function StockPage() {
       created_at,
       device_models (
         category,
+        brand,
         name
       ),
       device_images (

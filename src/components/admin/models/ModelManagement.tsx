@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useRef } from 'react'
+import React, { useState, useMemo, useRef, useId } from 'react'
 import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 import { createClient } from '@/lib/supabase/client'
@@ -45,7 +45,9 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 export default function ModelManagement({ models, colorVariants, catalogImages }: Props) {
+  const searchId = useId()
   const [searchTerm, setSearchTerm] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const [processing, setProcessing] = useState<string | null>(null) // '{modelId}-{color}' format
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   
@@ -57,23 +59,14 @@ export default function ModelManagement({ models, colorVariants, catalogImages }
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 
   const filteredModels = useMemo(() => {
-    if (!searchTerm) return models
-    const lower = searchTerm.toLowerCase()
-    return models.filter(m => 
-      m.name.toLowerCase().includes(lower) || 
-      m.brand.toLowerCase().includes(lower) || 
-      m.category.toLowerCase().includes(lower)
-    )
-  }, [models, searchTerm])
-
-  const groupedModels = useMemo(() => {
-    const groups: Record<string, Model[]> = {}
-    filteredModels.forEach(m => {
-      if (!groups[m.category]) groups[m.category] = []
-      groups[m.category].push(m)
+    const query = searchTerm.trim().toLowerCase()
+    return models.filter(model => {
+      if (categoryFilter !== 'all' && model.category !== categoryFilter) return false
+      if (!query) return true
+      return [model.name, model.brand, model.category, CATEGORY_LABELS[model.category], ...colorVariants.filter(color => color.model_id === model.id).map(color => color.value)]
+        .filter(Boolean).join(' ').toLowerCase().includes(query)
     })
-    return groups
-  }, [filteredModels])
+  }, [models, colorVariants, searchTerm, categoryFilter])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !activeUploadContext) return
@@ -168,243 +161,84 @@ export default function ModelManagement({ models, colorVariants, catalogImages }
     }
   }
 
+  const categories = [...new Set(models.map(model => model.category))]
+  const hasFilters = Boolean(searchTerm.trim()) || categoryFilter !== 'all'
+  const resetFilters = () => {
+    setSearchTerm('')
+    setCategoryFilter('all')
+  }
+
+  const renderImageSlot = (model: Model, color: string, image: CatalogImage | undefined, isGeneral = false) => {
+    const isProcessing = processing === `${model.id}-${color}`
+    const label = isGeneral ? 'Imagen general del modelo' : color
+    return <li key={color} className="admin-models__slot">
+      <div className="admin-models__thumbnail">
+        {image ? <img src={`${supabaseUrl}/storage/v1/object/public/model-images/${image.storage_path}`} alt={isGeneral ? `${model.name} Imagen general` : `${model.name} ${color}`} /> : <span aria-hidden="true" className="material-symbols-outlined">image</span>}
+      </div>
+      <div className="admin-models__slot-info"><strong>{label}</strong><span className="admin-models__image-state" data-configured={Boolean(image)} role={isProcessing ? 'status' : undefined}>{isProcessing ? 'Procesando...' : image ? 'Configurada' : 'Sin imagen'}</span></div>
+      <div className="admin-models__slot-actions">
+        <button type="button" disabled={isProcessing} onClick={() => {
+          setActiveUploadContext({ modelId: model.id, color })
+          fileInputRef.current?.click()
+        }} aria-label={`${image ? 'Cambiar imagen' : 'Subir imagen'}: ${model.name}, ${label}`}>
+          {image ? 'Cambiar' : 'Subir imagen'}
+        </button>
+        {image && <button type="button" disabled={isProcessing} className="admin-models__delete" onClick={() => handleDelete(model.id, color)} title="Eliminar imagen" aria-label={`Eliminar imagen: ${model.name}, ${label}`}><span aria-hidden="true" className="material-symbols-outlined">delete</span></button>}
+      </div>
+    </li>
+  }
+
   return (
     <AdminPageShell>
-      <div className="flex flex-col gap-6 lg:gap-8 w-full max-w-6xl mx-auto pb-24">
-        <div className="flex flex-col gap-2">
-          <AdminPageHeader 
-            title="Modelos" 
-            subtitle="Gestiona las imágenes utilizadas en el catálogo." 
-          />
-          <p className="text-[14px] text-zinc-500 font-medium -mt-4">
-            Cada color puede tener su propia imagen de catálogo.
-          </p>
-        </div>
+      <div className="admin-models">
+        <AdminPageHeader title="Modelos" subtitle="Gestiona las imágenes utilizadas en el catálogo." />
+        <p className="admin-models__context">Modelos activos. Cada color puede tener su propia imagen de catálogo.</p>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center w-full">
-          <div className="relative w-full max-w-[480px]">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-[20px]">search</span>
-            <input 
-              type="text" 
-              placeholder="Buscar modelo..." 
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full bg-[#0B0B0E] text-white border border-[#1F1F24] rounded-xl pl-11 pr-4 py-3 text-[14px] font-medium outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all placeholder:text-zinc-600"
-            />
+        <div className="admin-models__toolbar">
+          <div className="admin-models__search">
+            <label htmlFor={searchId} className="sr-only">Buscar en catálogo por modelo, marca, categoría o color</label>
+            <span aria-hidden="true" className="material-symbols-outlined">search</span>
+            <input id={searchId} type="search" placeholder="Buscar en catálogo..." value={searchTerm} onChange={event => setSearchTerm(event.target.value)} />
           </div>
+          <label className="admin-models__category"><span className="sr-only">Categoría</span>
+            <select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}>
+              <option value="all">Todas las categorías</option>{categories.map(category => <option key={category} value={category}>{CATEGORY_LABELS[category] || category}</option>)}
+            </select>
+          </label>
+          {hasFilters && <button type="button" className="admin-models__reset" onClick={resetFilters}>Limpiar filtros</button>}
         </div>
+        <p className="admin-models__results" role="status" aria-live="polite">{filteredModels.length} {filteredModels.length === 1 ? 'modelo' : 'modelos'}</p>
+        {errorMsg && <p role="alert" className="admin-models__error">{errorMsg}</p>}
+        <input type="file" ref={fileInputRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={handleFileChange} aria-label="Subir imagen de catálogo" />
 
-        {errorMsg && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-[13px] font-bold">
-            {errorMsg}
-          </div>
-        )}
-
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
-          accept="image/jpeg, image/png, image/webp"
-          onChange={handleFileChange}
-        />
-
-        <div className="flex flex-col gap-10">
-          {Object.entries(groupedModels).map(([category, catModels]) => (
-            <div key={category} className="flex flex-col gap-4">
-              <h3 className="text-[18px] font-extrabold text-white uppercase tracking-tight">
-                {CATEGORY_LABELS[category] || category}
-              </h3>
-              
-              <div className="flex flex-col gap-6">
-                {catModels.map(model => {
-                  const colors = colorVariants.filter(cv => cv.model_id === model.id)
-                  const configuredCount = colors.filter(cv => catalogImages.some(ci => ci.model_id === model.id && ci.color === cv.value)).length
-                  
-                  const genericImage = catalogImages.find(ci => ci.model_id === model.id && ci.color === '__default__')
-
-                  return (
-                    <div key={model.id} className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl overflow-hidden flex flex-col">
-                      <div className="bg-[#121217] border-b border-[#1F1F24] px-4 py-3 flex items-center justify-between">
-                        <h4 className="font-bold text-[15px] text-white">{model.name}</h4>
-                        {colors.length > 0 ? (
-                          <span className="text-[12px] font-semibold text-zinc-500">{configuredCount} de {colors.length} imágenes</span>
-                        ) : (
-                          <span className="text-[12px] font-semibold text-zinc-500">
-                            {genericImage ? '1 imagen general' : 'Sin imagen'}
-                          </span>
-                        )}
-                      </div>
-                      
-                      {colors.length === 0 ? (
-                        <div className="flex flex-col">
-                          {/* Desktop Header */}
-                          <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 border-b border-[#1F1F24] bg-[#0B0B0E]">
-                            <div className="col-span-3 text-[12px] font-semibold text-zinc-500 uppercase tracking-wider">Tipo</div>
-                            <div className="col-span-3 text-[12px] font-semibold text-zinc-500 uppercase tracking-wider">Imagen</div>
-                            <div className="col-span-3 text-[12px] font-semibold text-zinc-500 uppercase tracking-wider">Estado</div>
-                            <div className="col-span-3 text-[12px] font-semibold text-zinc-500 uppercase tracking-wider text-right">Acción</div>
-                          </div>
-
-                          <div className="flex flex-col md:grid md:grid-cols-12 gap-4 px-4 py-3 items-start md:items-center hover:bg-[#121217]/50 transition-colors">
-                            {/* Slot Label */}
-                            <div className="md:col-span-3 font-bold text-white text-[14px]">
-                              Imagen general del modelo
-                            </div>
-                            
-                            {/* Thumbnail */}
-                            <div className="md:col-span-3 w-full md:w-auto">
-                              <div className="w-16 h-16 md:w-16 md:h-16 bg-[#121217] rounded-xl border border-[#1F1F24] flex items-center justify-center overflow-hidden relative">
-                                {genericImage ? (
-                                  <img 
-                                    src={`${supabaseUrl}/storage/v1/object/public/model-images/${genericImage.storage_path}`} 
-                                    alt={`${model.name} Imagen general`}
-                                    className="w-full h-full object-contain p-2"
-                                  />
-                                ) : (
-                                  <span className="material-symbols-outlined text-[20px] text-zinc-700">image</span>
-                                )}
-                                {processing === `${model.id}-__default__` && (
-                                  <div className="absolute inset-0 bg-black/80 flex items-center justify-center backdrop-blur-sm">
-                                    <span className="text-[10px] text-white font-bold uppercase tracking-wider">Subiendo...</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Status */}
-                            <div className="md:col-span-3 flex items-center w-full md:w-auto">
-                              {genericImage ? (
-                                <span className="text-[13px] font-bold text-[#d7baff] flex items-center gap-1.5 bg-[#7a32d4]/10 px-2.5 py-1 rounded-md border border-[#7a32d4]/20">
-                                  <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                                  Configurada
-                                </span>
-                              ) : (
-                                <span className="text-[13px] font-semibold text-zinc-500">Sin imagen</span>
-                              )}
-                            </div>
-                            
-                            {/* Actions */}
-                            <div className="md:col-span-3 flex items-center gap-2 md:justify-end w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t border-[#1F1F24] md:border-0">
-                              <button
-                                disabled={processing === `${model.id}-__default__`}
-                                onClick={() => {
-                                  setActiveUploadContext({ modelId: model.id, color: '__default__' })
-                                  fileInputRef.current?.click()
-                                }}
-                                className="px-4 py-1.5 bg-[#121217] hover:bg-[#1F1F24] text-white text-[13px] font-bold rounded-lg border border-[#1F1F24] transition-colors disabled:opacity-50 flex-1 md:flex-none text-center"
-                              >
-                                {genericImage ? 'Cambiar' : 'Subir imagen'}
-                              </button>
-                              {genericImage && (
-                                <button
-                                  disabled={processing === `${model.id}-__default__`}
-                                  onClick={() => handleDelete(model.id, '__default__')}
-                                  className="px-3 py-1.5 bg-transparent hover:bg-red-500/10 text-zinc-500 hover:text-red-400 text-[13px] font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center border border-transparent hover:border-red-500/30"
-                                  title="Eliminar imagen"
-                                >
-                                  <span className="material-symbols-outlined text-[18px]">delete</span>
-                                  <span className="md:hidden ml-1">Eliminar</span>
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col divide-y divide-[#1F1F24]">
-                          {/* Desktop Header */}
-                          <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 border-b border-[#1F1F24] bg-[#0B0B0E]">
-                            <div className="col-span-3 text-[12px] font-semibold text-zinc-500 uppercase tracking-wider">Color</div>
-                            <div className="col-span-3 text-[12px] font-semibold text-zinc-500 uppercase tracking-wider">Imagen</div>
-                            <div className="col-span-3 text-[12px] font-semibold text-zinc-500 uppercase tracking-wider">Estado</div>
-                            <div className="col-span-3 text-[12px] font-semibold text-zinc-500 uppercase tracking-wider text-right">Acción</div>
-                          </div>
-
-                          {colors.map(cv => {
-                            const image = catalogImages.find(ci => ci.model_id === model.id && ci.color === cv.value)
-                            const processKey = `${model.id}-${cv.value}`
-                            const isProcessing = processing === processKey
-
-                            return (
-                              <div key={cv.value} className="flex flex-col md:grid md:grid-cols-12 gap-4 px-4 py-3 items-start md:items-center hover:bg-[#121217]/50 transition-colors">
-                                {/* Color Name */}
-                                <div className="md:col-span-3 font-bold text-white text-[14px]">
-                                  {cv.value}
-                                </div>
-                                
-                                {/* Thumbnail */}
-                                <div className="md:col-span-3 w-full md:w-auto">
-                                  <div className="w-16 h-16 md:w-16 md:h-16 bg-[#121217] rounded-xl border border-[#1F1F24] flex items-center justify-center overflow-hidden relative">
-                                    {image ? (
-                                      <img 
-                                        src={`${supabaseUrl}/storage/v1/object/public/model-images/${image.storage_path}`} 
-                                        alt={`${model.name} ${cv.value}`}
-                                        className="w-full h-full object-contain p-2"
-                                      />
-                                    ) : (
-                                      <span className="material-symbols-outlined text-[20px] text-zinc-700">image</span>
-                                    )}
-                                    {isProcessing && (
-                                      <div className="absolute inset-0 bg-black/80 flex items-center justify-center backdrop-blur-sm">
-                                        <span className="text-[10px] text-white font-bold uppercase tracking-wider">Subiendo...</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Status */}
-                                <div className="md:col-span-3 flex items-center w-full md:w-auto">
-                                  {image ? (
-                                    <span className="text-[13px] font-bold text-[#d7baff] flex items-center gap-1.5 bg-[#7a32d4]/10 px-2.5 py-1 rounded-md border border-[#7a32d4]/20">
-                                      <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                                      Configurada
-                                    </span>
-                                  ) : (
-                                    <span className="text-[13px] font-semibold text-zinc-500">Sin imagen</span>
-                                  )}
-                                </div>
-                                
-                                {/* Actions */}
-                                <div className="md:col-span-3 flex items-center gap-2 md:justify-end w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t border-[#1F1F24] md:border-0">
-                                  <button
-                                    disabled={isProcessing}
-                                    onClick={() => {
-                                      setActiveUploadContext({ modelId: model.id, color: cv.value })
-                                      fileInputRef.current?.click()
-                                    }}
-                                    className="px-4 py-1.5 bg-[#121217] hover:bg-[#1F1F24] text-white text-[13px] font-bold rounded-lg border border-[#1F1F24] transition-colors disabled:opacity-50 flex-1 md:flex-none text-center"
-                                  >
-                                    {image ? 'Cambiar' : 'Subir imagen'}
-                                  </button>
-                                  {image && (
-                                    <button
-                                      disabled={isProcessing}
-                                      onClick={() => handleDelete(model.id, cv.value)}
-                                      className="px-3 py-1.5 bg-transparent hover:bg-red-500/10 text-zinc-500 hover:text-red-400 text-[13px] font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center border border-transparent hover:border-red-500/30"
-                                      title="Eliminar imagen"
-                                    >
-                                      <span className="material-symbols-outlined text-[18px]">delete</span>
-                                      <span className="md:hidden ml-1">Eliminar</span>
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-          {filteredModels.length === 0 && (
-            <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3">
-              <span className="material-symbols-outlined text-[48px] text-zinc-700">search_off</span>
-              <p className="text-[14px] font-bold text-zinc-500">No se encontraron modelos.</p>
-            </div>
-          )}
-        </div>
+        {filteredModels.length === 0 ? <div className="admin-models__empty">
+          <h3>{models.length === 0 ? 'No hay modelos activos disponibles.' : 'No se encontraron modelos con estos filtros.'}</h3>
+          {models.length > 0 && hasFilters && <button type="button" onClick={resetFilters}>Limpiar filtros</button>}
+        </div> : <>
+          <div className="admin-models__list-heading" aria-hidden="true"><span>Modelo</span><span>Categoría</span><span>Imágenes de catálogo</span><span>Gestión</span></div>
+          <ul className="admin-models__list" aria-label="Modelos e imágenes de catálogo">
+            {filteredModels.map(model => {
+              const colors = colorVariants.filter(color => color.model_id === model.id)
+              const configuredCount = colors.filter(color => catalogImages.some(image => image.model_id === model.id && image.color === color.value)).length
+              const genericImage = catalogImages.find(image => image.model_id === model.id && image.color === '__default__')
+              return <li key={model.id}>
+                <details className="admin-models__model">
+                  <summary>
+                    <span className="admin-models__identity"><strong>{model.name}</strong>{model.brand && <span>{model.brand}</span>}</span>
+                    <span className="admin-models__model-category">{CATEGORY_LABELS[model.category] || model.category}</span>
+                    <span className="admin-models__coverage">{colors.length > 0 ? <><strong>{colors.length} {colors.length === 1 ? 'color' : 'colores'}</strong><span>{configuredCount} de {colors.length} imágenes</span></> : <><strong>Imagen general</strong><span>{genericImage ? '1 imagen general' : 'Sin imagen'}</span></>}</span>
+                    <span className="admin-models__manage">Gestionar imágenes<span aria-hidden="true" className="material-symbols-outlined">expand_more</span></span>
+                  </summary>
+                  <div className="admin-models__expanded">
+                    <ul className="admin-models__slots" aria-label={`Imágenes de ${model.name}`}>
+                      {colors.length === 0 ? renderImageSlot(model, '__default__', genericImage, true) : colors.map(color => renderImageSlot(model, color.value, catalogImages.find(image => image.model_id === model.id && image.color === color.value)))}
+                    </ul>
+                  </div>
+                </details>
+              </li>
+            })}
+          </ul>
+        </>}
       </div>
     </AdminPageShell>
   )

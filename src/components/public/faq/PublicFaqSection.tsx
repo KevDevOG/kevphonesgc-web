@@ -45,55 +45,36 @@ export function PublicFaqSection() {
   }
 
   return (
-    <section className="w-full max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 py-20 md:py-32">
-      <div className="text-center mb-16">
-        <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-4">
-          Preguntas frecuentes
-        </h2>
-        <p className="text-lg text-zinc-400 font-light">
-          Resolvemos las dudas más habituales sobre compra, venta y tasación.
-        </p>
+    <section className="kevphones-lower-section kevphones-faq" aria-labelledby="faq-title">
+      <div className="kevphones-lower-heading">
+        <h2 id="faq-title" className="kevphones-lower-title">Preguntas frecuentes</h2>
+        <p>Resolvemos las dudas más habituales sobre compra, venta y tasación.</p>
       </div>
 
-      <div className="space-y-4">
+      <div className="kevphones-faq__items">
         {faqItems.map((item, index) => {
           const isOpen = openIndex === index
           const contentId = `faq-content-${index}`
           const buttonId = `faq-button-${index}`
 
           return (
-            <div 
-              key={index}
-              className={`bg-[#0B0B0E] border ${isOpen ? 'border-purple-500/30' : 'border-[#1F1F24]'} rounded-[20px] overflow-hidden transition-colors duration-300`}
-            >
-              <button
-                id={buttonId}
-                aria-expanded={isOpen}
-                aria-controls={contentId}
-                onClick={() => toggleItem(index)}
-                className="w-full flex items-center justify-between p-6 sm:p-8 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 rounded-[20px]"
-              >
-                <span className="text-white font-medium text-lg pr-4">{item.question}</span>
-                <span 
-                  className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-zinc-500 transition-transform duration-300 ${isOpen ? 'rotate-180 text-white bg-[#1F1F24]' : 'bg-transparent'}`}
+            <div key={index} className="kevphones-faq__item" data-open={isOpen}>
+              <h3>
+                <button
+                  type="button"
+                  id={buttonId}
+                  aria-expanded={isOpen}
+                  aria-controls={contentId}
+                  onClick={() => toggleItem(index)}
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+                  <span>{item.question}</span>
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                    <path strokeLinecap="round" strokeLinejoin="round" d={isOpen ? 'M6 12h12' : 'M6 12h12M12 6v12'} />
                   </svg>
-                </span>
-              </button>
-
-              <div 
-                id={contentId}
-                role="region"
-                aria-labelledby={buttonId}
-                className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
-              >
-                <div className="overflow-hidden">
-                  <p className="p-6 sm:p-8 pt-0 sm:pt-0 text-zinc-400 leading-relaxed font-light">
-                    {item.answer}
-                  </p>
-                </div>
+                </button>
+              </h3>
+              <div id={contentId} role="region" aria-labelledby={buttonId} hidden={!isOpen}>
+                <p>{item.answer}</p>
               </div>
             </div>
           )

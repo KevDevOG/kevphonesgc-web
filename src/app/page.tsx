@@ -13,66 +13,48 @@ export default async function Home() {
   // 0. Fetch business settings for contact info
   let whatsappPhone: string | null = null
   let contactEnabled: boolean = false
-  let heroTitle = "iPhones revisados. Compra con confianza."
-  let heroSubtitle = "Stock real, dispositivos revisados y valoración de tu iPhone en pocos pasos."
-  let shippingText = "Atención en Canarias"
   let wallapopUrl: string | null = null
   let instagramUrl: string | null = null
   let tiktokUrl: string | null = null
 
-  try {
-    const { data: settingsData, error: settingsError } = await supabase
-      .from('business_settings')
-      .select('whatsapp_phone, contact_enabled, hero_title, hero_subtitle, shipping_text, wallapop_url, instagram_url, tiktok_url')
-      .eq('singleton', true)
-      .maybeSingle()
-      
-    if (settingsError) {
-      console.error('Error fetching business settings:', settingsError)
-    } else if (settingsData) {
-      contactEnabled = settingsData.contact_enabled === true
-      whatsappPhone = settingsData.whatsapp_phone || null
-      
-      const ht = settingsData.hero_title?.trim()
-      if (ht) heroTitle = ht
-      
-      const hs = settingsData.hero_subtitle?.trim()
-      if (hs) heroSubtitle = hs
-      
-      const st = settingsData.shipping_text?.trim()
-      if (st) shippingText = st
-      
-      const wu = settingsData.wallapop_url?.trim()
-      if (wu) wallapopUrl = wu
-
-      const iu = settingsData.instagram_url?.trim()
-      if (iu) instagramUrl = iu
-
-      const tu = settingsData.tiktok_url?.trim()
-      if (tu) tiktokUrl = tu
-    }
-  } catch (err) {
-    console.error('Unhandled error fetching business settings:', err)
-  }
-
-  // 0.5. Fetch public reviews
-  const { data: reviewsData, error: reviewsError } = await supabase
+  // Wait for every independent query, including unexpected promise rejections.
+  const [, reviewsResult, devicesResult, catalogImagesResult] = await Promise.allSettled([
+    (async () => {
+      try {
+        const { data: settingsData, error: settingsError } = await supabase
+          .from('business_settings')
+          .select('whatsapp_phone, contact_enabled, hero_title, hero_subtitle, shipping_text, wallapop_url, instagram_url, tiktok_url')
+          .eq('singleton', true)
+          .maybeSingle()
+          
+        if (settingsError) {
+          console.error('Error fetching business settings:', settingsError)
+        } else if (settingsData) {
+          contactEnabled = settingsData.contact_enabled === true
+          whatsappPhone = settingsData.whatsapp_phone || null
+          
+          const wu = settingsData.wallapop_url?.trim()
+          if (wu) wallapopUrl = wu
+    
+          const iu = settingsData.instagram_url?.trim()
+          if (iu) instagramUrl = iu
+    
+          const tu = settingsData.tiktok_url?.trim()
+          if (tu) tiktokUrl = tu
+        }
+      } catch (err) {
+        console.error('Unhandled error fetching business settings:', err)
+      }
+    })(),
+    supabase
     .from('reviews')
     .select('id, author_name, review_text, source, rating, review_date, featured, sort_order, created_at')
     .eq('active', true)
     .order('featured', { ascending: false })
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false })
-    .limit(6)
-
-  if (reviewsError) {
-    console.error('Error fetching reviews:', reviewsError)
-  }
-  
-  const publicReviews: PublicReview[] = reviewsData || []
-
-  // 1. Fetch available devices
-  const { data: devicesData, error: devicesError } = await supabase
+    .limit(6),
+    supabase
     .from('public_stock')
     .select(`
       device_id,
@@ -105,7 +87,29 @@ export default async function Home() {
       custom_product_type,
       custom_specs
     `)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false }),
+    supabase
+    .from('device_model_catalog_images')
+    .select('model_id, color, storage_path')
+  ])
+
+  // Feed rejections into each query's existing logging and safe fallback path.
+  const { data: reviewsData, error: reviewsError } = reviewsResult.status === 'fulfilled'
+    ? reviewsResult.value
+    : { data: null, error: reviewsResult.reason || new Error('Unexpected query rejection') }
+  const { data: devicesData, error: devicesError } = devicesResult.status === 'fulfilled'
+    ? devicesResult.value
+    : { data: null, error: devicesResult.reason || new Error('Unexpected query rejection') }
+  const { data: catalogImagesData, error: catalogImagesError } = catalogImagesResult.status === 'fulfilled'
+    ? catalogImagesResult.value
+    : { data: null, error: catalogImagesResult.reason || new Error('Unexpected query rejection') }
+
+  // Handle each query result independently.
+  if (reviewsError) {
+    console.error('Error fetching reviews:', reviewsError)
+  }
+  
+  const publicReviews: PublicReview[] = reviewsData || []
 
   if (devicesError) {
     console.error('Error fetching devices:', devicesError)
@@ -145,9 +149,7 @@ export default async function Home() {
   }
 
   // 2. Fetch catalog images to map exactly to model_id + color
-  const { data: catalogImagesData, error: catalogImagesError } = await supabase
-    .from('device_model_catalog_images')
-    .select('model_id, color, storage_path')
+
 
   if (catalogImagesError) {
     console.error('Error fetching catalog images:', catalogImagesError)
@@ -236,149 +238,73 @@ export default async function Home() {
 
 
   return (
-    <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
+    <div className="kevphones-home flex flex-col min-h-screen bg-black pb-20 md:pb-0">
       <PublicHeader />
 
       <main className="flex-1 w-full bg-[#050506] overflow-hidden relative">
-        {/* Background Ambient Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[400px] bg-purple-900/10 rounded-[100%] blur-[100px] pointer-events-none -z-10 animate-glow-pulse"></div>
-
-        {/* Hero Section */}
-        <div className="w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 pt-8 pb-12 md:pt-20 md:pb-24 relative z-10 animate-fade-in-up">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 lg:gap-12 items-center">
-            
-            {/* Left Content */}
-            <div className="flex flex-col items-start text-left">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-[#1F1F24] bg-[#0B0B0E]/80 mb-4 md:mb-6 shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse shadow-[0_0_8px_#a855f7]"></span>
-                <span className="text-[10px] font-semibold text-zinc-400 tracking-wider uppercase">COMPRA · VENTA · TASACIÓN · CANARIAS</span>
-              </div>
-              
-              <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight leading-[1.1] whitespace-pre-wrap">
-                {heroTitle}
-              </h1>
-              
-              <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl mt-2 md:mt-3 mb-3 md:mb-4 tracking-tight">
-                <span className="text-zinc-100 font-medium">Compra y vende </span>
-                <span className="font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-violet-300">iPhone en Canarias</span>
+        <section className="kevphones-hero" aria-labelledby="home-title">
+          <div className="kevphones-hero__layout">
+            <div className="kevphones-hero__content">
+              <h1 id="home-title">KEVPHONES</h1>
+              <p className="kevphones-hero__headline">
+                Compra y vende <span>iPhone en Canarias</span>
               </p>
-
-              <p className="text-zinc-400 text-base sm:text-lg md:text-xl lg:text-2xl mb-6 md:mb-8 max-w-[580px] leading-snug md:leading-relaxed whitespace-pre-wrap font-light">
-                {heroSubtitle}
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full sm:w-auto mb-6">
-                <a 
-                  href="#stock" 
-                  className="w-full sm:w-auto px-6 py-3.5 md:px-8 md:py-4 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-medium rounded-xl transition-all duration-200 shadow-[0_0_20px_rgba(147,51,234,0.2)] hover:shadow-[0_0_30px_rgba(147,51,234,0.4)] text-center flex items-center justify-center gap-2 hover:-translate-y-0.5"
-                >
+              <p className="kevphones-hero__support">Stock real, dispositivos revisados y valoración de tu iPhone en pocos pasos.</p>
+              <div className="kevphones-hero__actions">
+                <a href="#stock" className="kevphones-hero__primary">
                   Ver stock
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                  </svg>
                 </a>
-                <Link 
-                  href="/cotizar" 
-                  className="w-full sm:w-auto px-6 py-3.5 md:px-8 md:py-4 bg-[#0B0B0E] border border-[#1F1F24] hover:bg-[#111114] hover:border-zinc-700 active:scale-95 text-white font-medium rounded-xl transition-all duration-200 text-center hover:-translate-y-0.5"
-                >
+                <Link href="/cotizar" className="kevphones-hero__secondary">
                   Cotizar el mío
                 </Link>
               </div>
-              
-              <Link 
-                href="/vender" 
-                className="text-sm text-zinc-400 hover:text-zinc-300 transition-colors inline-flex flex-wrap items-center gap-1 group mb-2"
-              >
-                ¿Quieres venderlo directamente? <span className="text-purple-400 ml-1 group-hover:text-purple-300 font-medium">Vender mi iPhone</span>
-                <svg className="w-4 h-4 text-purple-400 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+              <Link href="/vender" className="kevphones-hero__sell">
+                <span>¿Quieres venderlo directamente?</span>
+                <span>Vender mi iPhone</span>
               </Link>
-              <p className="text-xs text-zinc-400 md:text-zinc-500 font-medium">
-                5/5 en Wallapop · Stock real · Entrega en Canarias
-              </p>
             </div>
 
-            {/* Mobile Visual (< md) */}
-            <div className="md:hidden relative flex justify-center items-center h-[240px] w-full mt-6 mb-2 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-              <div className="absolute inset-0 bg-purple-600/30 blur-[60px] rounded-full pointer-events-none scale-75"></div>
-              <div className="relative w-full max-w-[180px] h-full drop-shadow-2xl">
-                <Image 
+            <div className="kevphones-hero__visual">
+              <div className="kevphones-hero__product">
+                <Image
                   src="/iphone-14-pro-max.png"
                   alt="iPhone 14 Pro Max Deep Purple"
                   fill
                   className="object-contain"
-                  priority
-                  sizes="(max-width: 768px) 100vw, 0vw"
+                  loading="eager"
+                  fetchPriority="high"
+                  sizes="(min-width: 1280px) 632px, (min-width: 768px) 52vw, calc(100vw - 64px)"
                 />
               </div>
             </div>
-
-            {/* Right Visual (Desktop >= md) */}
-            <div className="hidden md:flex relative justify-center items-center h-[340px] sm:h-[420px] md:h-[500px] lg:h-[600px] animate-fade-in-up md:-translate-x-4 md:-translate-y-6 lg:-translate-x-8 lg:-translate-y-8" style={{ animationDelay: '200ms' }}>
-              <div className="absolute inset-0 bg-purple-600/20 blur-[80px] rounded-full pointer-events-none scale-90"></div>
-              <div className="absolute inset-0 bg-white/10 blur-[60px] rounded-full pointer-events-none transform scale-50"></div>
-              <div className="relative w-[75%] sm:w-[65%] md:w-[95%] lg:w-[100%] max-w-[400px] h-full drop-shadow-2xl">
-                <Image 
-                  src="/iphone-14-pro-max.png"
-                  alt="iPhone 14 Pro Max Deep Purple"
-                  fill
-                  className="object-contain"
-                  priority
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              </div>
-            </div>
-            
           </div>
+        </section>
+
+        <div className="kevphones-trust">
+          <ul aria-label="Sobre KevPhonesGC">
+            <li>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m9 12 2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              Dispositivos revisados
+            </li>
+            <li>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8m-8 4h5m-9 6 3-3h11a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v14Z" />
+              </svg>
+              Trato directo
+            </li>
+            <li>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" />
+                <circle cx="12" cy="10" r="2.5" />
+              </svg>
+              Atención en Canarias
+            </li>
+          </ul>
         </div>
 
-        {/* Trust Strip */}
-        <div className="w-full border-y border-[#1F1F24] bg-[#050506] relative z-10">
-          <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 py-8 md:py-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-4 divide-y md:divide-y-0 md:divide-x divide-[#1F1F24]">
-              
-              <div className="flex items-center gap-4 pt-2 md:pt-0 md:px-8 first:pt-0 md:justify-center">
-                <div className="w-12 h-12 rounded-xl bg-[#0B0B0E] border border-[#1F1F24] flex items-center justify-center flex-shrink-0 text-purple-400 shadow-sm">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-white font-medium text-[15px] mb-0.5">Revisados</h3>
-                  <p className="text-zinc-500 text-sm">Antes de publicar</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 pt-6 md:pt-0 md:px-8 md:justify-center">
-                <div className="w-12 h-12 rounded-xl bg-[#0B0B0E] border border-[#1F1F24] flex items-center justify-center flex-shrink-0 text-purple-400 shadow-sm">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-white font-medium text-[15px] mb-0.5">Stock real</h3>
-                  <p className="text-zinc-500 text-sm">Unidades disponibles</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 pt-6 md:pt-0 md:px-8 md:justify-center">
-                <div className="w-12 h-12 rounded-xl bg-[#0B0B0E] border border-[#1F1F24] flex items-center justify-center flex-shrink-0 text-purple-400 shadow-sm">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-white font-medium text-[15px] mb-0.5">Trato directo</h3>
-                  <p className="text-zinc-500 text-sm whitespace-pre-wrap">{shippingText}</p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-        
-        <section id="stock" className="pt-8 scroll-mt-20">
+        <section id="stock" className="kevphones-stock-transition scroll-mt-16 md:scroll-mt-20">
           <PublicStockSection 
             devices={publicStock} 
             whatsappPhone={whatsappPhone}
@@ -386,113 +312,26 @@ export default async function Home() {
           />
         </section>
 
-        {/* How it Works Section */}
-        <section className="bg-[#050506] border-t border-[#1F1F24] py-20 md:py-32">
-          <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-            <div className="flex flex-col items-center text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">
-                Cómo funciona
-              </h2>
-              <p className="text-lg text-zinc-400 max-w-2xl font-light">
-                Compra, vende o valora tu dispositivo en pocos pasos.
-              </p>
+        {publicReviews.length > 0 && (
+          <section id="reviews" className="kevphones-lower-band">
+            <PublicReviewsSection reviews={publicReviews} wallapopUrl={wallapopUrl} />
+          </section>
+        )}
+
+        <section className="kevphones-conversion" aria-labelledby="conversion-title">
+          <div className="kevphones-lower-section kevphones-conversion__inner">
+            <div>
+              <h2 id="conversion-title" className="kevphones-lower-title">Cotiza o vende tu dispositivo</h2>
+              <p>Recibe una valoración orientativa o envía una solicitud de venta con los datos y fotografías del dispositivo.</p>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-              
-              {/* Card 1 */}
-              <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-3xl p-8 flex flex-col items-start relative overflow-hidden group hover:border-[#383840] transition-colors duration-300">
-                <div className="absolute top-0 right-0 p-8 opacity-5 font-bold text-9xl -mt-10 -mr-6 pointer-events-none text-white">1</div>
-                <h3 className="text-xl font-bold text-white mb-6 relative z-10">Compra un dispositivo</h3>
-                
-                <ul className="flex flex-col gap-4 mb-8 flex-1 w-full relative z-10">
-                  <li className="flex gap-3 items-start">
-                    <span className="text-purple-400 font-bold text-sm mt-0.5">01</span>
-                    <span className="text-sm text-zinc-400">Consulta nuestro stock disponible.</span>
-                  </li>
-                  <li className="flex gap-3 items-start">
-                    <span className="text-purple-400 font-bold text-sm mt-0.5">02</span>
-                    <span className="text-sm text-zinc-400">Revisa el estado y los detalles del dispositivo.</span>
-                  </li>
-                  <li className="flex gap-3 items-start">
-                    <span className="text-purple-400 font-bold text-sm mt-0.5">03</span>
-                    <span className="text-sm text-zinc-400">Contacta con nosotros para cerrar la operación.</span>
-                  </li>
-                </ul>
-                
-                <a href="#stock" className="mt-auto inline-flex items-center gap-2 text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors group-hover:translate-x-1 relative z-10">
-                  Ver stock
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </a>
-              </div>
-
-              {/* Card 2 */}
-              <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-3xl p-8 flex flex-col items-start relative overflow-hidden group hover:border-[#383840] transition-colors duration-300">
-                <div className="absolute top-0 right-0 p-8 opacity-5 font-bold text-9xl -mt-10 -mr-6 pointer-events-none text-white">2</div>
-                <h3 className="text-xl font-bold text-white mb-6 relative z-10">Cotiza tu iPhone</h3>
-                
-                <ul className="flex flex-col gap-4 mb-8 flex-1 w-full relative z-10">
-                  <li className="flex gap-3 items-start">
-                    <span className="text-purple-400 font-bold text-sm mt-0.5">01</span>
-                    <span className="text-sm text-zinc-400">Elige tu modelo y sus características.</span>
-                  </li>
-                  <li className="flex gap-3 items-start">
-                    <span className="text-purple-400 font-bold text-sm mt-0.5">02</span>
-                    <span className="text-sm text-zinc-400">Indica el estado del dispositivo.</span>
-                  </li>
-                  <li className="flex gap-3 items-start">
-                    <span className="text-purple-400 font-bold text-sm mt-0.5">03</span>
-                    <span className="text-sm text-zinc-400">Recibe una valoración orientativa al instante.</span>
-                  </li>
-                </ul>
-                
-                <Link href="/cotizar" className="mt-auto inline-flex items-center gap-2 text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors group-hover:translate-x-1 relative z-10">
-                  Cotizar ahora
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </Link>
-              </div>
-
-              {/* Card 3 */}
-              <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-3xl p-8 flex flex-col items-start relative overflow-hidden group hover:border-[#383840] transition-colors duration-300">
-                <div className="absolute top-0 right-0 p-8 opacity-5 font-bold text-9xl -mt-10 -mr-6 pointer-events-none text-white">3</div>
-                <h3 className="text-xl font-bold text-white mb-6 relative z-10">Vende tu dispositivo</h3>
-                
-                <ul className="flex flex-col gap-4 mb-8 flex-1 w-full relative z-10">
-                  <li className="flex gap-3 items-start">
-                    <span className="text-purple-400 font-bold text-sm mt-0.5">01</span>
-                    <span className="text-sm text-zinc-400">Completa los datos del dispositivo.</span>
-                  </li>
-                  <li className="flex gap-3 items-start">
-                    <span className="text-purple-400 font-bold text-sm mt-0.5">02</span>
-                    <span className="text-sm text-zinc-400">Añade las fotografías solicitadas.</span>
-                  </li>
-                  <li className="flex gap-3 items-start">
-                    <span className="text-purple-400 font-bold text-sm mt-0.5">03</span>
-                    <span className="text-sm text-zinc-400">Revisaremos tu solicitud y te contactaremos.</span>
-                  </li>
-                </ul>
-                
-                <Link href="/vender" className="mt-auto inline-flex items-center gap-2 text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors group-hover:translate-x-1 relative z-10">
-                  Vender dispositivo
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </Link>
-              </div>
-
+            <div className="kevphones-conversion__actions">
+              <Link href="/cotizar" className="kevphones-conversion__primary">Cotizar mi iPhone</Link>
+              <Link href="/vender" className="kevphones-conversion__secondary">Vender mi dispositivo</Link>
             </div>
           </div>
         </section>
 
-        <section id="reviews" className="bg-[#060608] border-t border-[#1F1F24]">
-          <PublicReviewsSection reviews={publicReviews} wallapopUrl={wallapopUrl} />
-        </section>
-
-        <section id="faq" className="bg-black border-t border-[#1F1F24]">
+        <section id="faq" className="kevphones-lower-band">
           <PublicFaqSection />
         </section>
 

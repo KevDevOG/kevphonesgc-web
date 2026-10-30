@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useId } from 'react'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 import { registerExpense, editExpense, deleteExpense } from '@/actions/expenses'
 
@@ -42,75 +42,85 @@ function formatDate(dateStr: string) {
 }
 
 export function ExpensesPage({ categories, expenses, monthlyTotal, monthlyCount, monthLabel, categoryTotals }: Props) {
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('all')
+  const [sort, setSort] = useState('original')
+  const query = search.trim().toLowerCase()
+  const hasFilters = Boolean(query || category !== 'all' || sort !== 'original')
+  const resetFilters = () => { setSearch(''); setCategory('all'); setSort('original') }
+  const filteredExpenses = expenses.filter(expense =>
+    (category === 'all' || expense.expense_categories.id === category) &&
+    (!query || `${expense.expense_categories.name} ${expense.note || ''}`.toLowerCase().includes(query))
+  )
+  if (sort !== 'original') {
+    filteredExpenses.sort((a, b) => {
+      if (sort === 'highest') return b.amount - a.amount
+      if (sort === 'lowest') return a.amount - b.amount
+      // Compare stored date strings without changing their timezone or display semantics.
+      const comparison = a.expense_date.localeCompare(b.expense_date)
+      return sort === 'oldest' ? comparison : -comparison
+    })
+  }
+
   return (
-    <div className="flex flex-col gap-6 lg:gap-8 w-full max-w-6xl mx-auto pb-12">
-      <AdminPageHeader 
-        title="Gastos" 
-        subtitle="Registra y controla los gastos del negocio." 
-      />
+    <div className="admin-expenses">
+      <AdminPageHeader title="Gastos" subtitle="Registra y controla los gastos del negocio." />
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-[#7a32d4]/5 border border-[#7a32d4]/30 rounded-2xl p-6 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#7a32d4]"></div>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-[13px] font-bold text-[#d7baff] uppercase tracking-wider">Total del mes</span>
-            <span className="text-[12px] font-semibold text-[#d7baff]/70 uppercase tracking-wider">{monthLabel}</span>
-          </div>
-          <p className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">{formatCurrency(monthlyTotal)}</p>
-        </div>
+      <dl className="admin-expenses__summary" aria-label={`Resumen de ${monthLabel}`}>
+        <div><dt>Total del mes <span>{monthLabel}</span></dt><dd>{formatCurrency(monthlyTotal)}</dd></div>
+        <div><dt>Operaciones</dt><dd>{monthlyCount}<span>{monthlyCount === 1 ? 'gasto registrado' : 'gastos registrados'} este mes</span></dd></div>
+      </dl>
 
-        <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col justify-between">
-          <span className="text-[13px] font-bold text-zinc-500 uppercase tracking-wider mb-4">Operaciones</span>
-          <p className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">{monthlyCount}</p>
-          <span className="text-[13px] font-medium text-zinc-500 mt-2">{monthlyCount === 1 ? 'gasto registrado' : 'gastos registrados'} este mes</span>
-        </div>
-      </section>
+      <RegisterExpenseForm categories={categories} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        <RegisterExpenseForm categories={categories} />
-        
+      <details className="admin-expenses__breakdown">
+        <summary>Por categoría <span>{monthLabel}</span><span className="material-symbols-outlined" aria-hidden="true">expand_more</span></summary>
         {monthlyCount > 0 ? (
-          <section className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-6">
-            <h3 className="text-[14px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-zinc-500">pie_chart</span>
-              Por categoría
-            </h3>
-            
-            <div className="flex flex-col gap-3">
-              {Object.entries(categoryTotals)
-                .sort((a, b) => b[1] - a[1]) // Sort desc by amount
-                .map(([catName, total]) => (
-                  <div key={catName} className="flex justify-between items-center py-2 border-b border-[#1F1F24] last:border-0 last:pb-0">
-                    <span className="text-[14px] font-medium text-zinc-400">{catName}</span>
-                    <span className="text-[15px] font-bold text-white">{formatCurrency(total)}</span>
-                  </div>
+          <dl>
+            {Object.entries(categoryTotals)
+              .sort((a, b) => b[1] - a[1])
+              .map(([catName, total]) => (
+                <div key={catName}><dt>{catName}</dt><dd>{formatCurrency(total)}</dd></div>
               ))}
-            </div>
-          </section>
-        ) : (
-          <section className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-3">
-            <span className="material-symbols-outlined text-[48px] text-zinc-700">receipt_long</span>
-            <p className="text-[14px] font-bold text-zinc-500">No hay gastos en {monthLabel}</p>
-          </section>
-        )}
-      </div>
+          </dl>
+        ) : <p>No hay gastos en {monthLabel}</p>}
+      </details>
 
-      <section className="flex flex-col gap-4">
-        <h3 className="text-[14px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-zinc-500">history</span>
-          Historial
-        </h3>
-        
-        {expenses.length === 0 ? (
-          <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-8 text-center">
-            <p className="text-zinc-500 text-[14px] font-medium">No hay gastos registrados en absoluto.</p>
+      <section className="admin-expenses__history" aria-label="Historial de gastos">
+        <header><h2>Historial</h2><span role="status">{filteredExpenses.length} de {expenses.length} gastos</span></header>
+        <div className="admin-expenses__toolbar">
+          <label className="admin-expenses__search">
+            <span className="sr-only">Buscar por categoría o nota</span>
+            <span className="material-symbols-outlined" aria-hidden="true">search</span>
+            <input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar gasto..." />
+          </label>
+          <label className="admin-expenses__filter"><span>Categoría</span>
+            <select value={category} onChange={e => setCategory(e.target.value)}>
+              <option value="all">Todas</option>
+              {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+            </select>
+          </label>
+          <label className="admin-expenses__filter"><span>Orden</span>
+            <select value={sort} onChange={e => setSort(e.target.value)}>
+              <option value="original">Orden actual</option>
+              <option value="newest">Más recientes</option><option value="oldest">Más antiguos</option>
+              <option value="highest">Mayor importe</option><option value="lowest">Menor importe</option>
+            </select>
+          </label>
+          {hasFilters && <button type="button" className="admin-expenses__reset" onClick={resetFilters}>Limpiar filtros</button>}
+        </div>
+
+        {!filteredExpenses.length ? (
+          <div className="admin-expenses__empty">
+            <p>{!expenses.length ? 'No hay gastos registrados.' : 'No hay gastos que coincidan con los filtros.'}</p>
+            {hasFilters && <button type="button" className="admin-expenses__reset" onClick={resetFilters}>Limpiar filtros</button>}
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {expenses.map(expense => (
-              <ExpenseItem key={expense.id} expense={expense} categories={categories} />
-            ))}
-          </div>
+          <table className="admin-expenses__table">
+            <caption className="sr-only">Historial de gastos registrados</caption>
+            <thead><tr><th scope="col">Gasto / categoría</th><th scope="col">Fecha</th><th scope="col">Nota</th><th scope="col">Importe</th><th scope="col">Acciones</th></tr></thead>
+            <tbody>{filteredExpenses.map(expense => <ExpenseItem key={expense.id} expense={expense} categories={categories} />)}</tbody>
+          </table>
         )}
       </section>
     </div>
@@ -118,6 +128,7 @@ export function ExpensesPage({ categories, expenses, monthlyTotal, monthlyCount,
 }
 
 function RegisterExpenseForm({ categories }: { categories: Category[] }) {
+  const feedbackId = useId()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -157,25 +168,25 @@ function RegisterExpenseForm({ categories }: { categories: Category[] }) {
   const labelClass = "block text-[13px] font-semibold text-zinc-400 mb-1.5"
 
   return (
-    <section className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-6">
-      <h3 className="text-[14px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
-        <span className="material-symbols-outlined text-[18px] text-zinc-500">add_circle</span>
+    <section className="admin-expenses__register">
+      <h2 className="admin-expenses__section-title">
+        <span className="material-symbols-outlined text-[18px] text-zinc-500" aria-hidden="true">add_circle</span>
         Registrar gasto
-      </h3>
+      </h2>
       
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[13px] font-bold p-4 rounded-xl">
+        <div id={feedbackId} role="alert" className="admin-expenses__feedback admin-expenses__feedback--error">
           {error}
         </div>
       )}
       
       {success && (
-        <div className="bg-[#7a32d4]/10 border border-[#7a32d4]/20 text-[#d7baff] text-[13px] font-bold p-4 rounded-xl">
+        <div id={feedbackId} role="status" className="admin-expenses__feedback">
           {success}
         </div>
       )}
 
-      <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form ref={formRef} onSubmit={handleSubmit} className="admin-expenses__register-form" aria-describedby={error || success ? feedbackId : undefined}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col">
             <label className={labelClass} htmlFor="category_id">Categoría</label>
@@ -246,6 +257,7 @@ function RegisterExpenseForm({ categories }: { categories: Category[] }) {
 }
 
 function ExpenseItem({ expense, categories }: { expense: Expense, categories: Category[] }) {
+  const errorId = useId()
   const [isEditing, setIsEditing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isPending, setIsPending] = useState(false)
@@ -298,16 +310,17 @@ function ExpenseItem({ expense, categories }: { expense: Expense, categories: Ca
 
   if (isEditing) {
     return (
-      <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col gap-4">
-        <h4 className="text-[14px] font-bold text-white uppercase tracking-wider border-b border-[#1F1F24] pb-3">Editar gasto</h4>
+      <tr className="admin-expenses__editor-row"><td colSpan={5}>
+      <div className="admin-expenses__editor">
+        <h3 className="admin-expenses__edit-title">Editar gasto</h3>
         
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[13px] font-bold p-3 rounded-xl">
+          <div id={errorId} role="alert" className="admin-expenses__feedback admin-expenses__feedback--error">
             {error}
           </div>
         )}
         
-        <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleEditSubmit} aria-describedby={error ? errorId : undefined} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col">
               <label className={labelClass} htmlFor={`edit_cat_${expense.id}`}>Categoría</label>
@@ -384,23 +397,25 @@ function ExpenseItem({ expense, categories }: { expense: Expense, categories: Ca
           </div>
         </form>
       </div>
+      </td></tr>
     )
   }
 
   if (isDeleting) {
     return (
-      <div className="bg-[#0B0B0E] border border-red-500/30 rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden">
+      <tr className="admin-expenses__editor-row"><td colSpan={5}>
+      <div className="admin-expenses__editor admin-expenses__editor--delete">
         <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500/50"></div>
-        <h4 className="text-[16px] font-bold text-red-400 border-b border-red-500/20 pb-3">¿Eliminar este gasto?</h4>
+        <h3 className="admin-expenses__delete-title">¿Eliminar este gasto?</h3>
         <p className="text-[14px] font-medium text-zinc-400">Esta acción eliminará el gasto y recalculará los valores financieros.</p>
         
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[13px] font-bold p-3 rounded-xl">
+          <div id={errorId} role="alert" className="admin-expenses__feedback admin-expenses__feedback--error">
             {error}
           </div>
         )}
         
-        <form onSubmit={handleDeleteSubmit} className="flex gap-3 justify-end mt-2 pt-4 border-t border-[#1F1F24]">
+        <form onSubmit={handleDeleteSubmit} aria-describedby={error ? errorId : undefined} className="flex gap-3 justify-end mt-2 pt-4 border-t border-[#1F1F24]">
           <button 
             type="button" 
             onClick={() => { setIsDeleting(false); setError(null); }}
@@ -418,59 +433,24 @@ function ExpenseItem({ expense, categories }: { expense: Expense, categories: Ca
           </button>
         </form>
       </div>
+      </td></tr>
     )
   }
 
-  const slug = expense.expense_categories.slug
-  let icon = 'receipt_long'
-  if (slug === 'gasolina') icon = 'local_gas_station'
-  if (slug === 'viajes') icon = 'flight'
-  if (slug === 'editora') icon = 'history_edu'
-
   return (
-    <div className="group bg-[#0B0B0E] border border-[#1F1F24] hover:border-[#7a32d4]/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row gap-4 justify-between transition-colors">
-      <div className="flex items-start gap-4">
-        <div className="w-10 h-10 shrink-0 rounded-xl bg-[#121217] border border-[#1F1F24] flex items-center justify-center text-zinc-500 group-hover:text-[#d7baff] transition-colors">
-          <span className="material-symbols-outlined text-[20px]">{icon}</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[15px] font-bold text-white leading-tight">{expense.expense_categories.name}</span>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[13px] font-medium text-zinc-500">
-            <span className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-              {formatDate(expense.expense_date)}
-            </span>
-            {expense.note && (
-              <>
-                <span className="hidden sm:inline">•</span>
-                <span className="italic">"{expense.note}"</span>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-4 sm:gap-2 mt-2 sm:mt-0 pt-3 sm:pt-0 border-t border-[#1F1F24] sm:border-0 w-full sm:w-auto">
-        <span className="text-[18px] font-extrabold text-red-400">
-          -{formatCurrency(expense.amount)}
-        </span>
-        <div className="flex gap-2">
-          <button 
-            onClick={() => setIsEditing(true)}
-            className="w-8 h-8 flex items-center justify-center bg-[#121217] hover:bg-[#1F1F24] border border-[#1F1F24] text-zinc-400 hover:text-white rounded-lg transition-colors"
-            title="Editar gasto"
-          >
-            <span className="material-symbols-outlined text-[16px]">edit</span>
-          </button>
-          <button 
-            onClick={() => setIsDeleting(true)}
-            className="w-8 h-8 flex items-center justify-center bg-[#121217] hover:bg-red-500/10 border border-[#1F1F24] hover:border-red-500/30 text-zinc-400 hover:text-red-400 rounded-lg transition-colors"
-            title="Eliminar gasto"
-          >
-            <span className="material-symbols-outlined text-[16px]">delete</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <tr className="admin-expenses__row">
+      <th scope="row" className="admin-expenses__category">{expense.expense_categories.name}</th>
+      <td className="admin-expenses__date">{formatDate(expense.expense_date)}</td>
+      <td className="admin-expenses__note"><span title={expense.note || undefined}>{expense.note || '—'}</span></td>
+      <td className="admin-expenses__amount">-{formatCurrency(expense.amount)}</td>
+      <td className="admin-expenses__actions"><div>
+        <button type="button" onClick={() => setIsEditing(true)} title="Editar gasto" aria-label={`Editar gasto de ${expense.expense_categories.name}, ${formatDate(expense.expense_date)}`}>
+          <span className="material-symbols-outlined" aria-hidden="true">edit</span>
+        </button>
+        <button type="button" className="admin-expenses__delete" onClick={() => setIsDeleting(true)} title="Eliminar gasto" aria-label={`Eliminar gasto de ${expense.expense_categories.name}, ${formatDate(expense.expense_date)}`}>
+          <span className="material-symbols-outlined" aria-hidden="true">delete</span>
+        </button>
+      </div></td>
+    </tr>
   )
 }

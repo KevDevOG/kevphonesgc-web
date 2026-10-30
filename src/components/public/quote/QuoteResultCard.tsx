@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 
 type QuoteResultProps = {
   result: {
@@ -11,25 +12,24 @@ type QuoteResultProps = {
     direction?: 'customer_pays' | 'kevphones_pays' | 'mixed' | 'equal'
   }
   quoteMode?: 'sell' | 'trade_in'
+  deviceSummary?: ReactNode
   onReset: () => void
   onContinue: () => void
 }
 
-export default function QuoteResultCard({ result, quoteMode = 'sell', onReset, onContinue }: QuoteResultProps) {
+export default function QuoteResultCard({ result, quoteMode = 'sell', onReset, onContinue, deviceSummary }: QuoteResultProps) {
   const isTradeIn = quoteMode === 'trade_in'
   
   return (
-    <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-[24px] p-6 sm:p-10 w-full animate-quote-step-enter relative overflow-hidden">
-      {/* Decorative Glow */}
-      <div className="absolute top-0 inset-x-0 h-32 bg-purple-900/10 blur-[60px] rounded-full scale-110 pointer-events-none"></div>
-
-      <div className="relative z-10 text-center mb-10">
-        <h2 className="text-[11px] uppercase tracking-widest text-zinc-500 font-bold mb-4">
-          {isTradeIn ? 'Valor estimado de tu iPhone' : 'Precio orientativo'}
+    <div className="kevphones-valuation-result bg-[#0B0B0E] border border-[#1F1F24] rounded-[24px] p-6 sm:p-10 w-full animate-quote-step-enter relative overflow-hidden">
+      <div className="kevphones-valuation-result__valuation">
+        <h2 className="kevphones-valuation-result__label">
+          Tu valoración estimada
         </h2>
-        <div className="text-4xl sm:text-6xl font-bold tracking-tight text-white mb-2">
+        <div className="kevphones-valuation-result__amount text-4xl sm:text-6xl font-bold tracking-tight text-white mb-2">
           {result.estimatedMin} € – {result.estimatedMax} €
         </div>
+        <p className="kevphones-valuation-result__status">Valor orientativo</p>
       </div>
 
       {isTradeIn && result.direction && (
@@ -56,7 +56,7 @@ export default function QuoteResultCard({ result, quoteMode = 'sell', onReset, o
         </div>
       )}
 
-      <div className="relative z-10 text-center mb-10 max-w-lg mx-auto">
+      <div className="kevphones-valuation-result__explanation">
         <p className="text-zinc-400 text-sm font-light mb-3">
           {isTradeIn 
             ? 'Esta valoración es orientativa. El valor definitivo se confirmará después de revisar físicamente tu iPhone.'
@@ -69,18 +69,18 @@ export default function QuoteResultCard({ result, quoteMode = 'sell', onReset, o
         </p>
       </div>
 
-      <div className="relative z-10 flex flex-col sm:flex-row gap-4 justify-center mt-8">
-        <button
-          onClick={onReset}
-          className="order-2 sm:order-1 flex-1 px-8 py-4 bg-[#050506] hover:bg-[#111114] border border-[#1F1F24] text-zinc-300 font-medium rounded-xl transition-colors active:scale-[0.98]"
-        >
-          Hacer otra tasación
+      {deviceSummary && <div className="kevphones-valuation-result__summary">{deviceSummary}</div>}
+      <div className="kevphones-valuation-result__continuation">
+        <h3>{isTradeIn ? 'Continúa con la revisión' : '¿Quieres continuar con la venta?'}</h3>
+        <p>Continúa con los datos y fotos del dispositivo para enviar tu solicitud. La valoración final se confirma tras la revisión física.</p>
+      </div>
+
+      <div className="kevphones-valuation-result__actions">
+        <button type="button" onClick={onContinue} className="kevphones-valuation-result__primary">
+          {isTradeIn ? 'Solicitar revisión' : 'Continuar con mi solicitud'}
         </button>
-        <button 
-          onClick={onContinue}
-          className="order-1 sm:order-2 flex-1 px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition-all shadow-[0_0_20px_rgba(147,51,234,0.15)] active:scale-[0.98]"
-        >
-          {isTradeIn ? 'Solicitar revisión' : 'Quiero vender mi iPhone'}
+        <button type="button" onClick={onReset} className="kevphones-valuation-result__secondary">
+          Hacer otra tasación
         </button>
       </div>
 

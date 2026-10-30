@@ -85,10 +85,10 @@ export function GuidedPhotoUpload({
   const requiredCount = REQUIRED_SLOTS.filter(s => requiredPhotos[s.id]).length
 
   return (
-    <div className="space-y-10">
+    <div className="kevphones-sale-photos space-y-10">
       <div>
-        <div className="flex items-center gap-4 mb-6">
-          <div className="text-sm font-semibold tracking-wide text-purple-400 bg-purple-900/20 px-3 py-1 rounded-full border border-purple-500/30">
+        <div className="kevphones-sale-photos__status">
+          <div className="kevphones-sale-photos__count">
             {requiredCount}/7 obligatorias
           </div>
           {requiredCount === 7 && (
@@ -102,7 +102,7 @@ export function GuidedPhotoUpload({
         </div>
         
         {error && (
-          <div className="p-4 bg-red-900/10 border border-red-500/20 text-red-400 text-sm rounded-[14px] mb-6 font-medium animate-in fade-in">
+          <div role="alert" className="p-4 bg-red-900/10 border border-red-500/20 text-red-400 text-sm rounded-[14px] mb-6 font-medium animate-in fade-in">
             {error}
           </div>
         )}
@@ -113,7 +113,7 @@ export function GuidedPhotoUpload({
             const isHeic = current?.file.name.toLowerCase().endsWith('.heic') || current?.file.name.toLowerCase().endsWith('.heif')
             
             return (
-              <div key={slot.id} className={`bg-[#0B0B0E] border rounded-[20px] p-5 flex flex-col relative overflow-hidden transition-colors ${current ? 'border-purple-500/30' : 'border-[#1F1F24]'}`}>
+              <div key={slot.id} data-photo-slot={slot.id} className={`bg-[#0B0B0E] border rounded-[20px] p-5 flex flex-col relative overflow-hidden transition-colors ${current ? 'border-purple-500/30' : 'border-[#1F1F24]'}`}>
                 <div className="flex justify-between items-start mb-4">
                   <div className="pr-2">
                     <h3 className="font-medium text-white text-sm">{slot.label}</h3>
@@ -147,8 +147,9 @@ export function GuidedPhotoUpload({
                         Cambiar
                         <input
                           type="file"
+                        aria-label={`Cambiar foto: ${slot.label}`}
                           accept="image/jpeg,image/png,image/webp,.heic,.heif"
-                          className="hidden"
+                          className="sr-only"
                           disabled={disabled}
                           onChange={(e) => handleFile(e.target.files?.[0], (p) => {
                             if (current) URL.revokeObjectURL(current.previewUrl)
@@ -166,8 +167,9 @@ export function GuidedPhotoUpload({
                       <span className="font-medium text-xs">Añadir foto</span>
                       <input
                         type="file"
+                        aria-label={`Añadir foto: ${slot.label}`}
                         accept="image/jpeg,image/png,image/webp,.heic,.heif"
-                        className="hidden"
+                        className="sr-only"
                         disabled={disabled}
                         onChange={(e) => handleFile(e.target.files?.[0], (p) => onRequiredChange(slot.id, p))}
                       />
@@ -204,6 +206,7 @@ export function GuidedPhotoUpload({
                   )}
                   <button
                     type="button"
+                    aria-label={`Eliminar foto extra ${i + 1}`}
                     onClick={() => {
                       URL.revokeObjectURL(photo.previewUrl)
                       onExtraRemove(i)
@@ -226,8 +229,9 @@ export function GuidedPhotoUpload({
               <span className="text-xs font-medium">Añadir extra</span>
               <input
                 type="file"
+                        aria-label="Añadir foto extra"
                 accept="image/jpeg,image/png,image/webp,.heic,.heif"
-                className="hidden"
+                className="sr-only"
                 disabled={disabled}
                 onChange={(e) => handleFile(e.target.files?.[0], (p) => onExtraAdd(p))}
               />

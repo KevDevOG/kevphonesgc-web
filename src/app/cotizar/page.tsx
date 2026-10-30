@@ -37,9 +37,9 @@ export default async function CotizarPage({
 
     if (deviceError || !device || device.status !== 'available' || typeof device.listing_price !== 'number') {
       return (
-        <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
+        <div className="kevphones-quote-page flex flex-col min-h-screen bg-black">
           <PublicHeader />
-          <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex flex-col items-center justify-center">
+          <main className="kevphones-quote-page__unavailable flex-1 px-4 flex flex-col items-center justify-center">
             <div className="text-center max-w-md">
               <h2 className="text-xl text-white font-medium mb-4">Dispositivo no disponible</h2>
               <p className="text-zinc-400 mb-8">
@@ -77,21 +77,22 @@ export default async function CotizarPage({
   if (!basePricesError && basePrices && basePrices.length > 0) {
     const activeModelIds = Array.from(new Set(basePrices.map(bp => bp.model_id)))
 
-    const { data: modelsData } = await publicSupabase
+    const [{ data: modelsData }, { data: variantsData }] = await Promise.all([
+      publicSupabase
       .from('device_models')
       .select('id, name, supports_battery_health, supports_cycles, sort_order')
       .in('id', activeModelIds)
       .eq('category', 'iphone')
       .eq('active', true)
-      .order('sort_order', { ascending: true })
-
-    const { data: variantsData } = await publicSupabase
+      .order('sort_order', { ascending: true }),
+      publicSupabase
       .from('device_model_variants')
       .select('model_id, variant_type, value, sort_order')
       .in('model_id', activeModelIds)
       .in('variant_type', ['storage', 'color'])
       .eq('active', true)
       .order('sort_order', { ascending: true })
+    ])
 
     if (modelsData) {
       iphoneModels = modelsData
@@ -121,9 +122,9 @@ export default async function CotizarPage({
 
   if (iphoneModels.length === 0) {
     return (
-      <div className="flex flex-col min-h-screen bg-black pb-20 md:pb-0">
+      <div className="kevphones-quote-page flex flex-col min-h-screen bg-black">
         <PublicHeader />
-        <main className="flex-1 pt-12 md:pt-24 pb-12 px-4 flex items-center justify-center">
+        <main className="kevphones-quote-page__unavailable flex-1 px-4 flex items-center justify-center">
           <div className="text-center text-zinc-400">
             <p>El cotizador no está disponible en este momento.</p>
           </div>
@@ -133,10 +134,10 @@ export default async function CotizarPage({
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#050506] pb-20 md:pb-0">
+    <div className="kevphones-quote-page flex flex-col min-h-screen bg-[#050506]">
       <PublicHeader />
-      <main className="flex-1 pt-4 md:pt-10 pb-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-[1440px] mx-auto w-full">
+      <main className="kevphones-quote-page__main flex-1">
+        <div className="kevphones-quote-page__container">
           <IphoneQuoteFlow 
             models={iphoneModels} 
             quoteMode={mode}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useId, useEffect } from 'react'
 import { updateDeviceAction } from '@/actions/devices'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -429,10 +429,12 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
     }
   }
 
+  const fieldId = useId()
+
   const inputClass = "w-full bg-[#121217] border border-[#1F1F24] rounded-xl px-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all"
-  const labelClass = "text-[13px] font-semibold text-zinc-400"
-  const sectionClass = "bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-6"
-  const sectionTitleClass = "text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2"
+  const labelClass = "admin-device-form__label"
+  const sectionClass = "admin-device-form__section"
+  const sectionTitleClass = "admin-device-form__section-title"
 
   let discountPercentage: number | null = null
   const lpVal = parseFloat(listingPrice)
@@ -442,17 +444,17 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6 lg:gap-8 pb-12">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+    <form onSubmit={handleSubmit} data-embedded="false" data-sticky-save="true" className="admin-device-form admin-device-form--edit">
+      <div className="admin-device-form__columns">
         
         {/* LEFT COLUMN */}
         <div className="flex flex-col gap-6 lg:gap-8">
           
           {/* DISPOSITIVO */}
           <section className={sectionClass}>
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[16px]">smartphone</span> Dispositivo
-            </h3>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">smartphone</span> Dispositivo
+            </h2>
             
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
@@ -480,8 +482,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                 <>
                   {/* Tipo de producto */}
                   <div className="flex flex-col gap-1.5">
-                    <label className={labelClass}>Tipo de producto</label>
-                    <select
+                    <label className={labelClass} htmlFor={`${fieldId}-control-1`}>Tipo de producto</label>
+                    <select id={`${fieldId}-control-1`}
                       value={productType}
                       onChange={(e) => {
                         setProductType(e.target.value)
@@ -500,8 +502,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
 
                   {productType === 'other' && (
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Tipo personalizado</label>
-                      <input
+                      <label className={labelClass} htmlFor={`${fieldId}-control-2`}>Tipo personalizado</label>
+                      <input id={`${fieldId}-control-2`}
                         type="text"
                         value={customProductType}
                         onChange={(e) => setCustomProductType(e.target.value)}
@@ -514,8 +516,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                   {/* Marca y Modelo */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Marca</label>
-                      <input
+                      <label className={labelClass} htmlFor={`${fieldId}-control-3`}>Marca</label>
+                      <input id={`${fieldId}-control-3`}
                         type="text"
                         value={customBrand}
                         onChange={(e) => setCustomBrand(e.target.value)}
@@ -525,8 +527,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Modelo / Nombre</label>
-                      <input
+                      <label className={labelClass} htmlFor={`${fieldId}-control-4`}>Modelo / Nombre</label>
+                      <input id={`${fieldId}-control-4`}
                         type="text"
                         value={customModelName}
                         onChange={(e) => setCustomModelName(e.target.value)}
@@ -541,8 +543,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                   {productType === 'android_phone' && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>RAM</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-5`}>RAM</label>
+                        <input id={`${fieldId}-control-5`}
                           type="text"
                           value={presetSpecs['RAM'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'RAM': e.target.value }))}
@@ -551,10 +553,10 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Almacenamiento</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-storage`}>Almacenamiento</label>
                         <input
                           type="text"
-                          name="storage"
+                          name="storage" id={`${fieldId}-storage`}
                           value={storage}
                           onChange={(e) => {
                             setStorage(e.target.value)
@@ -565,10 +567,10 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Color</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
                         <input
                           type="text"
-                          name="color"
+                          name="color" id={`${fieldId}-color`}
                           value={color}
                           onChange={(e) => {
                             setColor(e.target.value)
@@ -584,8 +586,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                   {productType === 'laptop' && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Procesador</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-6`}>Procesador</label>
+                        <input id={`${fieldId}-control-6`}
                           type="text"
                           value={presetSpecs['Procesador'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Procesador': e.target.value }))}
@@ -594,8 +596,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Gráfica</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-7`}>Gráfica</label>
+                        <input id={`${fieldId}-control-7`}
                           type="text"
                           value={presetSpecs['Gráfica'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Gráfica': e.target.value }))}
@@ -604,8 +606,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>RAM</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-8`}>RAM</label>
+                        <input id={`${fieldId}-control-8`}
                           type="text"
                           value={presetSpecs['RAM'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'RAM': e.target.value }))}
@@ -614,10 +616,10 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Almacenamiento</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-storage`}>Almacenamiento</label>
                         <input
                           type="text"
-                          name="storage"
+                          name="storage" id={`${fieldId}-storage`}
                           value={storage}
                           onChange={(e) => {
                             setStorage(e.target.value)
@@ -628,8 +630,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5 sm:col-span-2">
-                        <label className={labelClass}>Tamaño de pantalla</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-9`}>Tamaño de pantalla</label>
+                        <input id={`${fieldId}-control-9`}
                           type="text"
                           value={presetSpecs['Tamaño de pantalla'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Tamaño de pantalla': e.target.value }))}
@@ -643,8 +645,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                   {productType === 'desktop_pc' && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Procesador</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-10`}>Procesador</label>
+                        <input id={`${fieldId}-control-10`}
                           type="text"
                           value={presetSpecs['Procesador'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Procesador': e.target.value }))}
@@ -653,8 +655,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Gráfica</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-11`}>Gráfica</label>
+                        <input id={`${fieldId}-control-11`}
                           type="text"
                           value={presetSpecs['Gráfica'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Gráfica': e.target.value }))}
@@ -663,8 +665,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>RAM</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-12`}>RAM</label>
+                        <input id={`${fieldId}-control-12`}
                           type="text"
                           value={presetSpecs['RAM'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'RAM': e.target.value }))}
@@ -673,10 +675,10 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Almacenamiento</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-storage`}>Almacenamiento</label>
                         <input
                           type="text"
-                          name="storage"
+                          name="storage" id={`${fieldId}-storage`}
                           value={storage}
                           onChange={(e) => {
                             setStorage(e.target.value)
@@ -687,8 +689,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Placa base</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-13`}>Placa base</label>
+                        <input id={`${fieldId}-control-13`}
                           type="text"
                           value={presetSpecs['Placa base'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Placa base': e.target.value }))}
@@ -697,8 +699,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Fuente de alimentación</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-14`}>Fuente de alimentación</label>
+                        <input id={`${fieldId}-control-14`}
                           type="text"
                           value={presetSpecs['Fuente de alimentación'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'Fuente de alimentación': e.target.value }))}
@@ -712,8 +714,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                   {productType === 'tablet' && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>RAM</label>
-                        <input
+                        <label className={labelClass} htmlFor={`${fieldId}-control-15`}>RAM</label>
+                        <input id={`${fieldId}-control-15`}
                           type="text"
                           value={presetSpecs['RAM'] || ''}
                           onChange={(e) => setPresetSpecs(prev => ({ ...prev, 'RAM': e.target.value }))}
@@ -722,10 +724,10 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Almacenamiento</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-storage`}>Almacenamiento</label>
                         <input
                           type="text"
-                          name="storage"
+                          name="storage" id={`${fieldId}-storage`}
                           value={storage}
                           onChange={(e) => {
                             setStorage(e.target.value)
@@ -736,10 +738,10 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Color</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
                         <input
                           type="text"
-                          name="color"
+                          name="color" id={`${fieldId}-color`}
                           value={color}
                           onChange={(e) => {
                             setColor(e.target.value)
@@ -755,10 +757,10 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                   {productType === 'console' && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Almacenamiento</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-storage`}>Almacenamiento</label>
                         <input
                           type="text"
-                          name="storage"
+                          name="storage" id={`${fieldId}-storage`}
                           value={storage}
                           onChange={(e) => {
                             setStorage(e.target.value)
@@ -769,10 +771,10 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Color</label>
+                        <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
                         <input
                           type="text"
-                          name="color"
+                          name="color" id={`${fieldId}-color`}
                           value={color}
                           onChange={(e) => {
                             setColor(e.target.value)
@@ -794,7 +796,7 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                         onClick={() => setCustomSpecRows(prev => [...prev, { id: crypto.randomUUID(), name: '', value: '' }])}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-[#d7baff] hover:text-white transition-colors"
                       >
-                        <span className="material-symbols-outlined text-[16px]">add</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-[16px]">add</span>
                         + Añadir especificación
                       </button>
                     </div>
@@ -827,7 +829,7 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                           onClick={() => setCustomSpecRows(prev => prev.filter((_, i) => i !== idx))}
                           className="p-2 text-zinc-500 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10"
                         >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">delete</span>
                         </button>
                       </div>
                     ))}
@@ -836,8 +838,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
               ) : (
                 <>
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Modelo</label>
-                <select name="model_id" value={modelId} onChange={e => handleModelChange(e.target.value)} required className={inputClass}>
+                <label className={labelClass} htmlFor={`${fieldId}-model_id`}>Modelo</label>
+                <select name="model_id" id={`${fieldId}-model_id`} value={modelId} onChange={e => handleModelChange(e.target.value)} required className={inputClass}>
                   <option value="">Selecciona un modelo...</option>
                   {availableModels.map(m => (
                     <option key={m.id} value={m.id}>{m.name}</option>
@@ -849,15 +851,15 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                 {category !== 'apple_watch' && category !== 'airpods' && (
                   <>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Capacidad</label>
-                      <select name="storage" value={storage} onChange={e => setStorage(e.target.value)} required={availableStorage.length > 0} className={inputClass} disabled={availableStorage.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-storage`}>Capacidad</label>
+                      <select name="storage" id={`${fieldId}-storage`} value={storage} onChange={e => setStorage(e.target.value)} required={availableStorage.length > 0} className={inputClass} disabled={availableStorage.length === 0}>
                         <option value="">{availableStorage.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableStorage.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Color</label>
-                      <select name="color" value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
+                      <select name="color" id={`${fieldId}-color`} value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
                         <option value="">{availableColors.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
@@ -867,8 +869,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
 
                 {category === 'ipad' && (
                   <div className="flex flex-col gap-1.5">
-                    <label className={labelClass}>Conectividad</label>
-                    <select name="connectivity" value={connectivity} onChange={e => setConnectivity(e.target.value)} required={availableConnectivities.length > 0} className={inputClass} disabled={availableConnectivities.length === 0}>
+                    <label className={labelClass} htmlFor={`${fieldId}-connectivity`}>Conectividad</label>
+                    <select name="connectivity" id={`${fieldId}-connectivity`} value={connectivity} onChange={e => setConnectivity(e.target.value)} required={availableConnectivities.length > 0} className={inputClass} disabled={availableConnectivities.length === 0}>
                       <option value="">{availableConnectivities.length > 0 ? "Selecciona..." : "N/A"}</option>
                       {availableConnectivities.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                     </select>
@@ -878,29 +880,29 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                 {category === 'apple_watch' && (
                   <>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Tamaño</label>
-                      <select name="size" value={size} onChange={e => setSize(e.target.value)} required={availableSizes.length > 0} className={inputClass} disabled={availableSizes.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-size`}>Tamaño</label>
+                      <select name="size" id={`${fieldId}-size`} value={size} onChange={e => setSize(e.target.value)} required={availableSizes.length > 0} className={inputClass} disabled={availableSizes.length === 0}>
                         <option value="">{availableSizes.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableSizes.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Conectividad</label>
-                      <select name="connectivity" value={connectivity} onChange={e => setConnectivity(e.target.value)} required={availableConnectivities.length > 0} className={inputClass} disabled={availableConnectivities.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-connectivity`}>Conectividad</label>
+                      <select name="connectivity" id={`${fieldId}-connectivity`} value={connectivity} onChange={e => setConnectivity(e.target.value)} required={availableConnectivities.length > 0} className={inputClass} disabled={availableConnectivities.length === 0}>
                         <option value="">{availableConnectivities.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableConnectivities.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Material de caja</label>
-                      <select name="case_material" value={caseMaterial} onChange={e => setCaseMaterial(e.target.value)} required={availableCaseMaterials.length > 0} className={inputClass} disabled={availableCaseMaterials.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-case_material`}>Material de caja</label>
+                      <select name="case_material" id={`${fieldId}-case_material`} value={caseMaterial} onChange={e => setCaseMaterial(e.target.value)} required={availableCaseMaterials.length > 0} className={inputClass} disabled={availableCaseMaterials.length === 0}>
                         <option value="">{availableCaseMaterials.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableCaseMaterials.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Color</label>
-                      <select name="color" value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
+                      <select name="color" id={`${fieldId}-color`} value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
                         <option value="">{availableColors.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
@@ -912,8 +914,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                   <>
                     {availableCaseTypes.length > 0 && (
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Tipo de estuche</label>
-                        <select name="case_type" value={caseType} onChange={e => setCaseType(e.target.value)} required className={inputClass}>
+                        <label className={labelClass} htmlFor={`${fieldId}-case_type`}>Tipo de estuche</label>
+                        <select name="case_type" id={`${fieldId}-case_type`} value={caseType} onChange={e => setCaseType(e.target.value)} required className={inputClass}>
                           <option value="">Selecciona...</option>
                           {availableCaseTypes.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                         </select>
@@ -921,8 +923,8 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                     )}
                     {availableColors.length > 0 && (
                       <div className="flex flex-col gap-1.5">
-                        <label className={labelClass}>Color</label>
-                        <select name="color" value={color} onChange={e => setColor(e.target.value)} required className={inputClass}>
+                        <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
+                        <select name="color" id={`${fieldId}-color`} value={color} onChange={e => setColor(e.target.value)} required className={inputClass}>
                           <option value="">Selecciona...</option>
                           {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                         </select>
@@ -934,29 +936,29 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                 {category === 'macbook' && (
                   <>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Chip (Procesador)</label>
-                      <select name="chip" value={chip} onChange={e => handleChipChange(e.target.value)} required={availableChips.length > 0} className={inputClass} disabled={availableChips.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-chip`}>Chip (Procesador)</label>
+                      <select name="chip" id={`${fieldId}-chip`} value={chip} onChange={e => handleChipChange(e.target.value)} required={availableChips.length > 0} className={inputClass} disabled={availableChips.length === 0}>
                         <option value="">{availableChips.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableChips.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Memoria Unificada</label>
-                      <select name="memory" value={memory} onChange={e => setMemory(e.target.value)} required={availableMemories.length > 0} className={inputClass} disabled={availableMemories.length === 0 || (!chip && availableChips.length > 0)}>
+                      <label className={labelClass} htmlFor={`${fieldId}-memory`}>Memoria Unificada</label>
+                      <select name="memory" id={`${fieldId}-memory`} value={memory} onChange={e => setMemory(e.target.value)} required={availableMemories.length > 0} className={inputClass} disabled={availableMemories.length === 0 || (!chip && availableChips.length > 0)}>
                         <option value="">{availableMemories.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableMemories.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Almacenamiento SSD</label>
-                      <select name="storage" value={storage} onChange={e => setStorage(e.target.value)} required={availableStorage.length > 0} className={inputClass} disabled={availableStorage.length === 0 || (!chip && availableChips.length > 0)}>
+                      <label className={labelClass} htmlFor={`${fieldId}-storage`}>Almacenamiento SSD</label>
+                      <select name="storage" id={`${fieldId}-storage`} value={storage} onChange={e => setStorage(e.target.value)} required={availableStorage.length > 0} className={inputClass} disabled={availableStorage.length === 0 || (!chip && availableChips.length > 0)}>
                         <option value="">{availableStorage.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableStorage.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Color</label>
-                      <select name="color" value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
+                      <label className={labelClass} htmlFor={`${fieldId}-color`}>Color</label>
+                      <select name="color" id={`${fieldId}-color`} value={color} onChange={e => setColor(e.target.value)} required={availableColors.length > 0} className={inputClass} disabled={availableColors.length === 0}>
                         <option value="">{availableColors.length > 0 ? "Selecciona..." : "N/A"}</option>
                         {availableColors.map(v => <option key={v.id} value={v.value}>{v.value}</option>)}
                       </select>
@@ -968,22 +970,22 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
               )}
 
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>IMEI / Número de serie (Opcional)</label>
-                <input type="text" name="imei_serial" placeholder="Introduce IMEI o Serie" defaultValue={device.imei_serial || ''} className={inputClass} />
+                <label className={labelClass} htmlFor={`${fieldId}-imei_serial`}>IMEI / Número de serie (Opcional)</label>
+                <input type="text" name="imei_serial" id={`${fieldId}-imei_serial`} placeholder="Introduce IMEI o Serie" defaultValue={device.imei_serial || ''} className={inputClass} />
               </div>
             </div>
           </section>
 
           {/* ESTADO / BATERIA */}
           <section className={sectionClass}>
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[16px]">health_and_safety</span> Estado y Batería
-            </h3>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">health_and_safety</span> Estado y Batería
+            </h2>
             
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Estado físico</label>
-                <select name="condition" value={condition} onChange={e => setCondition(e.target.value)} required className={inputClass}>
+                <label className={labelClass} htmlFor={`${fieldId}-condition`}>Estado físico</label>
+                <select name="condition" id={`${fieldId}-condition`} value={condition} onChange={e => setCondition(e.target.value)} required className={inputClass}>
                   <option value="sealed">Precintado</option>
                   <option value="like_new">Como nuevo</option>
                   <option value="good">Buen estado</option>
@@ -995,14 +997,14 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {showBatteryHealth && (
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Salud de batería (%)</label>
-                      <input type="number" name="battery_health" min="0" max="100" value={batteryHealth} onChange={e => setBatteryHealth(e.target.value)} required className={inputClass} />
+                      <label className={labelClass} htmlFor={`${fieldId}-battery_health`}>Salud de batería (%)</label>
+                      <input type="number" name="battery_health" id={`${fieldId}-battery_health`} min="0" max="100" value={batteryHealth} onChange={e => setBatteryHealth(e.target.value)} required className={inputClass} />
                     </div>
                   )}
                   {showBatteryCycles && (
                     <div className="flex flex-col gap-1.5">
-                      <label className={labelClass}>Ciclos de carga</label>
-                      <input type="number" name="battery_cycles" min="0" value={batteryCycles} onChange={e => setBatteryCycles(e.target.value)} className={inputClass} placeholder="Ej. 317" />
+                      <label className={labelClass} htmlFor={`${fieldId}-battery_cycles`}>Ciclos de carga</label>
+                      <input type="number" name="battery_cycles" id={`${fieldId}-battery_cycles`} min="0" value={batteryCycles} onChange={e => setBatteryCycles(e.target.value)} className={inputClass} placeholder="Ej. 317" />
                     </div>
                   )}
                 </div>
@@ -1012,9 +1014,9 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
 
           {/* ACCESORIOS */}
           <section className={sectionClass}>
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[16px]">inventory_2</span> Accesorios
-            </h3>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">inventory_2</span> Accesorios
+            </h2>
             <div className="flex flex-col gap-3">
               {[
                 { name: 'has_box', label: 'Tiene caja', defaultChecked: device.has_box },
@@ -1026,15 +1028,15 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
                 <div key={field.name} className="flex justify-between items-center py-2.5 border-b border-[#1F1F24] last:border-0">
                   <span className="text-zinc-300 text-[14px] font-medium">{field.label}</span>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" name={field.name} defaultChecked={field.defaultChecked} className="sr-only peer" />
+                    <input type="checkbox" aria-label={field.label} name={field.name} defaultChecked={field.defaultChecked} className="sr-only peer" />
                     <div className="w-11 h-6 bg-[#1F1F24] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all transition-colors peer-checked:bg-[#7a32d4]"></div>
                   </label>
                 </div>
               ))}
               
               <div className="flex flex-col gap-1.5 mt-2">
-                <label className={labelClass}>Garantía oficial hasta (Opcional)</label>
-                <input type="date" name="warranty_until" defaultValue={device.warranty_until || ''} className={`${inputClass} [color-scheme:dark]`} />
+                <label className={labelClass} htmlFor={`${fieldId}-warranty_until`}>Garantía oficial hasta (Opcional)</label>
+                <input type="date" name="warranty_until" id={`${fieldId}-warranty_until`} defaultValue={device.warranty_until || ''} className={`${inputClass} [color-scheme:dark]`} />
               </div>
             </div>
           </section>
@@ -1048,14 +1050,14 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
           <section className={sectionClass}>
             <div className="flex flex-col gap-4">
               <div className="flex justify-between items-center">
-                <h3 className={sectionTitleClass}>
-                  <span className="material-symbols-outlined text-[16px]">payments</span> Compra y Precios
-                </h3>
+                <h2 className={sectionTitleClass}>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[16px]">payments</span> Compra y Precios
+                </h2>
               </div>
 
               {isTradeInReceived && (
                 <div className="bg-[#B98AFF]/10 border border-[#B98AFF]/30 p-3.5 rounded-xl flex items-start gap-3">
-                  <span className="material-symbols-outlined text-[#B98AFF] text-[20px] mt-0.5">info</span>
+                  <span aria-hidden="true" className="material-symbols-outlined text-[#B98AFF] text-[20px] mt-0.5">info</span>
                   <p className="text-sm text-[#d7baff] font-medium">
                     Estos datos pertenecen a una parte de pago. Modifícalos desde «Editar operación».
                   </p>
@@ -1064,31 +1066,31 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5 relative">
-                  <label className={labelClass}>Precio de compra</label>
+                  <label className={labelClass} htmlFor={`${fieldId}-purchase_price`}>Precio de compra</label>
                   <span className="absolute left-4 top-[35px] text-zinc-500">€</span>
-                  <input type="number" step="0.01" min="0" name="purchase_price" defaultValue={device.purchase_price} required disabled={isTradeInReceived} className={`${inputClass} pl-8 disabled:opacity-50 disabled:cursor-not-allowed`} />
+                  <input type="number" step="0.01" min="0" name="purchase_price" id={`${fieldId}-purchase_price`} defaultValue={device.purchase_price} required disabled={isTradeInReceived} className={`${inputClass} pl-8 disabled:opacity-50 disabled:cursor-not-allowed`} />
                 </div>
                 <div className="flex flex-col gap-1.5 relative">
-                  <label className={labelClass}>Precio de publicación</label>
+                  <label className={labelClass} htmlFor={`${fieldId}-listing_price`}>Precio de publicación</label>
                   <span className="absolute left-4 top-[35px] text-zinc-500">€</span>
-                  <input type="number" step="0.01" min="0" name="listing_price" value={listingPrice} onChange={e => setListingPrice(e.target.value)} required className={`${inputClass} pl-8 font-bold text-[#d7baff] border-[#7a32d4]/30 bg-[#7a32d4]/5`} />
+                  <input type="number" step="0.01" min="0" name="listing_price" id={`${fieldId}-listing_price`} value={listingPrice} onChange={e => setListingPrice(e.target.value)} required className={`${inputClass} pl-8 font-bold text-[#d7baff] border-[#7a32d4]/30 bg-[#7a32d4]/5`} />
                 </div>
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Fecha de compra</label>
-                  <input type="date" name="purchased_at" required defaultValue={device.purchased_at} disabled={isTradeInReceived} className={`${inputClass} [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed`} />
+                  <label className={labelClass} htmlFor={`${fieldId}-purchased_at`}>Fecha de compra</label>
+                  <input type="date" name="purchased_at" id={`${fieldId}-purchased_at`} required defaultValue={device.purchased_at} disabled={isTradeInReceived} className={`${inputClass} [color-scheme:dark] disabled:opacity-50 disabled:cursor-not-allowed`} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Lugar de compra (Opcional)</label>
-                  <input type="text" name="purchase_location" defaultValue={device.purchase_location || ''} disabled={isTradeInReceived} className={`${inputClass} disabled:opacity-50 disabled:cursor-not-allowed`} placeholder="Ej. Tienda física" />
+                  <label className={labelClass} htmlFor={`${fieldId}-purchase_location`}>Lugar de compra (Opcional)</label>
+                  <input type="text" name="purchase_location" id={`${fieldId}-purchase_location`} defaultValue={device.purchase_location || ''} disabled={isTradeInReceived} className={`${inputClass} disabled:opacity-50 disabled:cursor-not-allowed`} placeholder="Ej. Tienda física" />
                 </div>
               </div>
               
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Notas internas (Opcional)</label>
-                <textarea name="internal_notes" rows={3} defaultValue={device.internal_notes || ''} className={`${inputClass} resize-none`} placeholder="Notas visibles solo para administradores."></textarea>
+                <label className={labelClass} htmlFor={`${fieldId}-internal_notes`}>Notas internas (Opcional)</label>
+                <textarea name="internal_notes" id={`${fieldId}-internal_notes`} rows={3} defaultValue={device.internal_notes || ''} className={`${inputClass} resize-none`} placeholder="Notas visibles solo para administradores."></textarea>
               </div>
             </div>
           </section>
@@ -1096,9 +1098,9 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
           {/* OFERTA */}
           <section className={sectionClass}>
             <div className="flex justify-between items-center">
-              <h3 className={sectionTitleClass}>
-                <span className="material-symbols-outlined text-[16px]">local_offer</span> Oferta
-              </h3>
+              <h2 className={sectionTitleClass}>
+                <span aria-hidden="true" className="material-symbols-outlined text-[16px]">local_offer</span> Oferta
+              </h2>
               {isOfferActive ? (
                 <button
                   type="button"
@@ -1161,23 +1163,23 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
 
           {/* VENDEDOR */}
           <section className={sectionClass}>
-            <h3 className={sectionTitleClass}>
-              <span className="material-symbols-outlined text-[16px]">person</span> Vendedor
-            </h3>
+            <h2 className={sectionTitleClass}>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">person</span> Vendedor
+            </h2>
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Nombre *</label>
-                  <input type="text" name="seller_name" required defaultValue={device.clients?.name || ''} className={inputClass} placeholder="Ej. Juan Pérez" />
+                  <label className={labelClass} htmlFor={`${fieldId}-seller_name`}>Nombre *</label>
+                  <input type="text" name="seller_name" id={`${fieldId}-seller_name`} required defaultValue={device.clients?.name || ''} className={inputClass} placeholder="Ej. Juan Pérez" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Teléfono *</label>
-                  <input type="text" name="seller_phone" required defaultValue={device.clients?.phone || ''} className={inputClass} placeholder="Ej. 600 000 000" />
+                  <label className={labelClass} htmlFor={`${fieldId}-seller_phone`}>Teléfono *</label>
+                  <input type="text" name="seller_phone" id={`${fieldId}-seller_phone`} required defaultValue={device.clients?.phone || ''} className={inputClass} placeholder="Ej. 600 000 000" />
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Ubicación (Opcional)</label>
-                <input type="text" name="seller_location" defaultValue={device.clients?.location || ''} className={inputClass} placeholder="Ej. Las Palmas" />
+                <label className={labelClass} htmlFor={`${fieldId}-seller_location`}>Ubicación (Opcional)</label>
+                <input type="text" name="seller_location" id={`${fieldId}-seller_location`} defaultValue={device.clients?.location || ''} className={inputClass} placeholder="Ej. Las Palmas" />
               </div>
             </div>
           </section>
@@ -1185,9 +1187,9 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
           {/* IMAGEN DE CATÁLOGO */}
           {modelId && color && (
             <section className={sectionClass}>
-              <h3 className={sectionTitleClass}>
-                <span className="material-symbols-outlined text-[16px]">image</span> Imagen de catálogo
-              </h3>
+              <h2 className={sectionTitleClass}>
+                <span aria-hidden="true" className="material-symbols-outlined text-[16px]">image</span> Imagen de catálogo
+              </h2>
               
               {selectedCatalogImage ? (
                 <div className="flex items-center gap-4 bg-[#121217] p-4 rounded-xl border border-[#1F1F24]">
@@ -1206,7 +1208,7 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
               ) : (
                 <div className="flex items-center gap-4 bg-[#121217] p-4 rounded-xl border border-[#1F1F24]">
                   <div className="w-16 h-16 shrink-0 bg-[#1F1F24] rounded-lg flex items-center justify-center text-zinc-600">
-                    <span className="material-symbols-outlined">image_not_supported</span>
+                    <span aria-hidden="true" className="material-symbols-outlined">image_not_supported</span>
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-sm font-semibold text-white">Sin imagen asignada</span>
@@ -1225,24 +1227,25 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
       {/* FULL WIDTH BOTTOM: FOTOS Y SUBMIT */}
       <section className={sectionClass}>
         <div className="flex justify-between items-end mb-2">
-          <h3 className={sectionTitleClass}>
-            <span className="material-symbols-outlined text-[16px]">photo_camera</span> Fotos reales
-          </h3>
+          <h2 className={sectionTitleClass}>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">photo_camera</span> Fotos reales
+          </h2>
           <span className="text-[11px] text-zinc-500 font-semibold uppercase">Máx 8MB/foto</span>
         </div>
         
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+        <div className="admin-device-form__photos">
           <button 
             type="button" 
             onClick={() => fileInputRef.current?.click()}
             className="aspect-square flex flex-col items-center justify-center bg-[#121217] border-2 border-dashed border-[#2a2a30] rounded-xl text-zinc-500 hover:text-[#d7baff] hover:border-[#d7baff]/50 transition-colors hover:bg-[#7a32d4]/5"
           >
-            <span className="material-symbols-outlined text-2xl mb-1">add_photo_alternate</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-2xl mb-1">add_photo_alternate</span>
             <span className="text-[11px] font-semibold">Añadir foto</span>
           </button>
           
           <input 
             type="file" 
+            aria-label="Añadir fotos del dispositivo"
             ref={fileInputRef} 
             onChange={handleFileChange} 
             multiple 
@@ -1252,27 +1255,24 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
 
           {images.map((img, idx) => (
             <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-[#1F1F24] group bg-[#121217]">
-              <img src={img.isNew ? img.preview : img.publicUrl} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+              <img src={img.isNew ? img.preview : img.publicUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
               <button 
                 type="button" 
                 onClick={() => removeImage(idx)}
-                className="absolute top-1.5 right-1.5 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
+                className="admin-device-form__photo-remove"
                 title="Eliminar foto"
+                aria-label={`Eliminar foto ${idx + 1}`}
               >
-                <span className="material-symbols-outlined text-[14px]">close</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-[14px]">close</span>
               </button>
             </div>
           ))}
         </div>
       </section>
 
-      {formState.error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl text-sm font-semibold text-center">
-          {formState.error}
-        </div>
-      )}
-
-      <div className="flex justify-end pt-2">
+      <div className="admin-device-form__actions">
+          {formState.error && <p className="admin-device-form__error" role="alert">{formState.error}</p>}
+          <div className="admin-device-form__submit-row">
         <button 
           type="submit" 
           disabled={uploading}
@@ -1282,11 +1282,12 @@ export function EditDeviceForm({ device, models, variants, compatibilities = [],
             'Guardando...'
           ) : (
             <>
-              <span className="material-symbols-outlined text-[18px]">save</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">save</span>
               Guardar cambios
             </>
           )}
         </button>
+      </div>
       </div>
     </form>
   )

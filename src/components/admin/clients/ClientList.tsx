@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
-import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
+import React, { useId, useRef, useState } from 'react'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 import { updateClientAction, deleteClientAction } from '@/actions/clients'
 import Link from 'next/link'
@@ -17,87 +16,67 @@ type Client = {
 }
 
 export function ClientList({ clients }: { clients: Client[] }) {
+  const searchId = useId()
   const [searchTerm, setSearchTerm] = useState('')
-
-  const filteredClients = clients.filter(client => {
-    if (!searchTerm) return true
-    const term = searchTerm.toLowerCase()
-    return (
-      client.name.toLowerCase().includes(term) ||
-      client.phone.toLowerCase().includes(term) ||
-      (client.location && client.location.toLowerCase().includes(term))
-    )
-  })
+  const [sortOrder, setSortOrder] = useState('recent')
+  const query = searchTerm.trim().toLocaleLowerCase('es')
+  const filteredClients = clients.filter(client => !query ||
+    [client.name, client.phone, client.location].filter(Boolean).join(' ').toLocaleLowerCase('es').includes(query)
+  )
+  // Preserve the server's newest-first ordering by default; sort copies only.
+  const visibleClients = sortOrder === 'oldest'
+    ? [...filteredClients].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
+    : sortOrder === 'name_asc' || sortOrder === 'name_desc'
+      ? [...filteredClients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base', numeric: true }) * (sortOrder === 'name_desc' ? -1 : 1))
+      : filteredClients
 
   const totalClients = clients.length
   const totalCompradores = clients.filter(c => c.purchases_count > 0).length
   const totalVendedores = clients.filter(c => c.sales_to_business_count > 0).length
+  const resetSearch = () => setSearchTerm('')
 
   return (
-    <div className="flex flex-col gap-6 lg:gap-8 w-full max-w-7xl mx-auto pb-12">
-      <AdminPageHeader 
-        title="Clientes" 
-        subtitle="Historial de personas que han comprado o vendido contigo." 
+    <div className="admin-clients">
+      <AdminPageHeader
+        title="Clientes"
+        subtitle="Contactos e historial de compras y ventas."
+        action={<p className="admin-clients__total"><strong>{totalClients}</strong> {totalClients === 1 ? 'cliente' : 'clientes'}</p>}
       />
+      <p className="admin-clients__summary"><span><strong>{totalCompradores}</strong> compradores</span><span><strong>{totalVendedores}</strong> vendedores</span></p>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-[#7a32d4]/5 border border-[#7a32d4]/30 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#7a32d4]"></div>
-          <p className="text-[13px] font-bold text-[#d7baff] uppercase tracking-wider mb-2">Total clientes</p>
-          <p className="text-4xl font-extrabold text-white tracking-tight">{totalClients}</p>
-          <span className="material-symbols-outlined absolute right-4 bottom-4 text-[48px] text-[#7a32d4]/20 pointer-events-none">groups</span>
+      <div className="admin-clients__toolbar">
+        <div className="admin-clients__search">
+          <label htmlFor={searchId} className="sr-only">Buscar cliente por nombre, teléfono o ubicación</label>
+          <span aria-hidden="true" className="material-symbols-outlined">search</span>
+          <input id={searchId} type="search" placeholder="Buscar cliente..." value={searchTerm} onChange={event => setSearchTerm(event.target.value)} />
         </div>
+        <label className="admin-clients__sort">Ordenar
+          <select value={sortOrder} onChange={event => setSortOrder(event.target.value)}>
+            <option value="recent">Más recientes</option>
+            <option value="oldest">Más antiguos</option>
+            <option value="name_asc">Nombre A-Z</option>
+            <option value="name_desc">Nombre Z-A</option>
+          </select>
+        </label>
+        {query && <button type="button" className="admin-clients__reset" onClick={resetSearch}>Limpiar búsqueda</button>}
+      </div>
+      <p className="admin-clients__results" role="status" aria-live="polite">{visibleClients.length} {visibleClients.length === 1 ? 'cliente' : 'clientes'}</p>
 
-        <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col justify-between">
-          <p className="text-[13px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Compradores</p>
-          <p className="text-3xl font-extrabold text-[#d7baff] tracking-tight">{totalCompradores}</p>
-        </div>
-
-        <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col justify-between">
-          <p className="text-[13px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Vendedores</p>
-          <p className="text-3xl font-extrabold text-white tracking-tight">{totalVendedores}</p>
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <div className="relative">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-[20px]">search</span>
-          <input 
-            type="text" 
-            placeholder="Buscar por nombre, teléfono o ubicación" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full md:w-96 bg-[#121217] border border-[#1F1F24] rounded-xl py-2.5 pl-12 pr-4 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all"
-          />
-        </div>
-
-        {filteredClients.length === 0 ? (
-          <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-12 flex flex-col items-center justify-center text-center gap-3">
-            <span className="material-symbols-outlined text-[48px] text-zinc-700">group_off</span>
-            <p className="text-[15px] font-bold text-white">
-              {searchTerm 
-                ? "No se encontraron clientes que coincidan con la búsqueda." 
-                : "No hay clientes registrados."}
-            </p>
-            {!searchTerm && (
-              <p className="text-[13px] font-medium text-zinc-500 max-w-sm">
-                Los clientes aparecerán automáticamente al registrar compras o ventas.
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredClients.map(client => (
-              <ClientItem key={client.id} client={client} />
-            ))}
-          </div>
-        )}
-      </section>
+      {visibleClients.length === 0 ? <div className="admin-clients__empty">
+        <h3>{clients.length === 0 ? 'No hay clientes registrados.' : 'No se encontraron clientes que coincidan con la búsqueda.'}</h3>
+        {clients.length === 0 ? <p>Los clientes aparecerán automáticamente al registrar compras o ventas.</p> : <button type="button" onClick={resetSearch}>Limpiar búsqueda</button>}
+      </div> : <table role="table" className="admin-clients__table">
+        <caption className="sr-only">Directorio de clientes</caption>
+        <thead><tr><th scope="col">Cliente</th><th scope="col">Contacto</th><th scope="col">Ubicación</th><th scope="col">Actividad con KevPhones</th><th scope="col"><span className="sr-only">Acciones</span></th></tr></thead>
+        <tbody>{visibleClients.map(client => <ClientItem key={client.id} client={client} />)}</tbody>
+      </table>}
     </div>
   )
 }
 
 function ClientItem({ client }: { client: Client }) {
+  const menuId = useId()
+  const menuTrigger = useRef<HTMLButtonElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -143,6 +122,7 @@ function ClientItem({ client }: { client: Client }) {
 
   if (isEditing) {
     return (
+      <tr className="admin-clients__inline-row"><td colSpan={5}>
       <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col gap-4">
         <h4 className="text-[14px] font-bold text-white uppercase tracking-wider border-b border-[#1F1F24] pb-3">Editar cliente</h4>
         {error && (
@@ -182,11 +162,13 @@ function ClientItem({ client }: { client: Client }) {
           </div>
         </form>
       </div>
+      </td></tr>
     )
   }
 
   if (isDeleting) {
     return (
+      <tr className="admin-clients__inline-row"><td colSpan={5}>
       <div className="bg-[#0B0B0E] border border-red-500/30 rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-1.5 h-full bg-red-500/50"></div>
         <h4 className="text-[15px] font-bold text-red-400">¿Eliminar este cliente?</h4>
@@ -218,76 +200,46 @@ function ClientItem({ client }: { client: Client }) {
           </button>
         </form>
       </div>
+      </td></tr>
     )
   }
 
   return (
-    <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col justify-between hover:border-[#7a32d4]/30 transition-colors group">
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex flex-col gap-1 pr-4">
-          <h3 className="text-[16px] font-bold text-white leading-tight">
-            {client.name}
-          </h3>
-          <div className="flex items-center gap-1.5 text-zinc-400">
-            <span className="material-symbols-outlined text-[14px]">call</span>
-            <span className="text-[13px] font-medium">{client.phone}</span>
-          </div>
-          {client.location && (
-            <div className="flex items-center gap-1.5 text-zinc-500 mt-0.5">
-              <span className="material-symbols-outlined text-[14px]">location_on</span>
-              <span className="text-[12px] font-medium">{client.location}</span>
-            </div>
-          )}
-        </div>
-        
-        <div className="relative shrink-0">
-          <button 
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-white bg-[#121217] border border-[#1F1F24] rounded-full transition-colors"
-          >
-            <span className="material-symbols-outlined text-[18px]">more_vert</span>
+    <tr className="admin-clients__row">
+      <td className="admin-clients__identity"><strong>{client.name || 'Sin nombre'}</strong></td>
+      <td className="admin-clients__contact">{client.phone || 'Sin teléfono'}</td>
+      <td className="admin-clients__location">{client.location || 'Sin ubicación'}</td>
+      <td className="admin-clients__activity">
+        <span className="admin-clients__activity-label">Con KevPhones</span>
+        <dl aria-label="Actividad con KevPhones">
+          <div><dt>Ventas</dt><dd>{client.sales_to_business_count}</dd></div>
+          <div><dt>Compras</dt><dd>{client.purchases_count}</dd></div>
+        </dl>
+      </td>
+      <td className="admin-clients__actions" onKeyDown={event => {
+        if (event.key === 'Escape' && menuOpen) {
+          setMenuOpen(false)
+          menuTrigger.current?.focus()
+        }
+      }}>
+        <Link href={`/admin/clientes/${client.id}`} className="admin-clients__view">Ver cliente<span className="sr-only">: {client.name}</span></Link>
+        <div className="admin-clients__more">
+          <button type="button" ref={menuTrigger} aria-label={`Más acciones para ${client.name || 'este cliente'}`} aria-expanded={menuOpen} aria-controls={menuId} onClick={() => setMenuOpen(!menuOpen)} className="admin-clients__menu-trigger">
+            <span aria-hidden="true" className="material-symbols-outlined">more_vert</span>
           </button>
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}></div>
-              <div className="absolute right-0 top-10 w-36 bg-[#121217] border border-[#1F1F24] rounded-xl shadow-2xl z-50 py-1.5 overflow-hidden">
-                <Link href={`/admin/clientes/${client.id}`} className="flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1F1F24] transition-colors">
-                  <span className="material-symbols-outlined text-[16px]">visibility</span>
-                  Ver detalle
-                </Link>
-                <button 
-                  onClick={() => { setMenuOpen(false); setIsEditing(true); }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1F1F24] transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[16px]">edit</span>
-                  Editar
-                </button>
-                <div className="h-px bg-[#1F1F24] my-1"></div>
-                <button 
-                  onClick={() => { setMenuOpen(false); setIsDeleting(true); }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24] transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[16px]">delete</span>
-                  Eliminar
-                </button>
-              </div>
-            </>
-          )}
+          {menuOpen && <>
+            <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)}></div>
+            <div id={menuId} className="admin-clients__menu" role="group" aria-label={`Acciones de ${client.name || 'cliente'}`}>
+              <button type="button" onClick={() => { setMenuOpen(false); setIsEditing(true); }}>
+                <span aria-hidden="true" className="material-symbols-outlined">edit</span> Editar
+              </button>
+              <button type="button" onClick={() => { setMenuOpen(false); setIsDeleting(true); }}>
+                <span aria-hidden="true" className="material-symbols-outlined">delete</span> Eliminar
+              </button>
+            </div>
+          </>}
         </div>
-      </div>
-
-      <div className="h-px bg-[#1F1F24] w-full mb-4"></div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col">
-          <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-0.5">Ventas a KevPhones</span>
-          <span className="text-[15px] font-bold text-white">{client.sales_to_business_count}</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-[11px] font-bold text-[#d7baff] uppercase tracking-wider mb-0.5">Compras a KevPhones</span>
-          <span className="text-[15px] font-bold text-[#d7baff]">{client.purchases_count}</span>
-        </div>
-      </div>
-    </div>
+      </td>
+    </tr>
   )
 }

@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 import { deleteDeviceAction, publishDeviceAction } from '@/actions/devices'
 import { updateDeviceSaleAction, cancelDeviceSaleAction } from '@/actions/sales'
@@ -23,6 +22,7 @@ type Device = {
   battery_cycles: number | null
   condition: string
   purchase_price: number
+  discount_price?: number | null
   listing_price: number
   warranty_until: string | null
   purchased_at: string
@@ -165,10 +165,11 @@ function getOtherDeviceSummary(device: Device): string {
 }
 
 export function StockList({ availableDevices, soldDevices, availableCount, stockCapital, soldCount }: StockListProps) {
-  const [view, setView] = useState<'available' | 'sold'>('available')
+  const [view, setView] = useState<'all' | 'available' | 'sold'>('available')
   const [search, setSearch] = useState('')
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
-  
+  const [category, setCategory] = useState('all')
+  const [publication, setPublication] = useState('all')
+  const [sort, setSort] = useState('recent')
   const [editingSale, setEditingSale] = useState<Device | null>(null)
   const [deletingDevice, setDeletingDevice] = useState<Device | null>(null)
   const [cancellingSale, setCancellingSale] = useState<Device | null>(null)
@@ -176,25 +177,50 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const activeList = view === 'available' ? availableDevices : soldDevices
-
+  const allDevices = useMemo(() => [...availableDevices, ...soldDevices], [availableDevices, soldDevices])
+  const categoryLabels: Record<string, string> = { iphone: 'iPhone', ipad: 'iPad', macbook: 'MacBook', apple_watch: 'Apple Watch', airpods: 'AirPods', ps5: 'PS5', nintendo_switch: 'Nintendo Switch', other: 'Otros' }
+  const categories = Array.from(new Set(allDevices.map(device => device.device_models?.category).filter(Boolean))) as string[]
+  const publishedCount = allDevices.filter(device => device.is_published).length
+  const hasFilters = !!search || view !== 'available' || category !== 'all' || publication !== 'all' || sort !== 'recent'
+  const resetFilters = () => { setSearch(''); setView('available'); setCategory('all'); setPublication('all'); setSort('recent') }
+  const effectivePrice = (device: Device) => {
+    const listing = Number(device.listing_price)
+    const discount = Number(device.discount_price)
+    return Number.isFinite(discount) && discount > 0 && discount < listing ? discount : listing
+  }
+  const salePrice = (device: Device) => device.status === 'sold' && device.sale_data ? Number(device.sale_data.final_sale_price) : effectivePrice(device)
+  const margin = (device: Device) => {
+    if (device.purchase_price === null || device.purchase_price === undefined) return null
+    const result = salePrice(device) - Number(device.purchase_price)
+    return Number.isFinite(result) ? result : null
+  }
+  const summary = (device: Device) => {
+    const type = device.device_models?.category
+    if (type === 'other') return getOtherDeviceSummary(device)
+    const values = type === 'apple_watch' ? [device.size, device.connectivity, device.case_material, device.color]
+      : type === 'airpods' ? [device.case_type, device.color]
+      : [device.storage, device.color, device.size, device.connectivity]
+    return values.filter(Boolean).join(' · ')
+  }
   const filteredList = useMemo(() => {
-    if (!search.trim()) return activeList
-    const q = search.toLowerCase()
-    return activeList.filter(d => {
-      const title = getDeviceTitle(d).toLowerCase()
-      const brand = (d.device_models?.brand || '').toLowerCase()
-      const imei = (d.imei_serial || '').toLowerCase()
-      const storage = (d.storage || '').toLowerCase()
-      const color = (d.color || '').toLowerCase()
-      const size = (d.size || '').toLowerCase()
-      const connectivity = (d.connectivity || '').toLowerCase()
-      const caseType = (d.case_type || '').toLowerCase()
-      const caseMaterial = (d.case_material || '').toLowerCase()
-      const customType = (d.custom_product_type || '').toLowerCase()
-      return title.includes(q) || brand.includes(q) || imei.includes(q) || storage.includes(q) || color.includes(q) || size.includes(q) || connectivity.includes(q) || caseType.includes(q) || caseMaterial.includes(q) || customType.includes(q)
+    const query = search.trim().toLowerCase()
+    const result = allDevices.filter(device => {
+      if (view !== 'all' && device.status !== view) return false
+      if (category !== 'all' && device.device_models?.category !== category) return false
+      if (publication === 'published' && !device.is_published) return false
+      if (publication === 'hidden' && device.is_published) return false
+      const values = [getDeviceTitle(device), device.device_models?.brand, device.imei_serial, device.storage, device.color, device.size, device.connectivity, device.case_type, device.case_material, device.custom_product_type, getOtherProductTypeLabel(device.custom_product_type), summary(device)]
+      return !query || values.some(value => String(value || '').toLowerCase().includes(query))
     })
-  }, [activeList, search])
+    return result.sort((a, b) => {
+      if (sort === 'recent') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      const valueA = sort === 'margin' ? margin(a) : sort.startsWith('buy') ? Number(a.purchase_price) : salePrice(a)
+      const valueB = sort === 'margin' ? margin(b) : sort.startsWith('buy') ? Number(b.purchase_price) : salePrice(b)
+      if (valueA === null || !Number.isFinite(valueA)) return valueB === null || !Number.isFinite(valueB) ? 0 : 1
+      if (valueB === null || !Number.isFinite(valueB)) return -1
+      return sort.endsWith('desc') || sort === 'margin' ? valueB - valueA : valueA - valueB
+    })
+  }, [allDevices, view, search, category, publication, sort])
 
   const maskImei = (imei: string) => {
     if (!imei) return ''
@@ -291,291 +317,76 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
     }
   }
 
+  const actions = (device: Device) => <div className="admin-stock__actions">
+    <Link href={`/admin/stock/${device.id}`} title="Ver ficha" aria-label={`Ver ficha de ${getDeviceTitle(device)}`}><span aria-hidden="true" className="material-symbols-outlined">visibility</span></Link>
+    {device.status === 'available' && <>
+      <Link href={`/admin/stock/${device.id}/editar`} title="Editar" aria-label={`Editar ${getDeviceTitle(device)}`}><span aria-hidden="true" className="material-symbols-outlined">edit</span></Link>
+      {!device.is_published && <button type="button" disabled={isPending} onClick={() => handlePublish(device)} title="Publicar" aria-label={`Publicar ${getDeviceTitle(device)}`}><span aria-hidden="true" className="material-symbols-outlined">publish</span></button>}
+      <Link href={`/admin/stock/${device.id}/vender`} title="Vender" aria-label={`Vender ${getDeviceTitle(device)}`}><span aria-hidden="true" className="material-symbols-outlined">sell</span></Link>
+    </>}
+    <details className="admin-stock__more" onKeyDown={event => {
+      if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus() }
+    }}>
+      <summary aria-label={`Más acciones para ${getDeviceTitle(device)}`}><span aria-hidden="true" className="material-symbols-outlined">more_vert</span></summary>
+      <div className="admin-stock__menu">
+        {device.status === 'available' ? <>
+          <Link href={`/admin/stock/nuevo?duplicate=${device.id}`}>Duplicar dispositivo</Link>
+          <button type="button" disabled={isPending} onClick={event => { event.currentTarget.closest('details')?.removeAttribute('open'); setDeletingDevice(device) }}>Eliminar dispositivo</button>
+        </> : <>
+          <button type="button" disabled={isPending || !device.sale_data} onClick={event => { event.currentTarget.closest('details')?.removeAttribute('open'); setEditingSale(device) }}>Editar venta</button>
+          <button type="button" disabled={isPending || !device.sale_data} onClick={event => { event.currentTarget.closest('details')?.removeAttribute('open'); setCancellingSale(device) }}>Anular venta</button>
+        </>}
+      </div>
+    </details>
+  </div>
+  const image = (device: Device) => {
+    const imgUrl = device.device_images?.length && supabaseUrl ? `${supabaseUrl}/storage/v1/object/public/device-images/${device.device_images[0].storage_path}` : null
+    return imgUrl ? <img src={imgUrl} alt={getDeviceTitle(device)} loading="lazy" decoding="async" /> : <span aria-hidden="true" className="material-symbols-outlined">devices</span>
+  }
+  const status = (device: Device) => <div className="admin-stock__status"><span>{device.status === 'available' ? 'Disponible' : 'Vendido'}</span><span data-published={device.is_published}>{device.is_published ? 'Publicado' : 'Oculto'}</span></div>
+  const details = (device: Device) => <>{conditionMap[device.condition] || device.condition}{['iphone', 'ipad', 'apple_watch', 'macbook'].includes(device.device_models?.category) && device.battery_health !== null && <span className="admin-stock__muted">Batería {device.battery_health}%</span>}</>
+  const price = (device: Device) => <><strong>{Number.isFinite(salePrice(device)) ? formatPrice(salePrice(device)) : '—'}</strong>{device.status === 'available' && effectivePrice(device) < Number(device.listing_price) && <del>{formatPrice(device.listing_price)}</del>}</>
+  const marginValue = (device: Device) => { const value = margin(device); return <span data-tone={value === null || value === 0 ? 'neutral' : value > 0 ? 'positive' : 'negative'}>{value === null ? '—' : `${value > 0 ? '+' : ''}${formatPrice(value)}`}</span> }
+
   return (
-    <div className="flex flex-col gap-6">
-      <AdminPageHeader 
-        title="Stock" 
-        subtitle="Gestiona tus dispositivos disponibles y vendidos." 
-        action={
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
-            <Link 
-              href="/admin/stock/rapido" 
-              className="inline-flex justify-center items-center gap-2 bg-[#7a32d4] hover:bg-[#8b46e0] text-white font-bold text-sm py-2.5 px-4 rounded-xl transition-all shadow-sm shadow-[#7a32d4]/25 w-full sm:w-auto"
-            >
-              <span className="material-symbols-outlined text-[20px]">bolt</span>
-              <span>Añadir rápido</span>
-            </Link>
-            <Link 
-              href="/admin/stock/nuevo" 
-              className="inline-flex justify-center items-center gap-2 bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm py-2.5 px-4 rounded-xl transition-colors w-full sm:w-auto"
-            >
-              <span className="material-symbols-outlined text-[20px]">add</span>
-              <span>Añadir dispositivo</span>
-            </Link>
-          </div>
-        }
-      />
-
-      {/* KPI Section */}
-      <section className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="col-span-1 bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col justify-center">
-          <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Disponibles</p>
-          <p className="text-3xl font-semibold text-white leading-none">
-            {availableCount}
-          </p>
-        </div>
-
-        <div className="col-span-1 bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col justify-center">
-          <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Vendidos</p>
-          <p className="text-3xl font-semibold text-white leading-none">
-            {soldCount}
-          </p>
-        </div>
-
-        <div className="col-span-2 lg:col-span-1 bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col justify-center">
-          <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Capital en stock</p>
-          <p className="text-3xl font-semibold text-[#d7baff] leading-none">
-            {formatPrice(stockCapital)}
-          </p>
-        </div>
+    <div className="admin-stock">
+      <AdminPageHeader title="Stock" subtitle="Gestiona tus dispositivos disponibles y vendidos." action={<div className="admin-stock__header-actions">
+        <Link href="/admin/stock/rapido">Entrada rápida</Link><Link href="/admin/stock/nuevo">Nuevo dispositivo</Link>
+      </div>} />
+      <section aria-label="Resumen del inventario" className="admin-stock__summary">
+        <span>Disponibles <strong>{availableCount}</strong></span><span>Vendidos <strong>{soldCount}</strong></span>
+        <span>Publicados <strong>{publishedCount}</strong></span><span>Ocultos <strong>{allDevices.length - publishedCount}</strong></span>
+        <span>Capital en stock <strong>{formatPrice(stockCapital)}</strong></span>
       </section>
-
-      {/* Filters & Search Toolbar */}
-      <section className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        
-        {/* Tabs */}
-        <div className="flex bg-[#0B0B0E] border border-[#1F1F24] rounded-xl p-1 w-full lg:w-auto overflow-hidden">
-          <button 
-            onClick={() => { setView('available'); setSearch(''); setOpenMenuId(null); }}
-            className={`flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${view === 'available' ? 'bg-[#7a32d4]/15 text-[#d7baff] shadow-sm' : 'text-zinc-400 hover:text-white'}`}
-          >
-            Disponibles ({availableCount})
-          </button>
-          <button 
-            onClick={() => { setView('sold'); setSearch(''); setOpenMenuId(null); }}
-            className={`flex-1 lg:flex-none px-6 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${view === 'sold' ? 'bg-[#7a32d4]/15 text-[#d7baff] shadow-sm' : 'text-zinc-400 hover:text-white'}`}
-          >
-            Vendidos ({soldCount})
-          </button>
+      <section className="admin-stock__toolbar" aria-label="Buscar y filtrar inventario">
+        <label className="admin-stock__search">Buscar<input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Modelo, variante, IMEI..." /></label>
+        <div className="admin-stock__filters">
+          <label>Categoría<select value={category} onChange={event => setCategory(event.target.value)}><option value="all">Todas</option>{categories.map(value => <option key={value} value={value}>{categoryLabels[value] || value}</option>)}</select></label>
+          <label>Estado<select value={view} onChange={event => setView(event.target.value as typeof view)}><option value="all">Todos</option><option value="available">Disponibles</option><option value="sold">Vendidos</option></select></label>
+          <label>Publicación<select value={publication} onChange={event => setPublication(event.target.value)}><option value="all">Todos</option><option value="published">Publicados</option><option value="hidden">Ocultos</option></select></label>
+          <label>Ordenar<select value={sort} onChange={event => setSort(event.target.value)}><option value="recent">Más recientes</option><option value="sale_asc">Precio venta: menor a mayor</option><option value="sale_desc">Precio venta: mayor a menor</option><option value="buy_asc">Precio compra: menor a mayor</option><option value="buy_desc">Precio compra: mayor a menor</option>{allDevices.some(device => margin(device) !== null) && <option value="margin">Mayor margen</option>}</select></label>
         </div>
-
-        {/* Search */}
-        <div className="relative w-full lg:w-[320px]">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-[20px]">search</span>
-          <input 
-            className="w-full bg-[#0B0B0E] border border-[#1F1F24] rounded-xl py-2.5 pl-10 pr-4 text-white text-sm placeholder-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all" 
-            placeholder="Buscar por modelo, IMEI..." 
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+        <div className="admin-stock__results"><span role="status">{filteredList.length} resultados</span>{hasFilters && <button type="button" onClick={resetFilters}>Limpiar filtros</button>}</div>
       </section>
-
-      {/* Device List */}
-      <section className="flex flex-col gap-3 pb-8">
-        {filteredList.length === 0 ? (
-          <div className="text-center py-16 border border-[#1F1F24] rounded-2xl bg-[#0B0B0E]">
-            <p className="text-zinc-500 text-sm font-medium">
-              {view === 'available' ? 'Ahora mismo no hay dispositivos disponibles.' : 'Todavía no hay dispositivos vendidos.'}
-            </p>
-            {view === 'available' && (
-              <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
-                <Link 
-                  href="/admin/stock/rapido" 
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#7a32d4] hover:bg-[#8b46e0] py-2 px-3.5 rounded-xl transition-all shadow-sm shadow-[#7a32d4]/25"
-                >
-                  <span className="material-symbols-outlined text-[16px]">bolt</span>
-                  Añadir rápido
-                </Link>
-                <Link href="/admin/stock/nuevo" className="inline-block text-[#d7baff] font-semibold text-sm hover:underline">
-                  + Añadir dispositivo
-                </Link>
-              </div>
-            )}
-          </div>
-        ) : (
-          filteredList.map(device => {
-            const hasImage = device.device_images && device.device_images.length > 0
-            const imgUrl = hasImage && supabaseUrl ? `${supabaseUrl}/storage/v1/object/public/device-images/${device.device_images[0].storage_path}` : null
-
-            return (
-              <div key={device.id} className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-4 lg:p-5 flex flex-col lg:flex-row gap-4 lg:items-center relative group hover:border-[#2a2a30] transition-colors">
-                
-                {/* Mobile: Image + Details Top Row */}
-                <div className="flex gap-4 items-start lg:flex-1 lg:items-center">
-                  <div className="w-16 h-20 lg:w-14 lg:h-16 bg-[#1F1F24] rounded-xl border border-[#2a2a30] overflow-hidden flex-shrink-0 relative">
-                    {imgUrl ? (
-                      <img className="w-full h-full object-cover" src={imgUrl} alt={device.device_models?.name} />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                        <span className="material-symbols-outlined text-[20px]">smartphone</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className="text-base lg:text-[17px] leading-tight text-white font-bold truncate">
-                        {getDeviceTitle(device)}
-                      </h3>
-                      {device.device_models?.category === 'other' && getOtherProductTypeLabel(device.custom_product_type) && (
-                        <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#1F1F24] text-zinc-400">
-                          {getOtherProductTypeLabel(device.custom_product_type)}
-                        </span>
-                      )}
-                      <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${view === 'available' ? (device.is_published ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-orange-500/10 text-orange-400') : 'bg-[#1F1F24] text-zinc-400'}`}>
-                        {view === 'available' ? (device.is_published ? 'Publicado' : 'Pendiente de publicar') : 'Vendido'}
-                      </div>
-                    </div>
-                    
-                    <p className="text-xs lg:text-[13px] text-zinc-400 truncate mb-1">
-                      {device.device_models?.category === 'other'
-                        ? getOtherDeviceSummary(device)
-                        : device.device_models?.category === 'apple_watch'
-                        ? [
-                            device.size,
-                            device.connectivity,
-                            device.case_material,
-                            device.battery_health ? `${device.battery_health}%` : null,
-                            conditionMap[device.condition] || null
-                          ].filter(Boolean).join(' · ')
-                        : device.device_models?.category === 'airpods'
-                        ? [
-                            device.case_type,
-                            device.color,
-                            conditionMap[device.condition] || null
-                          ].filter(Boolean).join(' · ')
-                        : device.device_models?.category === 'ipad'
-                        ? [
-                            device.storage,
-                            device.connectivity,
-                            device.color,
-                            conditionMap[device.condition] || null
-                          ].filter(Boolean).join(' · ')
-                        : [
-                            device.storage, 
-                            device.color, 
-                            device.battery_health ? `${device.battery_health}%` : null,
-                            conditionMap[device.condition] || null
-                          ].filter(Boolean).join(' · ')
-                      }
-                    </p>
-                    
-                    <p className="text-[11px] text-zinc-500 font-mono truncate">
-                      IMEI {maskImei(device.imei_serial)}
-                    </p>
-                  </div>
-                  
-                  {/* Mobile Menu Button */}
-                  <div className="lg:hidden absolute top-4 right-4">
-                    <button 
-                      aria-label="Opciones" 
-                      className="text-zinc-500 hover:text-white transition-colors"
-                      onClick={() => setOpenMenuId(openMenuId === device.id ? null : device.id)}
-                    >
-                      <span className="material-symbols-outlined text-[20px]">more_vert</span>
-                    </button>
-                    {openMenuId === device.id && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
-                        <div className="absolute right-0 top-6 w-48 bg-[#121217] border border-[#1F1F24] rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
-                          <Link href={`/admin/stock/${device.id}`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Ver detalle</Link>
-                          {view === 'available' ? (
-                            <>
-                              <Link href={`/admin/stock/${device.id}/editar`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar dispositivo</Link>
-                              <Link href={`/admin/stock/nuevo?duplicate=${device.id}`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Duplicar dispositivo</Link>
-                              {!device.is_published && (
-                                <button onClick={() => { setOpenMenuId(null); handlePublish(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Publicar</button>
-                              )}
-                              <Link href={`/admin/stock/${device.id}/vender`} className="block px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Vender</Link>
-                              <button onClick={() => { setOpenMenuId(null); setDeletingDevice(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24]">Eliminar</button>
-                            </>
-                          ) : (
-                            <>
-                              <button onClick={() => { setOpenMenuId(null); setEditingSale(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar venta</button>
-                              <button onClick={() => { setOpenMenuId(null); setCancellingSale(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24]">Anular venta</button>
-                            </>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Financials & Actions (Desktop Inline / Mobile Stacked) */}
-                <div className="flex items-center justify-between lg:justify-end gap-6 pt-3 lg:pt-0 border-t border-[#1F1F24] lg:border-t-0 mt-2 lg:mt-0">
-                  <div className="flex gap-6">
-                    <div className="flex flex-col lg:items-end">
-                      <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-0.5">Compra</span>
-                      <span className="text-sm font-semibold text-zinc-300">{formatPrice(device.purchase_price)}</span>
-                    </div>
-                    {view === 'available' ? (
-                      <div className="flex flex-col lg:items-end">
-                        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-0.5">Precio / Venta</span>
-                        <span className="text-base font-bold text-white">{formatPrice(device.listing_price)}</span>
-                      </div>
-                    ) : device.sale_data && (
-                      <div className="flex flex-col lg:items-end">
-                        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-0.5">Vendido en</span>
-                        <span className="text-base font-bold text-[#d7baff]">{formatPrice(device.sale_data.final_sale_price)}</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Desktop Actions */}
-                  <div className="hidden lg:flex items-center gap-2 relative">
-                    <Link href={`/admin/stock/${device.id}`} className="p-2 text-zinc-500 hover:text-white hover:bg-[#1F1F24] rounded-lg transition-colors" title="Ver detalle">
-                      <span className="material-symbols-outlined text-[20px]">visibility</span>
-                    </Link>
-                    {view === 'available' && (
-                      <Link href={`/admin/stock/${device.id}/vender`} className="p-2 text-[#d7baff] hover:bg-[#7a32d4]/15 hover:text-[#e5d0ff] rounded-lg transition-colors" title="Vender">
-                        <span className="material-symbols-outlined text-[20px]">sell</span>
-                      </Link>
-                    )}
-                    {view === 'available' && !device.is_published && (
-                      <button onClick={() => handlePublish(device)} className="p-2 text-[#d7baff] hover:bg-[#7a32d4]/15 hover:text-[#e5d0ff] rounded-lg transition-colors" title="Publicar">
-                        <span className="material-symbols-outlined text-[20px]">publish</span>
-                      </button>
-                    )}
-                    <button 
-                      aria-label="Más opciones" 
-                      className="p-2 text-zinc-500 hover:text-white hover:bg-[#1F1F24] rounded-lg transition-colors"
-                      onClick={() => setOpenMenuId(openMenuId === device.id ? null : device.id)}
-                    >
-                      <span className="material-symbols-outlined text-[20px]">more_vert</span>
-                    </button>
-
-                    {openMenuId === device.id && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)}></div>
-                        <div className="absolute right-0 top-10 w-48 bg-[#121217] border border-[#1F1F24] rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
-                          {view === 'available' ? (
-                            <>
-                              <Link href={`/admin/stock/${device.id}/editar`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar dispositivo</Link>
-                              <Link href={`/admin/stock/nuevo?duplicate=${device.id}`} className="block px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Duplicar dispositivo</Link>
-                              {!device.is_published && (
-                                <button onClick={() => { setOpenMenuId(null); handlePublish(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-[#d7baff] hover:bg-[#1F1F24]">Publicar</button>
-                              )}
-                              <button onClick={() => { setOpenMenuId(null); setDeletingDevice(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24]">Eliminar</button>
-                            </>
-                          ) : (
-                            <>
-                              <button onClick={() => { setOpenMenuId(null); setEditingSale(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1F1F24]">Editar venta</button>
-                              <button onClick={() => { setOpenMenuId(null); setCancellingSale(device); }} className="block w-full text-left px-4 py-2.5 text-[13px] font-semibold text-red-400 hover:bg-[#1F1F24]">Anular venta</button>
-                            </>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-            )
-          })
-        )}
-      </section>
+      {error && !deletingDevice && !editingSale && !cancellingSale && <p role="alert" className="admin-stock__error">{error}</p>}
+      {filteredList.length === 0 ? <div className="admin-stock__empty">
+        <p>{allDevices.length === 0 ? 'Todavía no hay dispositivos en el inventario.' : 'No hay dispositivos con estos filtros.'}</p>
+        {allDevices.length === 0 ? <Link href="/admin/stock/nuevo">Nuevo dispositivo</Link> : <button type="button" onClick={resetFilters}>Limpiar filtros</button>}
+      </div> : <>
+        <div className="admin-stock__desktop"><table>
+          <caption className="sr-only">Inventario de dispositivos y acciones</caption>
+          <thead><tr>{['Producto', 'Estado', 'Detalles', 'Compra', 'Venta', 'Margen', 'Acciones'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead>
+          <tbody>{filteredList.map(device => <tr key={device.id}>
+            <td><div className="admin-stock__product"><div className="admin-stock__image">{image(device)}</div><div><Link href={`/admin/stock/${device.id}`}>{getDeviceTitle(device)}</Link><p>{summary(device)}</p><small>IMEI {maskImei(device.imei_serial)}</small></div></div></td>
+            <td>{status(device)}</td><td>{details(device)}</td><td>{formatPrice(device.purchase_price)}</td><td>{price(device)}</td><td>{marginValue(device)}</td><td>{actions(device)}</td>
+          </tr>)}</tbody>
+        </table></div>
+        <div className="admin-stock__mobile">{filteredList.map(device => <article key={device.id}>
+          <div className="admin-stock__mobile-top"><div className="admin-stock__image">{image(device)}</div><div><h3><Link href={`/admin/stock/${device.id}`}>{getDeviceTitle(device)}</Link></h3><p>{summary(device)}</p>{status(device)}</div></div>
+          <div className="admin-stock__mobile-info"><p>{details(device)}</p><div>{price(device)}</div></div>
+          <div className="admin-stock__mobile-bottom"><span>Compra {formatPrice(device.purchase_price)} · Margen {marginValue(device)}</span>{actions(device)}</div>
+        </article>)}</div>
+      </>}
 
       {/* MODALS */}
       {deletingDevice && (

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import { useId, useState, useMemo } from 'react'
 import Link from 'next/link'
 import type { UnifiedActivity } from '@/app/admin/actividad/page'
 
@@ -23,6 +23,7 @@ function formatDateActivity(dateStr: string) {
 }
 
 export function ActivityTable({ initialActivities }: Props) {
+  const searchId = useId()
   const [filterType, setFilterType] = useState<string>('Todos')
   const [filterPeriod, setFilterPeriod] = useState<string>('Todo')
   const [search, setSearch] = useState('')
@@ -34,7 +35,7 @@ export function ActivityTable({ initialActivities }: Props) {
 
     // TYPE FILTER
     if (filterType !== 'Todos') {
-      result = result.filter(a => a.filterType === filterType)
+      result = result.filter(a => filterType.startsWith('type:') ? a.type === filterType.slice(5) : a.filterType === filterType)
     }
 
     // PERIOD FILTER
@@ -58,9 +59,11 @@ export function ActivityTable({ initialActivities }: Props) {
     }
 
     // SEARCH
-    if (search) {
-      const s = search.toLowerCase()
+    if (search.trim()) {
+      const s = search.trim().toLowerCase()
       result = result.filter(a => 
+        a.type.toLowerCase().includes(s) ||
+        a.filterType.toLowerCase().includes(s) ||
         (a.model && a.model.toLowerCase().includes(s)) ||
         (a.concept && a.concept.toLowerCase().includes(s)) ||
         (a.storage && a.storage.toLowerCase().includes(s)) ||
@@ -110,180 +113,123 @@ export function ActivityTable({ initialActivities }: Props) {
     if (act.filterType === 'Gastos' && act.outflow) totalBeneficio -= act.outflow
   })
 
+  const groups = [...new Set(initialActivities.map(activity => activity.filterType))]
+  const types = [...new Set(initialActivities.map(activity => activity.type))]
+  const hasFilters = Boolean(search.trim()) || filterType !== 'Todos' || filterPeriod !== 'Todo' || sortField !== 'date' || sortOrder !== 'desc'
+  const resetFilters = () => {
+    setSearch('')
+    setFilterType('Todos')
+    setFilterPeriod('Todo')
+    setSortField('date')
+    setSortOrder('desc')
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      
-      {/* SUMMARY */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-4 flex flex-col">
-          <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Operaciones</span>
-          <span className="text-2xl font-bold text-white">{opCount}</span>
-        </div>
-        <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-4 flex flex-col">
-          <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Entradas</span>
-          <span className="text-2xl font-bold text-[#d7baff]">{formatCurrency(totalEntradas)}</span>
-        </div>
-        <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-4 flex flex-col">
-          <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Salidas</span>
-          <span className="text-2xl font-bold text-zinc-300">{formatCurrency(totalSalidas)}</span>
-        </div>
-        <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-4 flex flex-col relative overflow-hidden">
-          <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1 relative z-10">Beneficio op.</span>
-          <span className={`text-2xl font-bold relative z-10 ${totalBeneficio > 0 ? 'text-[#22c55e]' : totalBeneficio < 0 ? 'text-red-400' : 'text-white'}`}>
-            {formatCurrency(totalBeneficio)}
-          </span>
-          {totalBeneficio > 0 && <div className="absolute inset-0 bg-[#22c55e]/5 pointer-events-none"></div>}
-          {totalBeneficio < 0 && <div className="absolute inset-0 bg-red-500/5 pointer-events-none"></div>}
-        </div>
-      </div>
+    <div className="admin-activity">
+      <dl className="admin-activity__summary" aria-label="Resumen de los movimientos mostrados">
+        <div><dt>Operaciones</dt><dd>{opCount}</dd></div>
+        <div><dt>Entradas</dt><dd data-tone={tone(totalEntradas)}>{formatCurrency(totalEntradas)}</dd></div>
+        <div><dt>Salidas</dt><dd>{formatCurrency(totalSalidas)}</dd></div>
+        <div><dt>Beneficio op.</dt><dd data-tone={tone(totalBeneficio)}>{formatCurrency(totalBeneficio)}</dd></div>
+      </dl>
 
-      {/* FILTERS */}
-      <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-4 flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
-        <div className="flex flex-wrap gap-2">
-          <select 
-            value={filterType} 
-            onChange={e => setFilterType(e.target.value)}
-            className="bg-[#121217] border border-[#1F1F24] rounded-xl px-3 py-2 text-sm text-white font-semibold focus:outline-none"
-          >
-            {['Todos', 'Ventas', 'En stock', 'Gastos', 'Capital'].map(o => <option key={o} value={o}>{o}</option>)}
+      <div className="admin-activity__toolbar">
+        <div className="admin-activity__search">
+          <label htmlFor={searchId} className="sr-only">Buscar movimiento por tipo, dispositivo, cliente o detalle</label>
+          <span aria-hidden="true" className="material-symbols-outlined">search</span>
+          <input id={searchId} type="search" placeholder="Buscar movimiento..." value={search} onChange={event => setSearch(event.target.value)} />
+        </div>
+        <label><span className="sr-only">Tipo de movimiento</span>
+          <select value={filterType} onChange={event => setFilterType(event.target.value)}>
+            <option value="Todos">Todos</option>
+            <optgroup label="Grupos">{groups.map(group => <option key={group} value={group}>{group}</option>)}</optgroup>
+            <optgroup label="Tipos de movimiento">{types.map(type => <option key={type} value={`type:${type}`}>{type}</option>)}</optgroup>
           </select>
-          <select 
-            value={filterPeriod} 
-            onChange={e => setFilterPeriod(e.target.value)}
-            className="bg-[#121217] border border-[#1F1F24] rounded-xl px-3 py-2 text-sm text-white font-semibold focus:outline-none"
-          >
-            {['Todo', 'Hoy', 'Últimos 7 días', 'Este mes', 'Mes anterior', 'Este año'].map(o => <option key={o} value={o}>{o}</option>)}
+        </label>
+        <label><span className="sr-only">Periodo</span>
+          <select value={filterPeriod} onChange={event => setFilterPeriod(event.target.value)}>
+            {['Todo', 'Hoy', 'Últimos 7 días', 'Este mes', 'Mes anterior', 'Este año'].map(period => <option key={period} value={period}>{period}</option>)}
           </select>
-        </div>
-        
-        <div className="relative w-full lg:w-72">
-          <span className="material-symbols-outlined absolute left-3 top-2.5 text-zinc-500 text-[18px]">search</span>
-          <input 
-            type="text" 
-            placeholder="Buscar modelo, cliente, teléfono..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="bg-[#121217] border border-[#1F1F24] rounded-xl pl-9 pr-3 py-2 text-sm text-white w-full focus:outline-none focus:border-[#7a32d4]/50"
-          />
-        </div>
+        </label>
+        <label className="admin-activity__sort"><span className="sr-only">Ordenar movimientos</span>
+          <select value={`${sortField}:${sortOrder}`} onChange={event => {
+            const [field, order] = event.target.value.split(':') as [typeof sortField, typeof sortOrder]
+            setSortField(field)
+            setSortOrder(order)
+          }}>
+            <option value="date:desc">Más recientes</option><option value="date:asc">Más antiguos</option>
+            <option value="outflow:asc">Salidas: menor a mayor</option><option value="outflow:desc">Salidas: mayor a menor</option>
+            <option value="inflow:asc">Entradas: menor a mayor</option><option value="inflow:desc">Entradas: mayor a menor</option>
+            <option value="profit:asc">Beneficio: menor a mayor</option><option value="profit:desc">Beneficio: mayor a menor</option>
+          </select>
+        </label>
+        {hasFilters && <button type="button" className="admin-activity__reset" onClick={resetFilters}>Limpiar filtros</button>}
       </div>
 
-      {/* TABLE */}
-      <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl overflow-hidden overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-[#121217] text-zinc-400 text-xs uppercase tracking-wider font-bold border-b border-[#1F1F24]">
-              <th className="px-4 py-3 whitespace-nowrap cursor-pointer hover:text-white" onClick={() => { setSortField('date'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc') }}>
-                Fecha / Tipo {sortField==='date' && (sortOrder==='asc' ? '↑' : '↓')}
-              </th>
-              <th className="px-4 py-3 min-w-[180px]">Dispositivo / Concepto</th>
-              <th className="px-4 py-3 min-w-[150px]">Cliente / Teléfono</th>
-              <th className="px-4 py-3 whitespace-nowrap cursor-pointer hover:text-white" onClick={() => { setSortField('outflow'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc') }}>
-                Compra / Salida {sortField==='outflow' && (sortOrder==='asc' ? '↑' : '↓')}
-              </th>
-              <th className="px-4 py-3 whitespace-nowrap">Publicación</th>
-              <th className="px-4 py-3 whitespace-nowrap cursor-pointer hover:text-white" onClick={() => { setSortField('inflow'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc') }}>
-                Venta / Entrada {sortField==='inflow' && (sortOrder==='asc' ? '↑' : '↓')}
-              </th>
-              <th className="px-4 py-3 whitespace-nowrap cursor-pointer hover:text-white" onClick={() => { setSortField('profit'); setSortOrder(o => o === 'asc' ? 'desc' : 'asc') }}>
-                Beneficio {sortField==='profit' && (sortOrder==='asc' ? '↑' : '↓')}
-              </th>
-              <th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3 min-w-[120px]">Ubicación / Nota</th>
-              <th className="px-4 py-3">Acción</th>
-            </tr>
-          </thead>
-          <tbody className="text-sm">
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-zinc-500">
-                  No se encontraron movimientos.
-                </td>
-              </tr>
-            ) : (
-              filtered.map(act => {
-                let rowBg = 'bg-[#121217] hover:bg-[#1F1F24]'
-                let profitColor = 'text-zinc-400 font-semibold'
-                
-                if (act.type === 'Venta') {
-                  if (act.profit && act.profit > 0) {
-                    rowBg = 'bg-[#22c55e]/5 border-y border-[#22c55e]/10 hover:bg-[#22c55e]/10'
-                    profitColor = 'text-[#22c55e] font-bold'
-                  } else if (act.profit && act.profit < 0) {
-                    rowBg = 'bg-red-500/5 border-y border-red-500/10 hover:bg-red-500/10'
-                    profitColor = 'text-red-400 font-bold'
-                  } else {
-                    profitColor = 'text-zinc-300 font-bold'
-                  }
-                } else if (act.type === 'Compra') {
-                  rowBg = 'bg-amber-500/5 border-y border-amber-500/10 hover:bg-amber-500/10'
-                } else if (act.type === 'Gasto') {
-                  rowBg = 'bg-red-500/5 border-y border-red-500/10 hover:bg-red-500/10'
-                } else if (act.filterType === 'Capital') {
-                  rowBg = 'bg-[#7a32d4]/5 border-y border-[#7a32d4]/10 hover:bg-[#7a32d4]/10'
-                }
-
-                return (
-                  <tr key={act.id} className={`${rowBg} transition-colors border-b border-[#1F1F24] last:border-b-0`}>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-white">{formatDateActivity(act.date)}</span>
-                        <span className="text-[11px] text-zinc-400 uppercase tracking-wider">{act.type}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-zinc-200">{act.concept}</span>
-                        {(act.storage || act.color) && (
-                          <span className="text-xs text-zinc-500">
-                            {[act.storage, act.color].filter(Boolean).join(' · ')}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {act.clientName ? (
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-zinc-300">{act.clientName}</span>
-                          <span className="text-xs text-zinc-500">{act.clientPhone}</span>
-                        </div>
-                      ) : (
-                        <span className="text-zinc-600">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-zinc-300 whitespace-nowrap">
-                      {formatCurrency(act.outflow)}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">
-                      {formatCurrency(act.listingPrice)}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-[#d7baff] whitespace-nowrap">
-                      {formatCurrency(act.inflow)}
-                    </td>
-                    <td className={`px-4 py-3 whitespace-nowrap ${profitColor}`}>
-                      {act.profit !== null ? formatCurrency(act.profit) : '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="px-2 py-1 bg-[#1F1F24] border border-[#2a2a30] rounded text-[10px] font-bold uppercase tracking-wider text-zinc-300">
-                        {act.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-zinc-400 max-w-[200px] truncate" title={act.locationOrNote}>
-                      {act.locationOrNote || '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <Link href={act.actionUrl} target="_blank" className="text-[18px] text-zinc-400 hover:text-white transition-colors flex items-center justify-center p-1 rounded hover:bg-[#1F1F24]">
-                        <span className="material-symbols-outlined text-[18px]">open_in_new</span>
-                      </Link>
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
+      {filtered.length === 0 ? <div className="admin-activity__empty">
+        <h3>{initialActivities.length === 0 ? 'No hay movimientos registrados.' : 'No hay movimientos que coincidan con los filtros.'}</h3>
+        {initialActivities.length > 0 && <button type="button" onClick={resetFilters}>Limpiar filtros</button>}
+      </div> : <>
+        <ul className="admin-activity__mobile" aria-label="Historial de movimientos">
+          {filtered.map(activity => <li key={activity.id}>
+            <article className="admin-activity__card">
+              <div className="admin-activity__card-top"><MovementType activity={activity} /><time dateTime={activity.date}>{formatDateActivity(activity.date)}</time></div>
+              <h3>{activity.concept}</h3>
+              {(activity.storage || activity.color) && <p className="admin-activity__muted">{[activity.storage, activity.color].filter(Boolean).join(' · ')}</p>}
+              {activity.clientName && <p className="admin-activity__client">{activity.clientName}</p>}
+              <div className="admin-activity__card-bottom"><MovementAmount activity={activity} /><Link href={activity.actionUrl}>Ver registro<span className="sr-only">: {activity.type}, {activity.concept}</span></Link></div>
+              <p className="admin-activity__status">{activity.status}</p>
+              <MovementDetails activity={activity} />
+            </article>
+          </li>)}
+        </ul>
+        <div className="admin-activity__desktop">
+          <table>
+            <caption className="sr-only">Historial de movimientos del negocio</caption>
+            <thead><tr><th scope="col">Movimiento</th><th scope="col">Detalle</th><th scope="col">Fecha</th><th scope="col">Importe</th><th scope="col"><span className="sr-only">Acciones</span></th></tr></thead>
+            <tbody>{filtered.map(activity => <tr key={activity.id}>
+              <td><div className="admin-activity__movement-meta"><MovementType activity={activity} /><span className="admin-activity__status">{activity.status}</span></div><strong>{activity.concept}</strong>{(activity.storage || activity.color) && <span className="admin-activity__muted">{[activity.storage, activity.color].filter(Boolean).join(' · ')}</span>}</td>
+              <td>{activity.clientName && <strong>{activity.clientName}</strong>}<MovementDetails activity={activity} /></td>
+              <td><time dateTime={activity.date}>{formatDateActivity(activity.date)}</time></td>
+              <td><MovementAmount activity={activity} /></td>
+              <td><Link href={activity.actionUrl}>Ver registro<span className="sr-only">: {activity.type}, {activity.concept}</span></Link></td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </>}
     </div>
   )
+}
+
+function tone(value: number) {
+  return value > 0 ? 'positive' : value < 0 ? 'negative' : 'neutral'
+}
+
+function MovementType({ activity }: { activity: UnifiedActivity }) {
+  return <span className="admin-activity__type" data-type={activity.type} data-group={activity.filterType}>{activity.type}</span>
+}
+
+function MovementAmount({ activity }: { activity: UnifiedActivity }) {
+  // Inflow/outflow are separate source values, not a signed net cash movement.
+  const value = activity.inflow !== null ? activity.inflow : activity.outflow
+  const valueTone = value === null || value === 0 ? 'neutral' : value < 0 ? 'negative' : activity.inflow !== null ? 'positive' : 'neutral'
+  return <div className="admin-activity__amount">
+    <span>{activity.inflow !== null ? 'Entrada' : activity.outflow !== null ? 'Salida' : 'Importe'}</span>
+    <strong data-tone={valueTone}>{formatCurrency(value)}</strong>
+    {activity.profit !== null && <span className="admin-activity__profit" data-tone={tone(activity.profit)}>Beneficio: {formatCurrency(activity.profit)}</span>}
+  </div>
+}
+
+function MovementDetails({ activity }: { activity: UnifiedActivity }) {
+  return <details className="admin-activity__details">
+    <summary>Más detalles</summary>
+    {activity.locationOrNote && <p>{activity.locationOrNote}</p>}
+    <dl>
+      {activity.clientPhone && <div><dt>Teléfono</dt><dd>{activity.clientPhone}</dd></div>}
+      {activity.outflow !== null && <div><dt>Compra / Salida</dt><dd>{formatCurrency(activity.outflow)}</dd></div>}
+      {activity.listingPrice !== null && <div><dt>Publicación</dt><dd>{formatCurrency(activity.listingPrice)}</dd></div>}
+      {activity.inflow !== null && <div><dt>Venta / Entrada</dt><dd>{formatCurrency(activity.inflow)}</dd></div>}
+      {activity.profit !== null && <div><dt>Beneficio</dt><dd data-tone={tone(activity.profit)}>{formatCurrency(activity.profit)}</dd></div>}
+    </dl>
+  </details>
 }

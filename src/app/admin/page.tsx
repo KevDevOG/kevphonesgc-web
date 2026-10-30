@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
+import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 import { AdminDashboard } from '@/components/admin/dashboard/AdminDashboard'
 
 export const metadata = {
@@ -26,12 +29,13 @@ export default async function AdminPage() {
   
   if (openingCash === undefined || openingCash === null || !openingDateStr) {
     return (
-      <div className="bg-[#131313] min-h-screen text-[#F7F7F7] flex flex-col items-center justify-center p-4">
-        <p className="text-[#A8A8B0] mb-4 text-center">Configura el punto de partida financiero para calcular el efectivo.</p>
-        <a href="/admin/finanzas" className="bg-[#7a32d4] hover:bg-[#6e02d2] px-6 py-3 rounded-lg font-bold text-[14px]">
-          Configurar finanzas
-        </a>
-      </div>
+      <AdminPageShell>
+        <AdminPageHeader title="Inicio" subtitle="Resumen operativo de KevPhonesGC" />
+        <div className="admin-dashboard admin-dashboard__setup">
+          <p>Configura el punto de partida financiero para calcular el efectivo.</p>
+          <Link href="/admin/finanzas">Configurar finanzas</Link>
+        </div>
+      </AdminPageShell>
     )
   }
 
@@ -258,9 +262,6 @@ export default async function AdminPage() {
 
   return (
     <>
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-      <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
-      
       <AdminDashboard 
         expectedCash={expectedCash}
         stockCapital={stockCapital}

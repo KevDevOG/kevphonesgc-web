@@ -96,7 +96,9 @@ function DraftCard({
             <button
               type="button"
               onClick={() => setUserOpen(o => !o)}
-              className="text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
+              className="admin-batch-entry__toggle text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
+              aria-expanded={open}
+              aria-label={`${open ? 'Ocultar' : 'Editar'} iPhone ${index + 1}`}
             >
               {open ? 'Ocultar' : 'Editar'}
             </button>
@@ -585,7 +587,7 @@ export function BatchIphoneEntry(props: FormProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6 lg:gap-8">
+    <div className="admin-batch-entry flex flex-col gap-6 lg:gap-8">
       {/* Entrada manual / dictado de varios iPhone */}
       <section className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
@@ -751,11 +753,11 @@ export function BatchIphoneEntry(props: FormProps) {
                 </label>
 
                 {/* Toggle Cliente existente / Nuevo cliente */}
-                <div className="flex p-1 bg-[#121217] rounded-xl border border-[#1F1F24] w-fit">
+                <div className="admin-batch-entry__client-modes flex p-1 bg-[#121217] rounded-xl border border-[#1F1F24] w-fit">
                   <button
                     type="button"
                     onClick={() => { setSharedSellerMode('existing'); setSharedError('') }}
-                    className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
+                    className={`admin-batch-entry__client-mode px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
                       sharedSellerMode === 'existing' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -764,7 +766,7 @@ export function BatchIphoneEntry(props: FormProps) {
                   <button
                     type="button"
                     onClick={() => { setSharedSellerMode('new'); setSharedError('') }}
-                    className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
+                    className={`admin-batch-entry__client-mode px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
                       sharedSellerMode === 'new' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -775,7 +777,7 @@ export function BatchIphoneEntry(props: FormProps) {
                 {sharedSellerMode === 'existing' && (
                   <div className="flex flex-col gap-2">
                     {selectedSharedClient ? (
-                      <div className="bg-[#121217] border border-[#7a32d4]/30 rounded-xl p-4 flex justify-between items-start">
+                      <div className="admin-batch-entry__selected-client bg-[#121217] border border-[#7a32d4]/30 rounded-xl p-4 flex justify-between items-start">
                         <div className="flex flex-col">
                           <span className="text-white font-bold">{selectedSharedClient.name}</span>
                           <span className="text-zinc-400 text-sm">
@@ -786,8 +788,9 @@ export function BatchIphoneEntry(props: FormProps) {
                         <button
                           type="button"
                           onClick={() => setSharedClientId('')}
-                          className="text-zinc-500 hover:text-white"
+                          className="admin-batch-entry__remove-client text-zinc-500 hover:text-white"
                           title="Quitar selección"
+                          aria-label="Quitar cliente seleccionado"
                         >
                           <span className="material-symbols-outlined text-[18px]">close</span>
                         </button>
@@ -799,12 +802,13 @@ export function BatchIphoneEntry(props: FormProps) {
                           <input
                             type="text"
                             placeholder="Buscar por nombre o teléfono..."
+                            aria-label="Buscar cliente existente por nombre o teléfono"
                             value={sharedClientSearch}
                             onChange={e => setSharedClientSearch(e.target.value)}
                             className="w-full bg-[#121217] border border-[#1F1F24] rounded-xl pl-10 pr-4 py-2.5 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all"
                           />
                         </div>
-                        {sharedClientSearch && filteredSharedClients.length > 0 && (
+                        {filteredSharedClients.length > 0 && (
                           <div className="flex flex-col bg-[#121217] border border-[#1F1F24] rounded-xl overflow-hidden max-h-[180px] overflow-y-auto">
                             {filteredSharedClients.map(client => (
                               <button
@@ -814,7 +818,7 @@ export function BatchIphoneEntry(props: FormProps) {
                                   setSharedClientId(client.id)
                                   setSharedClientSearch('')
                                 }}
-                                className="flex flex-col items-start p-3 hover:bg-[#1F1F24] transition-colors border-b border-[#1F1F24] last:border-0 text-left"
+                                className="admin-batch-entry__client-suggestion flex flex-col items-start p-3 hover:bg-[#1F1F24] transition-colors border-b border-[#1F1F24] last:border-0 text-left"
                               >
                                 <span className="text-white text-sm font-semibold">{client.name}</span>
                                 <span className="text-zinc-400 text-xs">
@@ -939,7 +943,7 @@ export function BatchIphoneEntry(props: FormProps) {
             />
           ))}
 
-          <div className="flex flex-col gap-3 bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6">
+          <div className="admin-batch-entry__save">
             {(savedCount > 0 || errorCount > 0 || reviewCount > 0) && (
               <p className="text-sm text-zinc-300 font-medium">
                 Guardados: <span className="text-emerald-400 font-bold">{savedCount}</span>
@@ -947,16 +951,21 @@ export function BatchIphoneEntry(props: FormProps) {
                 {' · '}Necesitan revisión: <span className="text-amber-300 font-bold">{reviewCount}</span>
               </p>
             )}
-            <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={handleSaveValid}
                 disabled={busy || allSaved}
-                className="w-full sm:w-auto bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm py-4 px-10 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                aria-busy={saving}
+                className="admin-batch-entry__save-button w-full sm:w-auto bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm py-4 px-10 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">cloud_upload</span>
                 {saving ? 'Guardando...' : 'Guardar dispositivos válidos'}
               </button>
+          </div>
+
+          <div className="admin-batch-entry__secondary flex flex-col gap-3 bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6">
+            <div className="admin-batch-entry__secondary-actions flex flex-wrap gap-3">
+
               {savedCount > 0 && !saving && (
                 <button
                   type="button"

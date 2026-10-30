@@ -88,19 +88,19 @@ export function SellDeviceForm({ device, clients = [] }: { device: Device, clien
   const todayStr = new Date().toISOString().split('T')[0]
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+    <div className="admin-device-form admin-device-form--sale flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
       
       {/* LEFT: FORM */}
       <div className="w-full lg:flex-[1.2] flex flex-col gap-6">
         <h2 className="text-xl font-bold text-white mb-2">Datos de la venta</h2>
         
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-4 rounded-xl font-medium">
+          <div role="alert" className="admin-device-form__error">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} id="sellForm" className="flex flex-col gap-6 bg-[#0B0B0E] border border-[#1F1F24] p-6 rounded-2xl">
+        <form onSubmit={handleSubmit} id="sellForm" className="admin-device-form__sale-fields">
           
           <div className="flex flex-col gap-4">
             <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Comprador</h3>
@@ -109,6 +109,7 @@ export function SellDeviceForm({ device, clients = [] }: { device: Device, clien
               <button
                 type="button"
                 onClick={() => { setClientMode('existing'); setSelectedClientId(''); setClientSearch(''); }}
+                  aria-pressed={clientMode === 'existing'}
                 className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${clientMode === 'existing' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'}`}
               >
                 Cliente existente
@@ -116,6 +117,7 @@ export function SellDeviceForm({ device, clients = [] }: { device: Device, clien
               <button
                 type="button"
                 onClick={() => { setClientMode('new'); setSelectedClientId(''); }}
+                  aria-pressed={clientMode === 'new'}
                 className={`px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors ${clientMode === 'new' ? 'bg-[#7a32d4]/10 text-[#d7baff]' : 'text-zinc-400 hover:text-white'}`}
               >
                 Nuevo cliente
@@ -132,8 +134,8 @@ export function SellDeviceForm({ device, clients = [] }: { device: Device, clien
                         <span className="text-white font-bold">{selectedClient.name}</span>
                         <span className="text-zinc-400 text-sm">{selectedClient.phone}{selectedClient.location ? ` · ${selectedClient.location}` : ''}</span>
                       </div>
-                      <button type="button" onClick={() => setSelectedClientId('')} className="text-zinc-500 hover:text-white">
-                        <span className="material-symbols-outlined text-[18px]">close</span>
+                      <button type="button" onClick={() => setSelectedClientId('')} aria-label="Cambiar cliente seleccionado" className="admin-device-form__clear-client text-zinc-500 hover:text-white">
+                        <span aria-hidden="true" className="material-symbols-outlined text-[18px]">close</span>
                       </button>
                     </div>
                     <Link href={`/admin/clientes/${selectedClient.id}`} target="_blank" className="text-xs text-[#d7baff] hover:underline mt-1 w-fit">
@@ -143,16 +145,17 @@ export function SellDeviceForm({ device, clients = [] }: { device: Device, clien
                 ) : (
                   <div className="flex flex-col gap-2">
                     <div className="relative">
-                      <span className="material-symbols-outlined absolute left-3 top-3 text-zinc-500 text-[18px]">search</span>
+                      <span aria-hidden="true" className="material-symbols-outlined absolute left-3 top-3 text-zinc-500 text-[18px]">search</span>
                       <input
                         type="text"
-                        placeholder="Buscar por nombre o teléfono..."
+                        aria-label="Buscar cliente por nombre o teléfono"
+                          placeholder="Buscar por nombre o teléfono..."
                         value={clientSearch}
                         onChange={(e) => setClientSearch(e.target.value)}
                         className="bg-[#121217] border border-[#1F1F24] rounded-xl pl-10 pr-4 py-3 text-[14px] text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all w-full"
                       />
                     </div>
-                    {clientSearch && filteredClients.length > 0 && (
+                    {filteredClients.length > 0 && (
                       <div className="flex flex-col bg-[#121217] border border-[#1F1F24] rounded-xl overflow-hidden max-h-[200px] overflow-y-auto">
                         {filteredClients.map(client => (
                           <button
@@ -233,7 +236,7 @@ export function SellDeviceForm({ device, clients = [] }: { device: Device, clien
       </div>
 
       {/* RIGHT: SUMMARY & ACTIONS */}
-      <div className="w-full lg:flex-[0.8] flex flex-col gap-6 sticky top-20">
+      <div className="admin-device-form__sale-summary w-full lg:flex-[0.8] flex flex-col gap-6 lg:sticky lg:top-20">
         
         <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-6">
           

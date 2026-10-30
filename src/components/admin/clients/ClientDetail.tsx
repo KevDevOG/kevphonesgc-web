@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { updateClientAction, deleteClientAction } from '@/actions/clients'
 
 type Client = {
@@ -73,6 +74,9 @@ export function ClientDetail({ client, sales, devices }: Props) {
   const sales_to_business_count = devices.length
   const paid_to_client_total = devices.reduce((acc, dev) => acc + Number(dev.purchase_price), 0)
 
+  const hasPurchaseAmounts = devices.every(device => device.purchase_price != null && Number.isFinite(Number(device.purchase_price)))
+  const hasSaleAmounts = sales.every(sale => sale.final_sale_price != null && Number.isFinite(Number(sale.final_sale_price)))
+
   const [isEditing, setIsEditing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isPending, setIsPending] = useState(false)
@@ -118,8 +122,7 @@ export function ClientDetail({ client, sales, devices }: Props) {
   }
 
   return (
-    <div className="space-y-8 pb-20">
-
+    <div className="admin-client-detail">
       {/* Edit Modal */}
       {isEditing && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
@@ -198,181 +201,91 @@ export function ClientDetail({ client, sales, devices }: Props) {
         </div>
       )}
 
-      {/* Client Summary */}
-      <section className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-6 flex flex-col gap-4 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[#7a32d4] opacity-10 blur-3xl rounded-full pointer-events-none"></div>
 
-        <div className="z-10 flex justify-between items-start">
-          <div>
-            <h2 className="text-[32px] font-extrabold text-[#F7F7F7] mb-1 leading-tight tracking-wide" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>
-              {client.name}
-            </h2>
-            <div className="flex items-center gap-2 text-[#A8A8B0] text-[16px]">
-              <span className="material-symbols-outlined text-[18px]">phone</span>
-              <span>{client.phone}</span>
-            </div>
-            <div className="flex items-center gap-2 text-[#A8A8B0] text-[16px] mt-1">
-              <span className="material-symbols-outlined text-[18px]">location_on</span>
-              <span>{client.location || 'No especificada'}</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={() => setIsEditing(true)}
-              className="text-[#A8A8B0] hover:text-[#d7baff] transition-colors p-2 rounded hover:bg-[#1c1b1b] flex items-center justify-center border border-transparent hover:border-[#d7baff]/30"
-              title="Editar cliente"
-            >
-              <span className="material-symbols-outlined">edit</span>
-            </button>
-            <button
-              onClick={() => setIsDeleting(true)}
-              className="text-[#A8A8B0] hover:text-[#ffb4ab] transition-colors p-2 rounded hover:bg-[#1c1b1b] flex items-center justify-center border border-transparent hover:border-[#ffb4ab]/30"
-              title="Eliminar cliente"
-            >
-              <span className="material-symbols-outlined">delete</span>
-            </button>
-          </div>
+      <header className="admin-client-detail__header">
+        <Link href="/admin/clientes" className="admin-client-detail__back"><span aria-hidden="true" className="material-symbols-outlined">arrow_back</span>Volver a clientes</Link>
+        <div className="admin-client-detail__heading">
+          <h1>{client.name || 'Cliente sin nombre'}</h1>
+          <button type="button" className="admin-client-detail__edit" onClick={() => setIsEditing(true)}><span aria-hidden="true" className="material-symbols-outlined">edit</span>Editar cliente</button>
         </div>
-
+        <dl className="admin-client-detail__contact">
+          <div><dt>Teléfono</dt><dd>{client.phone || 'No indicado'}</dd></div>
+          {client.location && <div><dt>Ubicación</dt><dd>{client.location}</dd></div>}
+          <div><dt>Cliente desde</dt><dd>{getMonthYearString(client.created_at)}</dd></div>
+        </dl>
+        {client.phone && (
         <button
           type="button"
           onClick={() => {
             const num = client.phone.replace(/[^0-9]/g, '')
             if (num) window.open(`https://wa.me/34${num}`, '_blank')
           }}
-          className="z-10 mt-2 flex items-center justify-center gap-2 w-full bg-transparent border border-[#7a32d4] text-[#B98AFF] text-[14px] font-semibold py-3 rounded-lg hover:bg-[#1c1b1b] transition-colors"
+          className="admin-client-detail__contact-action"
         >
-          <svg className="text-[#B98AFF]" fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+          <svg aria-hidden="true" fill="currentColor" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
             <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.811.883 3.145.883 3.182 0 5.768-2.585 5.768-5.766 0-3.181-2.586-5.767-5.764-5.765zM20 12c0 4.418-3.582 8-8 8-.918 0-1.782-.158-2.593-.443l-5.309 1.393 1.41-5.181C4.78 14.39 4 13.253 4 12c0-4.418 3.582-8 8-8s8 3.582 8 8zm-3.586 2.046c-.198-.099-1.17-.578-1.352-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-8.36-.31-1.167-.936-.307-.238-.413-.423-.585-.705-.164-.265-.018-.409.083-.507.09-.089.197-.232.296-.347.1-.116.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"></path>
           </svg>
           Contactar por WhatsApp
         </button>
+        )}
+      </header>
+
+      <dl className="admin-client-detail__summary" aria-label="Operaciones registradas con este cliente">
+        <div>
+          <dt>Compras a este cliente</dt>
+          <dd><strong>{sales_to_business_count}</strong> {sales_to_business_count === 1 ? 'dispositivo' : 'dispositivos'}</dd>
+          {hasPurchaseAmounts && <dd className="admin-client-detail__total">Total registrado: <span>{formatCurrency(paid_to_client_total)}</span></dd>}
+        </div>
+        <div>
+          <dt>Ventas a este cliente</dt>
+          <dd><strong>{purchases_count}</strong> {purchases_count === 1 ? 'dispositivo' : 'dispositivos'}</dd>
+          {hasSaleAmounts && <dd className="admin-client-detail__total">Total registrado: <span>{formatCurrency(purchases_total)}</span></dd>}
+        </div>
+      </dl>
+
+      <section className="admin-client-detail__history" aria-labelledby="client-purchases-title">
+        <h2 id="client-purchases-title">Dispositivos comprados al cliente <span>{devices.length}</span></h2>
+        {devices.length === 0 ? <p className="admin-client-detail__empty">No hay compras registradas a este cliente.</p> : (
+          <table role="table" className="admin-client-detail__table">
+            <caption className="sr-only">Compras de KevPhones a este cliente</caption>
+            <thead><tr><th scope="col">Dispositivo</th><th scope="col">Precio de compra</th><th scope="col">Fecha de compra</th><th scope="col">Estado actual</th><th scope="col"><span className="sr-only">Acciones</span></th></tr></thead>
+            <tbody>{devices.map(device => (
+              <tr key={device.id} className="admin-client-detail__transaction">
+                <td className="admin-client-detail__product"><strong>{device.device_models?.name || 'Modelo no disponible'}</strong><span>{[device.storage, device.color, maskImei(device.imei_serial)].filter(Boolean).join(' · ')}</span></td>
+                <td className="admin-client-detail__amount">{device.purchase_price != null ? formatCurrency(device.purchase_price) : 'Sin importe registrado'}</td>
+                <td className="admin-client-detail__date">{device.purchased_at ? <time dateTime={device.purchased_at}>{formatDate(device.purchased_at)}</time> : 'Sin fecha'}</td>
+                <td className="admin-client-detail__context"><span className="admin-client-detail__status" data-status={device.status}>{device.status === 'available' ? 'Disponible' : device.status === 'sold' ? 'Vendido' : device.status || 'Sin estado'}</span></td>
+                <td className="admin-client-detail__open"><Link href={`/admin/stock/${device.id}`}>Ver dispositivo<span className="sr-only">: {device.device_models?.name || 'modelo no disponible'}</span></Link></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        )}
       </section>
 
-      {/* Metrics Section */}
-      <section className="grid grid-cols-2 gap-4">
-        <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col justify-center items-center text-center">
-          <span className="text-[12px] font-semibold text-[#A8A8B0] uppercase tracking-wider mb-2 leading-tight">Compras</span>
-          <div className="flex gap-4">
-            <div className="flex flex-col items-center">
-              <span className="text-[28px] font-extrabold text-[#F7F7F7] leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>{purchases_count}</span>
-              <span className="text-[10px] text-[#A8A8B0] mt-1 uppercase">Cantidad</span>
-            </div>
-            <div className="w-[1px] bg-[#1F1F24]"></div>
-            <div className="flex flex-col items-center">
-              <span className="text-[24px] font-extrabold text-[#7a32d4] leading-none mt-1" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>{formatCurrency(purchases_total)}</span>
-              <span className="text-[10px] text-[#A8A8B0] mt-1 uppercase">Gastado</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col justify-center items-center text-center">
-          <span className="text-[12px] font-semibold text-[#A8A8B0] uppercase tracking-wider mb-2 leading-tight">Ventas</span>
-          <div className="flex gap-4">
-            <div className="flex flex-col items-center">
-              <span className="text-[28px] font-extrabold text-[#F7F7F7] leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>{sales_to_business_count}</span>
-              <span className="text-[10px] text-[#A8A8B0] mt-1 uppercase">Cantidad</span>
-            </div>
-            <div className="w-[1px] bg-[#1F1F24]"></div>
-            <div className="flex flex-col items-center">
-              <span className="text-[24px] font-extrabold text-[#7247b0] leading-none mt-1" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>{formatCurrency(paid_to_client_total)}</span>
-              <span className="text-[10px] text-[#A8A8B0] mt-1 uppercase">Recibido</span>
-            </div>
-          </div>
-        </div>
+      <section className="admin-client-detail__history" aria-labelledby="client-sales-title">
+        <h2 id="client-sales-title">Dispositivos vendidos al cliente <span>{sales.length}</span></h2>
+        {sales.length === 0 ? <p className="admin-client-detail__empty">No hay ventas registradas a este cliente.</p> : (
+          <table role="table" className="admin-client-detail__table">
+            <caption className="sr-only">Ventas de KevPhones a este cliente</caption>
+            <thead><tr><th scope="col">Dispositivo</th><th scope="col">Precio final de venta</th><th scope="col">Fecha de venta</th><th scope="col">Lugar de venta</th><th scope="col"><span className="sr-only">Acciones</span></th></tr></thead>
+            <tbody>{sales.map(sale => (
+              <tr key={sale.id} className="admin-client-detail__transaction">
+                <td className="admin-client-detail__product"><strong>{sale.devices?.device_models?.name || 'Modelo no disponible'}</strong><span>{sale.devices && [sale.devices.storage, sale.devices.color, maskImei(sale.devices.imei_serial)].filter(Boolean).join(' · ')}</span>
+                  {sale.observations && <details className="admin-client-detail__notes"><summary>Observaciones de venta</summary><p>{sale.observations}</p></details>}
+                </td>
+                <td className="admin-client-detail__amount">{sale.final_sale_price != null ? formatCurrency(sale.final_sale_price) : 'Sin importe registrado'}</td>
+                <td className="admin-client-detail__date">{sale.sold_at ? <time dateTime={sale.sold_at}>{formatDate(sale.sold_at)}</time> : 'Sin fecha'}</td>
+                <td className="admin-client-detail__context">{sale.sale_location || 'Sin ubicación'}</td>
+                <td className="admin-client-detail__open">{sale.devices?.id ? <Link href={`/admin/stock/${sale.devices.id}`}>Ver dispositivo<span className="sr-only">: {sale.devices.device_models?.name || 'modelo no disponible'}</span></Link> : <span>Dispositivo no disponible</span>}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        )}
       </section>
 
-      {/* Ventas de KevPhonesGC al cliente */}
-      <section>
-        <h3 className="text-[24px] font-bold text-[#F7F7F7] mb-4 border-b border-[#1F1F24] pb-2" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Le hemos vendido</h3>
-        <div className="flex flex-col gap-4">
-          {sales.length === 0 ? (
-            <p className="text-[#A8A8B0] text-[14px]">Este cliente todavía no ha comprado dispositivos.</p>
-          ) : (
-            sales.map(sale => (
-              <a
-                key={sale.id}
-                href={`/admin/stock/${sale.devices.id}`}
-                className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col gap-2 relative overflow-hidden group hover:border-[#7a32d4] transition-colors block"
-              >
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#B98AFF]"></div>
-                <div className="flex justify-between items-start">
-                  <span className="bg-[#431080] text-[#B98AFF] text-[10px] font-semibold px-2 py-1 rounded uppercase tracking-wider">COMPRA</span>
-                  <span className="text-[28px] font-extrabold text-[#B98AFF] leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>{formatCurrency(sale.final_sale_price)}</span>
-                </div>
-                <div className="mt-1">
-                  <h4 className="text-[18px] font-bold text-[#F7F7F7] leading-tight" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>{sale.devices.device_models.name}</h4>
-                  <p className="text-[14px] text-[#A8A8B0] mt-1">
-                    {[sale.devices.storage, sale.devices.color, maskImei(sale.devices.imei_serial)].filter(Boolean).join(' · ')}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4 mt-2 border-t border-[#1F1F24] pt-3">
-                  <div className="flex items-center gap-1 text-[#A8A8B0] text-[12px]">
-                    <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-                    <span>{formatDate(sale.sold_at)}</span>
-                  </div>
-                  {sale.sale_location && (
-                    <div className="flex items-center gap-1 text-[#A8A8B0] text-[12px]">
-                      <span className="material-symbols-outlined text-[14px]">location_on</span>
-                      <span>{sale.sale_location}</span>
-                    </div>
-                  )}
-                </div>
-              </a>
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* Compras de KevPhonesGC al cliente */}
-      <section>
-        <h3 className="text-[24px] font-bold text-[#F7F7F7] mb-4 border-b border-[#1F1F24] pb-2" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>Nos ha vendido</h3>
-        <div className="flex flex-col gap-4">
-          {devices.length === 0 ? (
-            <p className="text-[#A8A8B0] text-[14px]">Este cliente todavía no ha vendido dispositivos.</p>
-          ) : (
-            devices.map(dev => (
-              <a
-                key={dev.id}
-                href={`/admin/stock/${dev.id}`}
-                className="bg-[#0B0B0D] border border-[#1F1F24] rounded-xl p-4 flex flex-col gap-2 relative overflow-hidden group hover:border-[#7a32d4] transition-colors block"
-              >
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#353534]"></div>
-                <div className="flex justify-between items-start">
-                  <span className="bg-[#353534] text-[#A8A8B0] text-[10px] font-semibold px-2 py-1 rounded uppercase tracking-wider">VENTA</span>
-                  <span className="text-[28px] font-extrabold text-[#F7F7F7] leading-none" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>{formatCurrency(dev.purchase_price)}</span>
-                </div>
-                <div className="mt-1">
-                  <h4 className="text-[18px] font-bold text-[#F7F7F7] leading-tight" style={{ fontFamily: 'Barlow Condensed, sans-serif' }}>{dev.device_models.name}</h4>
-                  <p className="text-[14px] text-[#A8A8B0] mt-1">
-                    {[dev.storage, dev.color, maskImei(dev.imei_serial)].filter(Boolean).join(' · ')}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between mt-2 border-t border-[#1F1F24] pt-3">
-                  <div className="flex items-center gap-1 text-[#A8A8B0] text-[12px]">
-                    <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-                    <span>{dev.purchased_at ? formatDate(dev.purchased_at) : 'Sin fecha'}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {dev.status === 'available' ? (
-                      <span className="bg-[#7a32d4]/20 text-[#d7baff] text-[10px] font-semibold px-2 py-0.5 rounded border border-[#7a32d4]/30 uppercase">Disponible</span>
-                    ) : (
-                      <span className="bg-[#353534] text-[#A8A8B0] text-[10px] font-semibold px-2 py-0.5 rounded border border-[#1F1F24] uppercase">Vendido</span>
-                    )}
-                  </div>
-                </div>
-              </a>
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* Footer */}
-      <div className="text-center pt-8 border-t border-[#1F1F24]">
-        <span className="text-[12px] text-[#A8A8B0]">Cliente desde: {getMonthYearString(client.created_at)}</span>
-      </div>
-
+      <footer className="admin-client-detail__footer">
+        <button type="button" className="admin-client-detail__delete" onClick={() => setIsDeleting(true)}><span aria-hidden="true" className="material-symbols-outlined">delete</span>Eliminar cliente</button>
+      </footer>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { GuidedPhotoUpload, SelectedPhoto } from './GuidedPhotoUpload'
 import { createSaleRequestUploadSessionAction } from '@/actions/public-sale-request-uploads'
 import { finalizePublicSaleRequestAction } from '@/actions/public-sale-request-finalize'
@@ -24,6 +24,17 @@ function getTrustedMimeType(file: File): string {
 export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
   // Step 1: Tipo, Step 2: Modelo, Step 3: Capacidad, Step 4: Color, Step 5: Estado, Step 6: Datos, Step 7: Fotos, Step 8: Revisar
   const [step, setStep] = useState(1) 
+  const stepRef = useRef<HTMLDivElement>(null)
+  const previousStepRef = useRef(step)
+
+  useEffect(() => {
+    if (previousStepRef.current === step) return
+    previousStepRef.current = step
+    const heading = stepRef.current?.querySelector<HTMLElement>('h2')
+    heading?.focus({ preventScroll: true })
+    stepRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' })
+  }, [step])
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState('')
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -385,19 +396,11 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
   }
 
   // Helper for option buttons
-  const optionCardClass = (active: boolean) => 
-    `py-3 px-4 min-h-[48px] rounded-xl border text-sm font-medium transition-all text-left flex items-center justify-between ${
-      active 
-        ? 'bg-purple-900/10 border-purple-500 text-purple-300 shadow-[0_0_15px_rgba(147,51,234,0.15)]' 
-        : 'bg-[#050506] border-[#1F1F24] text-zinc-300 hover:border-zinc-500 hover:bg-[#111114]'
-    }`
+  const optionCardClass = (active: boolean) =>
+    `kevphones-sell__option ${active ? 'is-selected' : ''}`
 
   const btnClass = (active: boolean, match: boolean) =>
-    `flex-1 py-3 px-4 rounded-xl text-sm font-medium transition-all border ${
-      active === match
-        ? 'bg-purple-900/10 border-purple-500 text-purple-300 shadow-[0_0_15px_rgba(147,51,234,0.15)]'
-        : 'bg-[#050506] border-[#1F1F24] text-zinc-400 hover:border-zinc-500 hover:bg-[#111114]'
-    }`
+    `kevphones-sell__binary ${active === match ? 'is-selected' : ''}`
 
   // Battery health label helper
   const getBatteryLabel = (bh: number) => {
@@ -411,7 +414,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
   // --- SUCCESS VIEW ---
   if (isSuccess) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center min-h-[50vh] animate-in fade-in">
+      <div className="kevphones-sell-success w-full flex flex-col items-center" role="status">
         <div className="w-20 h-20 bg-purple-900/20 border border-purple-500/30 rounded-full flex items-center justify-center mb-6">
           <svg className="w-10 h-10 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -431,65 +434,21 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
   const batteryHealthNum = parseInt(batteryHealth, 10)
 
   return (
-    <div className="w-full flex flex-col lg:flex-row gap-6 lg:gap-12 items-start lg:h-[calc(100dvh-140px)]">
-      
-      {/* LEFT SIDEBAR (Desktop only) */}
-      <div className="w-full lg:w-[32%] xl:w-[28%] shrink-0">
-        <div className="mb-8">
-          <p className="text-purple-400 text-sm font-semibold tracking-wider mb-2">VENTA</p>
-          <h1 className="text-4xl lg:text-5xl font-bold text-white tracking-tight">
-            Vende tu iPhone
-          </h1>
+    <div className="kevphones-sell" data-continuation={isPrefilled}>
+      <header className="kevphones-sell__entry">
+        <h1>Vende tu dispositivo</h1>
+        <p>{isPrefilled ? 'Ya tienes tu valoración orientativa. Revisa los datos, añade tus fotos y envía la solicitud.' : 'Envíanos los datos y fotos de tu dispositivo para solicitar una revisión.'}</p>
+        <div className="kevphones-sell__progress-row">
+          <span>Paso {step} de 8</span>
+          <progress className="kevphones-sell__progress" max={8} value={step} aria-label={`Paso ${step} de 8`} />
         </div>
-
-        <div className="mb-6 lg:mb-12">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-sm font-medium text-zinc-400 uppercase tracking-widest">Paso {step} de 8</span>
-          </div>
-          <div className="flex gap-2">
-            {[1,2,3,4,5,6,7,8].map(i => (
-              <div 
-                key={i} 
-                className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
-                  i < step ? 'bg-purple-600' : i === step ? 'bg-purple-400' : 'bg-[#1F1F24]'
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="hidden lg:block space-y-6">
-          <div className="p-5 rounded-2xl bg-[#0B0B0E] border border-[#1F1F24] flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-purple-900/20 flex items-center justify-center shrink-0">
-              <span className="text-xl">🤝</span>
-            </div>
-            <div>
-              <p className="text-white font-medium">Trato directo</p>
-              <p className="text-sm text-zinc-500">Sin intermediarios</p>
-            </div>
-          </div>
-          <div className="p-5 rounded-2xl bg-[#0B0B0E] border border-[#1F1F24] flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-purple-900/20 flex items-center justify-center shrink-0">
-              <span className="text-xl">🇮🇨</span>
-            </div>
-            <div>
-              <p className="text-white font-medium">Atención en Canarias</p>
-              <p className="text-sm text-zinc-500">Servicio local de confianza</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="hidden lg:block w-px bg-[#1F1F24] self-stretch" />
-
-      {/* RIGHT PANEL CONTENT */}
-      <div className="flex-1 min-w-0 flex flex-col h-full lg:overflow-hidden pb-8 lg:pb-0">
-        
+      </header>
+      <div className="kevphones-sell__content">
         {/* PREFILL BANNER */}
         {isPrefilled && (
-          <div className="mb-6 p-4 bg-purple-900/10 border border-purple-500/20 rounded-[16px] flex items-center justify-between flex-none">
+          <div className="kevphones-sell__prefill">
             <div>
-              <p className="text-purple-300 font-medium mb-1 text-sm">Datos importados desde tu valoración</p>
+              <p className="text-purple-300 font-medium mb-1 text-sm">Datos de tu valoración conservados</p>
               <p className="text-zinc-400 text-xs">Revisa la información antes de enviar tu solicitud.</p>
             </div>
             <button 
@@ -501,16 +460,16 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
           </div>
         )}
 
-        <div key={step} className="animate-quote-step-enter flex flex-col flex-1 min-h-0">
+        <div key={step} ref={stepRef} className="kevphones-sell__step" aria-describedby={validationError ? "sell-validation-error" : undefined}>
           
           {/* STEP 1: Tipo */}
           {step === 1 && (
             <>
-              <div className="flex-none mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Qué dispositivo quieres vender?</h2>
+              <div className="kevphones-sell__question">
+                <h2 tabIndex={-1} className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Qué dispositivo quieres vender?</h2>
               </div>
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 space-y-4">
-                <button onClick={() => setDeviceType('iphone')} className={optionCardClass(deviceType === 'iphone')}>
+              <div className="flex-1  min-h-0 pr-1 sm:pr-2 space-y-4">
+                <button onClick={() => setDeviceType('iphone')} aria-pressed={deviceType === 'iphone'} className={optionCardClass(deviceType === 'iphone')}>
                   <div>
                     <span className="text-lg font-medium text-white block mb-1">iPhone</span>
                     <span className="text-sm text-zinc-400">Vender mi iPhone usado o precintado</span>
@@ -523,13 +482,13 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
                     </div>
                   )}
                 </button>
-                <button disabled className="w-full text-left p-4 rounded-xl border border-[#1F1F24] bg-[#050506]/50 opacity-50 flex items-center justify-between cursor-not-allowed">
+                <button disabled className="kevphones-sell__unavailable">
                   <div>
                     <div className="text-lg font-medium text-white mb-1">PS5</div>
                     <div className="text-sm text-zinc-500">Próximamente</div>
                   </div>
                 </button>
-                <button disabled className="w-full text-left p-4 rounded-xl border border-[#1F1F24] bg-[#050506]/50 opacity-50 flex items-center justify-between cursor-not-allowed">
+                <button disabled className="kevphones-sell__unavailable">
                   <div>
                     <div className="text-lg font-medium text-white mb-1">Nintendo Switch</div>
                     <div className="text-sm text-zinc-500">Próximamente</div>
@@ -542,12 +501,12 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
           {/* STEP 2: Modelo */}
           {step === 2 && (
             <>
-              <div className="flex-none mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Qué modelo tienes?</h2>
+              <div className="kevphones-sell__question">
+                <h2 tabIndex={-1} className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Qué modelo tienes?</h2>
                 <p className="text-zinc-400">Elige el modelo exacto de tu iPhone.</p>
               </div>
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 pb-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+              <div className="flex-1  min-h-0 pr-1 sm:pr-2 pb-4">
+                <div className="kevphones-sell__models">
                   {models.map(m => (
                     <button
                       key={m.id}
@@ -556,7 +515,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
                         setStorage('')
                         setColor('')
                       }}
-                      className={optionCardClass(modelId === m.id)}
+                      aria-pressed={modelId === m.id} className={optionCardClass(modelId === m.id)}
                     >
                       <span className={modelId === m.id ? 'text-white' : 'text-zinc-300'}>{m.name}</span>
                       {modelId === m.id && (
@@ -574,18 +533,18 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
           {/* STEP 3: Capacidad */}
           {step === 3 && (
             <>
-              <div className="flex-none mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Qué capacidad tiene?</h2>
+              <div className="kevphones-sell__question">
+                <h2 tabIndex={-1} className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Qué capacidad tiene?</h2>
                 <p className="text-zinc-400">Capacidades disponibles para {selectedModel?.name}.</p>
               </div>
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 pb-4">
+              <div className="flex-1  min-h-0 pr-1 sm:pr-2 pb-4">
                 {availableStorages.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                  <div className="kevphones-sell__variants">
                     {availableStorages.map(v => (
                       <button
                         key={v.value}
                         onClick={() => setStorage(v.value)}
-                        className={optionCardClass(storage === v.value)}
+                        aria-pressed={storage === v.value} className={optionCardClass(storage === v.value)}
                       >
                         <span className={storage === v.value ? 'text-white' : 'text-zinc-300'}>{v.value}</span>
                         {storage === v.value && (
@@ -608,18 +567,18 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
           {/* STEP 4: Color */}
           {step === 4 && (
             <>
-              <div className="flex-none mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿De qué color es?</h2>
+              <div className="kevphones-sell__question">
+                <h2 tabIndex={-1} className="text-2xl sm:text-3xl font-bold text-white mb-2">¿De qué color es?</h2>
                 <p className="text-zinc-400">Colores disponibles para {selectedModel?.name}.</p>
               </div>
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 pb-4">
+              <div className="flex-1  min-h-0 pr-1 sm:pr-2 pb-4">
                 {availableColors.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                  <div className="kevphones-sell__variants">
                     {availableColors.map(v => (
                       <button
                         key={v.value}
                         onClick={() => setColor(v.value)}
-                        className={optionCardClass(color === v.value)}
+                        aria-pressed={color === v.value} className={optionCardClass(color === v.value)}
                       >
                         <span className={color === v.value ? 'text-white' : 'text-zinc-300'}>{v.value}</span>
                         {color === v.value && (
@@ -642,14 +601,14 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
           {/* STEP 5: Estado */}
           {step === 5 && (
             <>
-              <div className="flex-none mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿En qué estado está tu iPhone?</h2>
+              <div className="kevphones-sell__question">
+                <h2 tabIndex={-1} className="text-2xl sm:text-3xl font-bold text-white mb-2">¿En qué estado está tu iPhone?</h2>
               </div>
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 space-y-8 pb-4">
+              <div className="flex-1  min-h-0 pr-1 sm:pr-2 space-y-8 pb-4">
                 
                 <div>
                   <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold border-b border-[#1F1F24] pb-2 mb-4">Estado general</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                  <div className="kevphones-sell__variants">
                     {[
                       { id: 'sealed', label: 'Precintado' },
                       { id: 'like_new', label: 'Como nuevo' },
@@ -659,7 +618,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
                       <button
                         key={c.id}
                         onClick={() => setDeviceCondition(c.id)}
-                        className={optionCardClass(deviceCondition === c.id)}
+                        aria-pressed={deviceCondition === c.id} className={optionCardClass(deviceCondition === c.id)}
                       >
                         <span>{c.label}</span>
                       </button>
@@ -672,8 +631,8 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
                     {selectedModel?.supports_battery_health && (
                       <div className="animate-quote-step-enter">
                         <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold border-b border-[#1F1F24] pb-2 mb-4">Salud de batería (%)</h3>
-                        <div className="p-6 sm:p-8 bg-[#0B0B0E] border border-[#1F1F24] rounded-[24px] flex flex-col items-center max-w-2xl mx-auto w-full">
-                          <div className="text-center h-[90px] sm:h-[100px] flex flex-col justify-end mb-8 sm:mb-10">
+                        <div className="kevphones-sell__battery">
+                          <div className="kevphones-sell__battery-value">
                             {batteryHealth !== '' ? (
                               <>
                                 <div className="text-5xl sm:text-6xl font-semibold tracking-tight text-white mb-2 leading-none">
@@ -692,7 +651,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
 
                           <div className="w-full relative">
                             <input 
-                              type="range" 
+                              type="range" aria-label="Salud de batería" 
                               min="0" 
                               max="100" 
                               value={batteryHealth !== '' ? batteryHealth : 50}
@@ -700,7 +659,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
                                 setBatteryHealth(e.target.value)
                                 setValidationError(null)
                               }}
-                              className={`w-full h-2 sm:h-2.5 bg-[linear-gradient(90deg,#ef4444_0%,#f97316_35%,#f59e0b_60%,#84cc16_80%,#22c55e_100%)] rounded-full appearance-none cursor-pointer transition-all ${batteryHealth === '' ? '[&::-webkit-slider-thumb]:opacity-0 [&::-moz-range-thumb]:opacity-0' : '[&::-webkit-slider-thumb]:opacity-100 [&::-moz-range-thumb]:opacity-100'} [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:sm:w-7 [&::-webkit-slider-thumb]:sm:h-7 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-[2px] [&::-webkit-slider-thumb]:border-[#0B0B0E] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:sm:w-7 [&::-moz-range-thumb]:sm:h-7 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-[2px] [&::-moz-range-thumb]:border-[#0B0B0E] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:shadow-md`}
+                              className="kevphones-sell__range"
                             />
                             <div className="flex justify-between mt-2.5 text-xs text-zinc-500 font-medium">
                               <span>0%</span>
@@ -713,13 +672,13 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
 
                     {selectedModel?.supports_cycles && (
                       <div className="animate-quote-step-enter">
-                        <label className="block text-zinc-300 text-sm mb-2">Ciclos de batería (Opcional)</label>
+                        <label htmlFor="sell-batteryCycles" className="block text-zinc-300 text-sm mb-2">Ciclos de batería (Opcional)</label>
                         <input
                           type="number"
                           min="0"
                           className="w-full bg-[#050506] border border-[#1F1F24] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50"
                           placeholder="Ej: 120"
-                          value={batteryCycles}
+                          id="sell-batteryCycles" value={batteryCycles}
                           onChange={e => setBatteryCycles(e.target.value)}
                         />
                       </div>
@@ -729,53 +688,53 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
                       <div className="space-y-5">
                         <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold border-b border-[#1F1F24] pb-2">Accesorios</h3>
                         
-                        <div>
-                          <label className="block text-zinc-300 text-sm mb-3">¿Tienes la caja original?</label>
+                        <fieldset>
+                          <legend className="block text-zinc-300 text-sm mb-3">¿Tienes la caja original?</legend>
                           <div className="flex gap-2">
-                            <button onClick={() => setHasBox(true)} className={btnClass(hasBox, true)}>Sí</button>
-                            <button onClick={() => setHasBox(false)} className={btnClass(hasBox, false)}>No</button>
+                            <button onClick={() => setHasBox(true)} aria-pressed={hasBox === true} className={btnClass(hasBox, true)}>Sí</button>
+                            <button onClick={() => setHasBox(false)} aria-pressed={hasBox === false} className={btnClass(hasBox, false)}>No</button>
                           </div>
-                        </div>
-                        <div>
-                          <label className="block text-zinc-300 text-sm mb-3">¿Tienes el cable?</label>
+                        </fieldset>
+                        <fieldset>
+                          <legend className="block text-zinc-300 text-sm mb-3">¿Tienes el cable?</legend>
                           <div className="flex gap-2">
-                            <button onClick={() => setHasCable(true)} className={btnClass(hasCable, true)}>Sí</button>
-                            <button onClick={() => setHasCable(false)} className={btnClass(hasCable, false)}>No</button>
+                            <button onClick={() => setHasCable(true)} aria-pressed={hasCable === true} className={btnClass(hasCable, true)}>Sí</button>
+                            <button onClick={() => setHasCable(false)} aria-pressed={hasCable === false} className={btnClass(hasCable, false)}>No</button>
                           </div>
-                        </div>
-                        <div>
-                          <label className="block text-zinc-300 text-sm mb-3">¿Tienes factura?</label>
+                        </fieldset>
+                        <fieldset>
+                          <legend className="block text-zinc-300 text-sm mb-3">¿Tienes factura?</legend>
                           <div className="flex gap-2">
-                            <button onClick={() => setHasInvoice(true)} className={btnClass(hasInvoice, true)}>Sí</button>
-                            <button onClick={() => setHasInvoice(false)} className={btnClass(hasInvoice, false)}>No</button>
+                            <button onClick={() => setHasInvoice(true)} aria-pressed={hasInvoice === true} className={btnClass(hasInvoice, true)}>Sí</button>
+                            <button onClick={() => setHasInvoice(false)} aria-pressed={hasInvoice === false} className={btnClass(hasInvoice, false)}>No</button>
                           </div>
-                        </div>
+                        </fieldset>
                       </div>
 
                       <div className="space-y-5">
                         <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold border-b border-[#1F1F24] pb-2">Funcionamiento</h3>
                         
-                        <div>
-                          <label className="block text-zinc-300 text-sm mb-3">¿Piezas son originales?</label>
+                        <fieldset>
+                          <legend className="block text-zinc-300 text-sm mb-3">¿Piezas son originales?</legend>
                           <div className="flex gap-2">
-                            <button onClick={() => setOriginalParts(true)} className={btnClass(originalParts, true)}>Sí</button>
-                            <button onClick={() => setOriginalParts(false)} className={btnClass(originalParts, false)}>No</button>
+                            <button onClick={() => setOriginalParts(true)} aria-pressed={originalParts === true} className={btnClass(originalParts, true)}>Sí</button>
+                            <button onClick={() => setOriginalParts(false)} aria-pressed={originalParts === false} className={btnClass(originalParts, false)}>No</button>
                           </div>
-                        </div>
-                        <div>
-                          <label className="block text-zinc-300 text-sm mb-3">¿Funciona correctamente?</label>
+                        </fieldset>
+                        <fieldset>
+                          <legend className="block text-zinc-300 text-sm mb-3">¿Funciona correctamente?</legend>
                           <div className="flex gap-2">
-                            <button onClick={() => setFullyFunctional(true)} className={btnClass(fullyFunctional, true)}>Sí</button>
-                            <button onClick={() => setFullyFunctional(false)} className={btnClass(fullyFunctional, false)}>No</button>
+                            <button onClick={() => setFullyFunctional(true)} aria-pressed={fullyFunctional === true} className={btnClass(fullyFunctional, true)}>Sí</button>
+                            <button onClick={() => setFullyFunctional(false)} aria-pressed={fullyFunctional === false} className={btnClass(fullyFunctional, false)}>No</button>
                           </div>
-                        </div>
-                        <div>
-                          <label className="block text-zinc-300 text-sm mb-3">¿Está libre de bloqueos?</label>
+                        </fieldset>
+                        <fieldset>
+                          <legend className="block text-zinc-300 text-sm mb-3">¿Está libre de bloqueos?</legend>
                           <div className="flex gap-2">
-                            <button onClick={() => setBlocked(false)} className={btnClass(blocked, false)}>Sí</button>
-                            <button onClick={() => setBlocked(true)} className={btnClass(blocked, true)}>No</button>
+                            <button onClick={() => setBlocked(false)} aria-pressed={blocked === false} className={btnClass(blocked, false)}>Sí</button>
+                            <button onClick={() => setBlocked(true)} aria-pressed={blocked === true} className={btnClass(blocked, true)}>No</button>
                           </div>
-                        </div>
+                        </fieldset>
                       </div>
                     </div>
                   </>
@@ -785,18 +744,18 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
                   <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold border-b border-[#1F1F24] pb-2">Garantía oficial</h3>
                   <div>
                     <div className="flex gap-2">
-                      <button onClick={() => setOfficialWarrantyUntil(officialWarrantyUntil || new Date().toISOString().split('T')[0])} className={btnClass(!!officialWarrantyUntil, true)}>Sí</button>
-                      <button onClick={() => setOfficialWarrantyUntil('')} className={btnClass(!!officialWarrantyUntil, false)}>No</button>
+                      <button onClick={() => setOfficialWarrantyUntil(officialWarrantyUntil || new Date().toISOString().split('T')[0])} aria-pressed={!!officialWarrantyUntil === true} className={btnClass(!!officialWarrantyUntil, true)}>Sí</button>
+                      <button onClick={() => setOfficialWarrantyUntil('')} aria-pressed={!!officialWarrantyUntil === false} className={btnClass(!!officialWarrantyUntil, false)}>No</button>
                     </div>
                   </div>
                   
                   {!!officialWarrantyUntil && (
                     <div className="animate-quote-step-enter">
-                      <label className="block text-zinc-300 text-sm mb-2">Fecha de fin de garantía</label>
+                      <label htmlFor="sell-officialWarrantyUntil" className="block text-zinc-300 text-sm mb-2">Fecha de fin de garantía</label>
                       <input 
                         type="date"
                         className="w-full bg-[#050506] border border-[#1F1F24] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 [color-scheme:dark]"
-                        value={officialWarrantyUntil}
+                        id="sell-officialWarrantyUntil" value={officialWarrantyUntil}
                         onChange={e => setOfficialWarrantyUntil(e.target.value)}
                       />
                     </div>
@@ -810,44 +769,44 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
           {/* STEP 6: Tus datos */}
           {step === 6 && (
             <>
-              <div className="flex-none mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Cómo podemos contactar contigo?</h2>
+              <div className="kevphones-sell__question">
+                <h2 tabIndex={-1} className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Cómo podemos contactar contigo?</h2>
               </div>
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 space-y-6 pb-4">
+              <div className="flex-1  min-h-0 pr-1 sm:pr-2 space-y-6 pb-4">
                 <div>
-                  <label className="block text-zinc-300 text-sm mb-2">Nombre completo *</label>
+                  <label htmlFor="sell-customerName" className="block text-zinc-300 text-sm mb-2">Nombre completo *</label>
                   <input
                     type="text"
-                    value={customerName}
+                    id="sell-customerName" value={customerName}
                     onChange={e => setCustomerName(e.target.value)}
                     className="w-full bg-[#050506] border border-[#1F1F24] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50"
                     placeholder="Tu nombre y apellidos"
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-300 text-sm mb-2">Teléfono *</label>
+                  <label htmlFor="sell-customerPhone" className="block text-zinc-300 text-sm mb-2">Teléfono *</label>
                   <input
                     type="tel"
-                    value={customerPhone}
+                    id="sell-customerPhone" value={customerPhone}
                     onChange={e => setCustomerPhone(e.target.value)}
                     className="w-full bg-[#050506] border border-[#1F1F24] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50"
                     placeholder="+34 600 00 00 00"
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-300 text-sm mb-2">Ubicación (Opcional)</label>
+                  <label htmlFor="sell-customerLocation" className="block text-zinc-300 text-sm mb-2">Ubicación (Opcional)</label>
                   <input
                     type="text"
-                    value={customerLocation}
+                    id="sell-customerLocation" value={customerLocation}
                     onChange={e => setCustomerLocation(e.target.value)}
                     className="w-full bg-[#050506] border border-[#1F1F24] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50"
                     placeholder="Ciudad o municipio"
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-300 text-sm mb-2">Notas adicionales (Opcional)</label>
+                  <label htmlFor="sell-notes" className="block text-zinc-300 text-sm mb-2">Notas adicionales (Opcional)</label>
                   <textarea
-                    value={notes}
+                    id="sell-notes" value={notes}
                     onChange={e => setNotes(e.target.value)}
                     className="w-full bg-[#050506] border border-[#1F1F24] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 min-h-[120px] resize-y"
                     placeholder="¿Algo más que debamos saber?"
@@ -873,11 +832,11 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
           {/* STEP 7: Fotos */}
           {step === 7 && (
             <>
-              <div className="flex-none mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Enséñanos el estado del iPhone</h2>
+              <div className="kevphones-sell__question">
+                <h2 tabIndex={-1} className="text-2xl sm:text-3xl font-bold text-white mb-2">Enséñanos el estado del iPhone</h2>
                 <p className="text-zinc-400">Necesitamos estas fotos para revisar correctamente el dispositivo.</p>
               </div>
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 pb-4">
+              <div className="flex-1  min-h-0 pr-1 sm:pr-2 pb-4">
                 <GuidedPhotoUpload
                   requiredPhotos={requiredPhotos}
                   extraPhotos={extraPhotos}
@@ -893,13 +852,13 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
           {/* STEP 8: Revisar y enviar */}
           {step === 8 && (
             <>
-              <div className="flex-none mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Revisa tu solicitud</h2>
+              <div className="kevphones-sell__question">
+                <h2 tabIndex={-1} className="text-2xl sm:text-3xl font-bold text-white mb-2">Revisa tu solicitud</h2>
               </div>
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 sm:pr-2 space-y-6 pb-4">
+              <div className="flex-1  min-h-0 pr-1 sm:pr-2 space-y-6 pb-4">
                 
                 {prefillTradeInTarget && (
-                  <div className="p-6 bg-[#0B0B0E] border border-purple-500/30 rounded-[20px]">
+                  <div className="kevphones-sell__target">
                     <h3 className="text-xs uppercase tracking-widest text-purple-400 font-bold mb-2">Parte de pago para</h3>
                     <p className="text-lg font-medium text-white">
                       {prefillTradeInTarget.modelName}
@@ -914,7 +873,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
                   </div>
                 )}
 
-                <div className="p-6 bg-[#0B0B0E] border border-[#1F1F24] rounded-[20px] space-y-6">
+                <div className="kevphones-sell__review space-y-5">
                   <div>
                     <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold mb-2">Dispositivo</h3>
                     <p className="text-white">{selectedModel?.name}</p>
@@ -925,7 +884,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
                   
                   <div>
                     <h3 className="text-xs uppercase tracking-widest text-zinc-500 font-bold mb-2">Estado</h3>
-                    <p className="text-white capitalize">{deviceCondition.replace('_', ' ')}</p>
+                    <p className="text-white capitalize">{({ sealed: 'Precintado', like_new: 'Como nuevo', good: 'Buen estado', marked: 'Con marcas' } as Record<string, string>)[deviceCondition] || deviceCondition}</p>
                     {deviceCondition !== 'sealed' && batteryHealth && (
                       <p className="text-sm text-zinc-400">Batería: {batteryHealth}% {batteryCycles ? `(${batteryCycles} ciclos)` : ''}</p>
                     )}
@@ -975,25 +934,25 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
 
           {/* Validation Error Message */}
           {validationError && step < 8 && (
-            <div className="mt-4 p-4 bg-red-900/10 border border-red-500/20 rounded-[14px] text-red-400 text-sm font-medium flex-none">
+            <div id="sell-validation-error" role="alert" className="mt-4 p-4 bg-red-900/10 border border-red-500/20 rounded-[14px] text-red-400 text-sm font-medium flex-none">
               {validationError}
             </div>
           )}
 
           {/* Submit Error Message */}
           {submitError && !isSubmitting && (
-            <div className="mt-4 p-4 bg-red-900/10 border border-red-500/20 rounded-[14px] text-red-400 text-sm font-medium flex-none">
+            <div role="alert" className="mt-4 p-4 bg-red-900/10 border border-red-500/20 rounded-[14px] text-red-400 text-sm font-medium flex-none">
               {submitError}
             </div>
           )}
 
           {/* BOTTOM NAVIGATION */}
           {!isSubmitting && (
-            <div className="flex-none flex items-center gap-4 mt-6 pt-6 border-t border-[#1F1F24]">
+            <div className="kevphones-sell__navigation flex-none flex items-center gap-4 mt-6 pt-6 border-t border-[#1F1F24]">
               {step > 1 && (
                 <button
                   onClick={goBack}
-                  className="px-6 py-4 rounded-xl text-zinc-400 font-medium hover:text-white transition-colors flex items-center gap-2"
+                  className="kevphones-sell__back"
                 >
                   <span>←</span> Atrás
                 </button>
@@ -1004,14 +963,14 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
               {step < 8 ? (
                 <button
                   onClick={goNext}
-                  className="px-8 py-4 bg-white hover:bg-zinc-200 text-black font-semibold rounded-xl transition-colors shadow-lg active:scale-[0.98]"
+                  className="kevphones-sell__next"
                 >
                   Siguiente
                 </button>
               ) : (
                 <button
                   onClick={handleSubmit}
-                  className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all shadow-[0_0_20px_rgba(147,51,234,0.15)] active:scale-[0.98]"
+                  className="kevphones-sell__next"
                 >
                   Enviar solicitud
                 </button>
@@ -1021,7 +980,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
 
           {/* Submitting Overlay */}
           {isSubmitting && (
-            <div className="flex-none mt-6 pt-6 border-t border-[#1F1F24]">
+            <div role="status" aria-live="polite" className="kevphones-sell__loading">
               <div className="bg-[#0B0B0E] border border-[#1F1F24] p-6 rounded-2xl flex flex-col items-center w-full text-center">
                 <div className="w-8 h-8 border-[3px] border-purple-500/30 border-t-purple-500 rounded-full animate-spin mb-4" />
                 <div className="text-white font-medium mb-1">{submitStatus}</div>

@@ -53,7 +53,7 @@ export function FinancePage({ settings, breakdown, reconciliations }: Props) {
   const isConfigured = settings.opening_cash !== null && settings.opening_date !== null
 
   return (
-    <div className="flex flex-col gap-6 lg:gap-8 w-full max-w-6xl mx-auto pb-12">
+    <div className="admin-finance">
       <AdminPageHeader 
         title="Finanzas" 
         subtitle="Controla el efectivo y concilia el saldo del negocio." 
@@ -62,10 +62,10 @@ export function FinancePage({ settings, breakdown, reconciliations }: Props) {
       {isConfigured && breakdown ? (
         <>
           {/* TOP: primary expected cash overview */}
-          <ExpectedCashPrimary expectedCash={breakdown.expectedCash} />
+          <ExpectedCashPrimary expectedCash={breakdown.expectedCash} openingDate={settings.opening_date} />
 
           {/* MIDDLE: 2-column layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          <div className="admin-finance__workspace">
             <ExpectedCashBreakdown breakdown={breakdown} />
             <ReconciliationForm expectedCash={breakdown.expectedCash} />
           </div>
@@ -81,12 +81,14 @@ export function FinancePage({ settings, breakdown, reconciliations }: Props) {
   )
 }
 
-function ExpectedCashPrimary({ expectedCash }: { expectedCash: number }) {
+function ExpectedCashPrimary({ expectedCash, openingDate }: { expectedCash: number; openingDate: string | null }) {
   return (
-    <section className="bg-[#7a32d4]/5 border border-[#7a32d4]/30 rounded-2xl p-6 md:p-8 flex flex-col justify-center items-center text-center relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-1.5 bg-[#7a32d4]"></div>
-      <p className="text-[13px] font-bold text-[#d7baff] uppercase tracking-wider mb-2">Efectivo esperado</p>
-      <p className="text-5xl md:text-6xl font-extrabold text-white tracking-tight">{formatCurrency(expectedCash)}</p>
+    <section className="admin-finance__primary" aria-labelledby="finance-cash-title">
+      <div>
+        <h2 id="finance-cash-title">Efectivo esperado</h2>
+        <p className="admin-finance__cash" data-tone={expectedCash > 0 ? 'positive' : expectedCash < 0 ? 'negative' : 'neutral'}>{expectedCash > 0 ? '+' : ''}{formatCurrency(expectedCash)}</p>
+      </div>
+      {openingDate && <p className="admin-finance__period">Desde el {formatDate(openingDate)}</p>}
     </section>
   )
 }
@@ -102,24 +104,24 @@ function ExpectedCashBreakdown({ breakdown }: { breakdown: Breakdown }) {
     { label: 'Ajustes', value: breakdown.adjustmentsTotal, positive: breakdown.adjustmentsTotal >= 0, showSignAlways: true }
   ]
 
+  const renderValue = (item: typeof items[number]) => <>
+    {item.ignoreSign ? '' : item.showSignAlways && item.value === 0 ? '' : item.positive ? '+' : '-'}
+    {formatCurrency(Math.abs(item.value))}
+  </>
+
   return (
-    <section className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-6">
-      <h3 className="text-[14px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
-        <span className="material-symbols-outlined text-[18px] text-zinc-500">list_alt</span>
-        Desglose de efectivo
-      </h3>
-      
-      <div className="flex flex-col gap-3">
-        {items.map((item, i) => (
-          <div key={i} className="flex justify-between items-center py-2 border-b border-[#1F1F24] last:border-0 last:pb-0">
-            <span className="text-[14px] font-medium text-zinc-400">{item.label}</span>
-            <span className={`text-[15px] font-bold ${item.ignoreSign ? 'text-white' : item.positive ? 'text-[#d7baff]' : 'text-red-400'}`}>
-              {item.ignoreSign ? '' : item.showSignAlways && item.value === 0 ? '' : item.positive ? '+' : '-'}
-              {formatCurrency(Math.abs(item.value))}
-            </span>
-          </div>
-        ))}
-      </div>
+    <section className="admin-finance__section admin-finance__breakdown">
+      <h2>Desglose de efectivo</h2>
+      <dl className="admin-finance__flows">
+        {items.slice(1, 4).map(item => <div key={item.label}>
+          <dt>{item.label}</dt><dd>{renderValue(item)}</dd>
+        </div>)}
+      </dl>
+      <dl className="admin-finance__funding">
+        {items.filter((_, index) => index === 0 || index > 3).map(item => <div key={item.label}>
+          <dt>{item.label}</dt><dd>{renderValue(item)}</dd>
+        </div>)}
+      </dl>
     </section>
   )
 }
@@ -163,12 +165,12 @@ function BaselineSettingsForm({ settings, isConfigured }: { settings: FinancialS
   const labelClass = "block text-[13px] font-semibold text-zinc-400 mb-1.5"
 
   return (
-    <section className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-6">
+    <section className="admin-finance__section">
       <div className="flex flex-col gap-1">
-        <h3 className="text-[14px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-zinc-500">settings</span>
+        <h2 className="admin-finance__section-title">
+          <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-zinc-500">settings</span>
           {isConfigured ? 'Configuración financiera actual' : 'Configuración financiera inicial'}
-        </h3>
+        </h2>
         {!isConfigured && (
           <p className="text-[13px] font-medium text-zinc-500 mt-2">
             Efectivo inicial es el dinero real disponible en el negocio al comienzo de esta fecha. No incluyas el valor del stock.
@@ -177,13 +179,13 @@ function BaselineSettingsForm({ settings, isConfigured }: { settings: FinancialS
       </div>
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[13px] font-bold p-4 rounded-xl">
+        <div role="alert" className="admin-finance__error">
           {error}
         </div>
       )}
       
       {success && (
-        <div className="bg-[#7a32d4]/10 border border-[#7a32d4]/20 text-[#d7baff] text-[13px] font-bold p-4 rounded-xl">
+        <div role="status" className="admin-finance__success">
           {success}
         </div>
       )}
@@ -276,20 +278,20 @@ function ReconciliationForm({ expectedCash }: { expectedCash: number }) {
   const labelClass = "block text-[13px] font-semibold text-zinc-400 mb-1.5"
 
   return (
-    <section className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-6">
-      <h3 className="text-[14px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
-        <span className="material-symbols-outlined text-[18px] text-zinc-500">account_balance_wallet</span>
+    <section className="admin-finance__section">
+      <h2 className="admin-finance__section-title">
+        <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-zinc-500">account_balance_wallet</span>
         Conciliar caja
-      </h3>
+      </h2>
       
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[13px] font-bold p-4 rounded-xl">
+        <div role="alert" className="admin-finance__error">
           {error}
         </div>
       )}
       
       {success && (
-        <div className="bg-[#7a32d4]/10 border border-[#7a32d4]/20 text-[#d7baff] text-[13px] font-bold p-4 rounded-xl">
+        <div role="status" className="admin-finance__success">
           {success}
         </div>
       )}
@@ -297,8 +299,8 @@ function ReconciliationForm({ expectedCash }: { expectedCash: number }) {
       <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col">
-            <label className={labelClass}>Efectivo esperado</label>
-            <div className="w-full bg-[#121217] border border-[#1F1F24] text-zinc-400 text-[15px] font-bold rounded-xl px-4 py-2.5">
+            <span className={labelClass}>Efectivo esperado</span>
+            <div className="admin-finance__expected">
               {formatCurrency(expectedCash)}
             </div>
           </div>
@@ -323,13 +325,14 @@ function ReconciliationForm({ expectedCash }: { expectedCash: number }) {
         </div>
         
         {actualCashStr !== '' && !isNaN(actualCash) && (
-          <div className="bg-[#121217] border border-[#1F1F24] p-4 rounded-xl flex flex-col gap-2">
+          <div className="admin-finance__difference">
             <div className="flex justify-between items-center">
               <span className="text-[14px] font-bold text-zinc-400">Diferencia</span>
-              <span className={`text-[20px] font-extrabold ${difference > 0 ? 'text-[#d7baff]' : difference < 0 ? 'text-amber-400' : 'text-white'}`}>
+              <span className="admin-finance__difference-value" data-state={difference === 0 ? 'match' : 'mismatch'}>
                 {difference > 0 ? '+' : difference < 0 ? '-' : ''}{formatCurrency(Math.abs(difference))}
               </span>
             </div>
+            <p className="admin-finance__difference-state">{difference === 0 ? 'La caja coincide.' : difference > 0 ? 'Hay más efectivo del esperado.' : 'Hay menos efectivo del esperado.'}</p>
             {difference !== 0 && (
               <p className="text-[12px] font-medium text-zinc-500 mt-1">Si existe una diferencia, se registrará automáticamente como un ajuste de capital.</p>
             )}
@@ -363,7 +366,7 @@ function ReconciliationForm({ expectedCash }: { expectedCash: number }) {
         <button 
           type="submit" 
           disabled={isPending}
-          className="w-full px-6 py-3 bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-[14px] rounded-xl transition-all disabled:opacity-50"
+          className="admin-finance__submit"
         >
           {isPending ? 'Conciliando...' : 'Registrar conciliación'}
         </button>
@@ -376,60 +379,31 @@ function ReconciliationHistory({ reconciliations }: { reconciliations: Reconcili
   if (reconciliations.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-4">
-      <h3 className="text-[14px] font-bold text-white uppercase tracking-wider flex items-center gap-2">
-        <span className="material-symbols-outlined text-[18px] text-zinc-500">history</span>
-        Historial de conciliaciones
-      </h3>
-      
-      <div className="hidden md:block overflow-hidden bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-[#1F1F24] bg-[#121217]">
-              <th className="p-4 text-[12px] font-semibold text-zinc-400 uppercase tracking-wider">Fecha</th>
-              <th className="p-4 text-[12px] font-semibold text-zinc-400 uppercase tracking-wider">Esperado</th>
-              <th className="p-4 text-[12px] font-semibold text-zinc-400 uppercase tracking-wider">Real</th>
-              <th className="p-4 text-[12px] font-semibold text-zinc-400 uppercase tracking-wider">Diferencia</th>
-              <th className="p-4 text-[12px] font-semibold text-zinc-400 uppercase tracking-wider">Nota</th>
+    <section className="admin-finance__section admin-finance__history">
+      <h2>Historial de conciliaciones</h2>
+      <div className="admin-finance__history-desktop">
+        <table>
+          <caption className="sr-only">Efectivo esperado, real y diferencia de cada conciliación</caption>
+          <thead><tr><th scope="col">Fecha</th><th scope="col">Esperado</th><th scope="col">Real</th><th scope="col">Diferencia</th><th scope="col">Nota</th></tr></thead>
+          <tbody>{reconciliations.map(rec => (
+            <tr key={rec.id}>
+              <td>{formatDate(rec.reconciliation_date)}</td>
+              <td>{formatCurrency(rec.expected_cash)}</td>
+              <td>{formatCurrency(rec.actual_cash)}</td>
+              <td><span className="admin-finance__difference-value" data-state={rec.difference === 0 ? 'match' : 'mismatch'}>{rec.difference > 0 ? '+' : rec.difference < 0 ? '-' : ''}{formatCurrency(Math.abs(rec.difference))}</span><span className="admin-finance__history-state">{rec.difference === 0 ? 'Cuadrada' : 'Diferencia registrada'}</span></td>
+              <td>{rec.note || '-'}</td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-[#1F1F24]">
-            {reconciliations.map(rec => (
-              <tr key={rec.id} className="hover:bg-[#121217] transition-colors">
-                <td className="p-4 text-[14px] font-medium text-white">{formatDate(rec.reconciliation_date)}</td>
-                <td className="p-4 text-[14px] font-mono text-zinc-400">{formatCurrency(rec.expected_cash)}</td>
-                <td className="p-4 text-[14px] font-mono text-white">{formatCurrency(rec.actual_cash)}</td>
-                <td className={`p-4 text-[14px] font-bold ${rec.difference > 0 ? 'text-[#d7baff]' : rec.difference < 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
-                  {rec.difference > 0 ? '+' : rec.difference < 0 ? '-' : ''}{formatCurrency(Math.abs(rec.difference))}
-                </td>
-                <td className="p-4 text-[13px] font-medium text-zinc-500">{rec.note || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
+          ))}</tbody>
         </table>
       </div>
-
-      <div className="md:hidden flex flex-col gap-3">
-        {reconciliations.map(rec => (
-          <div key={rec.id} className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-4 flex flex-col gap-3">
-            <div className="flex justify-between items-center">
-              <span className="text-[14px] font-bold text-white">{formatDate(rec.reconciliation_date)}</span>
-              <span className={`text-[15px] font-extrabold ${rec.difference > 0 ? 'text-[#d7baff]' : rec.difference < 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
-                {rec.difference > 0 ? '+' : rec.difference < 0 ? '-' : ''}{formatCurrency(Math.abs(rec.difference))}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-[13px]">
-              <span className="text-zinc-500 font-medium">Esperado: <span className="text-zinc-400">{formatCurrency(rec.expected_cash)}</span></span>
-              <span className="text-zinc-500 font-medium">Real: <span className="text-white font-bold">{formatCurrency(rec.actual_cash)}</span></span>
-            </div>
-            {rec.note && (
-              <div className="text-[12px] font-medium text-zinc-500 pt-2 border-t border-[#1F1F24]">
-                {rec.note}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      <ul className="admin-finance__history-mobile" aria-label="Conciliaciones registradas">
+        {reconciliations.map(rec => <li key={rec.id}>
+          <div className="admin-finance__history-heading"><time dateTime={rec.reconciliation_date}>{formatDate(rec.reconciliation_date)}</time><span className="admin-finance__difference-value" data-state={rec.difference === 0 ? 'match' : 'mismatch'}><span className="sr-only">Diferencia: </span>{rec.difference > 0 ? '+' : rec.difference < 0 ? '-' : ''}{formatCurrency(Math.abs(rec.difference))}</span></div>
+          <p className="admin-finance__history-state">{rec.difference === 0 ? 'Cuadrada' : 'Diferencia registrada'}</p>
+          <dl><div><dt>Esperado</dt><dd>{formatCurrency(rec.expected_cash)}</dd></div><div><dt>Real</dt><dd>{formatCurrency(rec.actual_cash)}</dd></div></dl>
+          {rec.note && <p className="admin-finance__history-note">{rec.note}</p>}
+        </li>)}
+      </ul>
     </section>
   )
 }

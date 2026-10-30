@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { PublicStockItem } from './PublicStockSection'
+import { getActiveWarrantyExpiry } from './PublicStockCard'
 
 interface PublicDeviceDetailModalProps {
   device: PublicStockItem
@@ -98,19 +99,15 @@ function getTechnicalSpecsRows(device: PublicStockItem): { label: string; value:
 export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contactEnabled }: PublicDeviceDetailModalProps) {
   const [mounted, setMounted] = useState(false)
   const isSealed = device.condition === 'sealed'
-  const hasWarranty = device.warranty_until && new Date(device.warranty_until) > new Date()
+  const warrantyExpiry = getActiveWarrantyExpiry(device.warranty_until)
+  const hasWarranty = warrantyExpiry !== null
   const displayTitle = getDeviceTitle(device)
   const productTypeLabel = device.category === 'other' ? getOtherProductTypeLabel(device.custom_product_type) : null
   const technicalSpecs = device.category === 'other' ? getTechnicalSpecsRows(device) : []
   
-  // Gallery logic: prioritize catalog image as the first image, followed by real photos
+  // Show the actual unit first, then the resolved catalogue image as a reference.
   const allPhotos: { id: string; url: string; position: number }[] = []
   const seenUrls = new Set<string>()
-
-  if (device.catalog_image_url) {
-    allPhotos.push({ id: 'catalog', url: device.catalog_image_url, position: 0 })
-    seenUrls.add(device.catalog_image_url)
-  }
 
   if (device.real_images && device.real_images.length > 0) {
     for (const img of device.real_images) {
@@ -121,11 +118,19 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
     }
   }
 
+  if (device.catalog_image_url && !seenUrls.has(device.catalog_image_url)) {
+    allPhotos.push({ id: 'catalog', url: device.catalog_image_url, position: 0 })
+    seenUrls.add(device.catalog_image_url)
+  }
+
   const [mainPhotoIndex, setMainPhotoIndex] = useState(0)
 
   // Safe History & Mount Logic
   const modalOpenRef = useRef(false)
   const previousOverflowRef = useRef<string>('')
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -135,13 +140,21 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
       modalOpenRef.current = true
     }
     
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     previousOverflowRef.current = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     
     return () => {
       document.body.style.overflow = previousOverflowRef.current
+      if (previousFocusRef.current?.isConnected) {
+        previousFocusRef.current.focus({ preventScroll: true })
+      }
     }
   }, [])
+
+  useEffect(() => {
+    if (mounted) closeButtonRef.current?.focus({ preventScroll: true })
+  }, [mounted])
 
   const safeClose = () => {
     if (modalOpenRef.current) {
@@ -163,6 +176,20 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && modalOpenRef.current) {
         safeClose()
+      }
+      if (e.key === 'Tab' && modalOpenRef.current && panelRef.current) {
+        const controls = Array.from(panelRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], summary, [tabindex="0"]'
+        )).filter(element => element.getClientRects().length > 0)
+        const first = controls[0]
+        const last = controls[controls.length - 1]
+        if (first && (e.shiftKey && document.activeElement === first)) {
+          e.preventDefault()
+          last.focus()
+        } else if (first && ((!e.shiftKey && document.activeElement === last) || !panelRef.current.contains(document.activeElement))) {
+          e.preventDefault()
+          first.focus()
+        }
       }
     }
     
@@ -193,262 +220,173 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
       }).format(device.listing_price)
     : null
 
+  const identitySpecs = (device.category === 'other'
+    ? [device.storage, device.color]
+    : device.category === 'apple_watch'
+    ? [device.size, device.connectivity, device.case_material]
+    : device.category === 'airpods'
+    ? [device.case_type, device.color]
+    : device.category === 'ipad'
+    ? [device.storage, device.connectivity, device.color]
+    : [device.storage, device.color]
+  ).filter(Boolean).join(' · ')
+
+  const secondarySpecs: { label: string; value: string }[] = []
+  if (device.category === 'other' && device.brand) secondarySpecs.push({ label: 'Marca', value: device.brand })
+  if (device.category !== 'other' && device.storage) secondarySpecs.push({ label: 'Almacenamiento', value: device.storage })
+  if (device.category !== 'other' && device.color) secondarySpecs.push({ label: 'Color', value: device.color })
+  if (device.size) secondarySpecs.push({ label: 'Tamaño', value: device.size })
+  if (device.connectivity) secondarySpecs.push({ label: 'Conectividad', value: device.connectivity })
+  if (device.case_material) secondarySpecs.push({ label: 'Material de caja', value: device.case_material })
+  if (device.case_type) secondarySpecs.push({ label: 'Tipo de estuche', value: device.case_type })
+  if (device.chip) secondarySpecs.push({ label: 'Chip', value: device.chip })
+  if (device.memory) secondarySpecs.push({ label: 'Memoria', value: device.memory })
+  if (device.supports_cycles && device.battery_cycles !== null) secondarySpecs.push({ label: 'Ciclos', value: String(device.battery_cycles) })
+  secondarySpecs.push(...technicalSpecs)
+
+  const accessories = [
+    { label: 'Caja', included: device.has_box },
+    { label: 'Cable', included: device.has_cable },
+    { label: 'Factura', included: device.has_invoice }
+  ]
+  const included = accessories.filter(item => item.included).map(item => item.label)
+  const notIncluded = accessories.filter(item => !item.included).map(item => item.label)
+
   if (!mounted) return null
 
   return createPortal(
-    <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-[#000000]/80 backdrop-blur-sm overflow-y-auto animate-backdrop-fade"
-      onClick={safeClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-    >
-      <div 
-        className="relative w-full max-w-[1000px] bg-[#050506] border border-[#1F1F24] rounded-[24px] overflow-hidden flex flex-col md:flex-row shadow-2xl my-auto animate-modal-entrance"
-        onClick={e => e.stopPropagation()}
+    <div className="kevphones-device-detail" onClick={safeClose}>
+      <div
+        ref={panelRef}
+        className="kevphones-device-detail__panel"
+        onClick={event => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
       >
-        <button 
-          className="absolute top-4 right-4 z-20 w-10 h-10 flex items-center justify-center text-zinc-400 bg-[#0A0A0C]/80 hover:bg-[#1F1F24] hover:text-white border border-[#1F1F24] rounded-full transition-all duration-200"
-          onClick={safeClose}
-          aria-label="Cerrar"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <header className="kevphones-device-detail__header">
+          <button ref={closeButtonRef} type="button" onClick={safeClose} aria-label="Cerrar ficha y volver al catálogo">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m14 6-6 6 6 6M8 12h12" />
+            </svg>
+            Volver
+          </button>
+          <span>KevPhonesGC</span>
+        </header>
 
-        {/* Left Column: Photos */}
-        <div className="w-full md:w-1/2 flex flex-col border-b md:border-b-0 md:border-r border-[#1F1F24] bg-[#0A0A0C]">
-          <div className="w-full aspect-square relative flex items-center justify-center p-8 lg:p-16">
-            <div className="absolute inset-0 bg-purple-900/5 blur-[70px] rounded-full scale-50 pointer-events-none"></div>
-            {allPhotos.length > 0 ? (
-              <img 
-                src={allPhotos[mainPhotoIndex].url}
-                alt={`${displayTitle} foto`}
-                className="w-full h-full object-contain relative z-10"
-              />
-            ) : (
-              <div className="w-32 h-32 border-2 border-dashed border-[#1F1F24] rounded-2xl flex items-center justify-center text-zinc-600 relative z-10">
-                <span className="material-symbols-outlined text-5xl">smartphone</span>
-              </div>
-            )}
-            
-            <div className="absolute top-6 left-6 z-10 flex flex-col gap-1.5">
-              {isSealed && (
-                <span className="px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-white border border-white/10 text-[10px] font-medium rounded-full tracking-wide">
-                  Precintado
-                </span>
-              )}
-              {!isSealed && hasWarranty && (
-                <span className="px-2.5 py-0.5 bg-black/60 backdrop-blur-md text-zinc-300 border border-white/10 text-[10px] font-medium rounded-full tracking-wide">
-                  Con garantía
-                </span>
-              )}
-            </div>
-          </div>
-          
-          {allPhotos.length > 1 && (
-            <div className="flex gap-2.5 p-5 overflow-x-auto no-scrollbar border-t border-[#1F1F24] bg-[#0A0A0C]">
-              {allPhotos.map((photo, idx) => (
-                <button
-                  key={photo.id}
-                  onClick={() => setMainPhotoIndex(idx)}
-                  className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden border transition-all duration-200 flex items-center justify-center bg-[#050506] ${idx === mainPhotoIndex ? 'border-purple-500/50' : 'border-[#1F1F24] hover:border-zinc-500'}`}
-                >
-                  <img src={photo.url} alt="Thumbnail" className="w-full h-full object-contain p-1.5" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Info */}
-        <div className="w-full md:w-1/2 p-6 sm:p-10 flex flex-col max-h-[85vh] overflow-y-auto custom-scrollbar bg-[#050506]">
-          
-          <div className="mb-8">
-            {productTypeLabel && (
-              <span className="inline-block px-2.5 py-0.5 rounded-full bg-purple-900/30 text-purple-300 border border-purple-700/50 text-[11px] font-medium tracking-wide mb-2">
-                {productTypeLabel}
-              </span>
-            )}
-            <h2 id="modal-title" className="text-2xl sm:text-3xl font-semibold text-white mb-2 leading-tight">
-              {displayTitle}
-            </h2>
-            {device.discount_price ? (
-              <div className="flex flex-col mt-4">
-                <div className="flex flex-col mb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-0.5">Precio habitual</span>
-                  <span className="text-xl font-semibold text-zinc-500 line-through">{formattedListingPrice}</span>
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[11px] text-zinc-500 uppercase tracking-wider">Precio en oferta</span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] text-[10px] font-bold tracking-wide">
-                      Oferta
-                    </span>
+        <div className="kevphones-device-detail__body">
+          <div className="kevphones-device-detail__layout">
+            <section className="kevphones-device-detail__gallery" aria-label={`Fotos de ${displayTitle}`}>
+              <div className="kevphones-device-detail__stage">
+                {allPhotos.length > 0 ? (
+                  <img decoding="async" src={allPhotos[mainPhotoIndex].url} alt={`${displayTitle} foto`} />
+                ) : (
+                  <div className="kevphones-device-detail__fallback">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <rect x="6" y="2" width="12" height="20" rx="2" />
+                      <path strokeLinecap="round" d="M11 18h2" />
+                    </svg>
+                    <span>Sin imagen</span>
                   </div>
-                  <span className="text-4xl sm:text-5xl font-bold text-white tracking-tight">{formattedPrice || '-'}</span>
-                </div>
+                )}
               </div>
-            ) : (
-              <div className="text-4xl sm:text-5xl font-bold text-white tracking-tight mt-4">
-                {formattedPrice || '-'}
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1">
-            {/* General Specs Grid */}
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-8">
-              <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Estado</span>
-                <span className="text-sm text-white font-medium">{CONDITION_LABELS[device.condition] || device.condition}</span>
-              </div>
-
-              {device.category === 'other' && device.brand && (
-                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Marca</span>
-                  <span className="text-sm text-white font-medium">{device.brand}</span>
-                </div>
-              )}
-              
-              {device.category !== 'other' && device.storage && (
-                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Almacenamiento</span>
-                  <span className="text-sm text-white font-medium">{device.storage}</span>
-                </div>
-              )}
-              
-              {device.category !== 'other' && device.color && (
-                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Color</span>
-                  <span className="text-sm text-white font-medium">{device.color}</span>
-                </div>
-              )}
-
-              {device.size && (
-                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Tamaño</span>
-                  <span className="text-sm text-white font-medium">{device.size}</span>
-                </div>
-              )}
-              {device.connectivity && (
-                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Conectividad</span>
-                  <span className="text-sm text-white font-medium">{device.connectivity}</span>
-                </div>
-              )}
-              {device.case_material && (
-                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Material de caja</span>
-                  <span className="text-sm text-white font-medium">{device.case_material}</span>
-                </div>
-              )}
-              {device.case_type && (
-                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Tipo de estuche</span>
-                  <span className="text-sm text-white font-medium">{device.case_type}</span>
-                </div>
-              )}
-              {device.chip && (
-                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Chip</span>
-                  <span className="text-sm text-white font-medium">{device.chip}</span>
-                </div>
-              )}
-              {device.memory && (
-                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Memoria</span>
-                  <span className="text-sm text-white font-medium">{device.memory}</span>
-                </div>
-              )}
-              
-              {device.supports_battery_health && device.battery_health !== null && (
-                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Salud de batería</span>
-                  <span className="text-sm text-white font-medium">{device.battery_health}%</span>
-                </div>
-              )}
-
-              {device.supports_cycles && device.battery_cycles !== null && (
-                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Ciclos</span>
-                  <span className="text-sm text-white font-medium">{device.battery_cycles}</span>
-                </div>
-              )}
-
-              {device.warranty_until && hasWarranty && (
-                <div className="flex flex-col border-b border-[#1F1F24]/50 pb-2">
-                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider mb-1">Garantía oficial</span>
-                  <span className="text-sm text-white font-medium">
-                    {new Date(device.warranty_until).toLocaleDateString('es-ES')}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Dedicated Technical Specs Section for Category 'other' */}
-            {device.category === 'other' && technicalSpecs.length > 0 && (
-              <div className="mb-8">
-                <span className="block text-[11px] uppercase tracking-wider text-zinc-500 mb-3">Especificaciones técnicas</span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 p-4 rounded-xl bg-[#0A0A0C] border border-[#1F1F24]">
-                  {technicalSpecs.map((spec, idx) => (
-                    <div key={idx} className="flex justify-between items-center gap-3 border-b border-[#1F1F24]/40 last:border-b-0 pb-2">
-                      <span className="text-xs text-zinc-400 font-medium shrink-0">{spec.label}</span>
-                      <span className="text-xs text-white font-semibold text-right break-words">{spec.value}</span>
-                    </div>
+              {allPhotos.length > 1 && (
+                <div className="kevphones-device-detail__thumbnails" role="group" aria-label="Seleccionar foto">
+                  {allPhotos.map((photo, idx) => (
+                    <button
+                      key={photo.id}
+                      type="button"
+                      onClick={() => setMainPhotoIndex(idx)}
+                      aria-label={`Ver foto ${idx + 1} de ${allPhotos.length}`}
+                      aria-pressed={idx === mainPhotoIndex}
+                    >
+                      <img loading="lazy" decoding="async" src={photo.url} alt="" />
+                    </button>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </section>
 
-            <div className="mb-8">
-              <span className="block text-[11px] uppercase tracking-wider text-zinc-500 mb-3">Accesorios y Otros</span>
-              <div className="flex flex-wrap gap-2">
-                <span className={`px-2.5 py-1 rounded-md text-[11px] border font-medium ${device.has_box ? 'bg-white/5 border-white/10 text-white' : 'bg-transparent border-[#1F1F24] text-zinc-500'}`}>Caja</span>
-                <span className={`px-2.5 py-1 rounded-md text-[11px] border font-medium ${device.has_cable ? 'bg-white/5 border-white/10 text-white' : 'bg-transparent border-[#1F1F24] text-zinc-500'}`}>Cable</span>
-                <span className={`px-2.5 py-1 rounded-md text-[11px] border font-medium ${device.has_invoice ? 'bg-white/5 border-white/10 text-white' : 'bg-transparent border-[#1F1F24] text-zinc-500'}`}>Factura</span>
-                <span className={`px-2.5 py-1 rounded-md text-[11px] border font-medium ${device.original_parts ? 'bg-white/5 border-white/10 text-white' : 'bg-transparent border-[#1F1F24] text-zinc-500'}`}>Piezas originales</span>
-                <span className={`px-2.5 py-1 rounded-md text-[11px] border font-medium ${device.fully_functional ? 'bg-white/5 border-white/10 text-white' : 'bg-transparent border-[#1F1F24] text-zinc-500'}`}>Funcionamiento completo</span>
+            <div className="kevphones-device-detail__info">
+              {productTypeLabel && <p className="kevphones-device-detail__type">{productTypeLabel}</p>}
+              <h2 id="modal-title">{displayTitle}</h2>
+              {identitySpecs && <p className="kevphones-device-detail__identity">{identitySpecs}</p>}
+
+              <div className="kevphones-device-detail__price">
+                <span><span className="sr-only">Precio actual: </span>{formattedPrice || '-'}</span>
+                {device.discount_price ? <del><span className="sr-only">Precio habitual: </span>{formattedListingPrice}</del> : null}
               </div>
+
+              <dl className="kevphones-device-detail__key-info">
+                <div>
+                  <dt>Estado</dt>
+                  <dd>{CONDITION_LABELS[device.condition] || device.condition}</dd>
+                </div>
+                {device.supports_battery_health && device.battery_health !== null && (
+                  <div><dt>Salud de batería</dt><dd>{device.battery_health}%</dd></div>
+                )}
+                {!isSealed && hasWarranty && <div><dt>Garantía</dt><dd>Con garantía</dd></div>}
+                {device.warranty_until && hasWarranty && (
+                  <div><dt>Garantía oficial hasta</dt><dd>{warrantyExpiry?.toLocaleDateString('es-ES')}</dd></div>
+                )}
+              </dl>
+
+              <Link
+                href={`/cotizar?mode=trade_in&target=${device.id}`}
+                className="kevphones-device-detail__trade-in"
+                onClick={() => {
+                  document.body.style.overflow = previousOverflowRef.current
+                }}
+              >
+                Entregar mi móvil como parte de pago
+              </Link>
+
+              {secondarySpecs.length > 0 && (
+                <details className="kevphones-device-detail__disclosure">
+                  <summary>Especificaciones técnicas</summary>
+                  <dl className="kevphones-device-detail__rows">
+                    {secondarySpecs.map((spec, idx) => (
+                      <div key={idx}><dt>{spec.label}</dt><dd>{spec.value}</dd></div>
+                    ))}
+                  </dl>
+                </details>
+              )}
+
+              <details className="kevphones-device-detail__disclosure" open>
+                <summary>Accesorios y comprobaciones</summary>
+                <dl className="kevphones-device-detail__rows">
+                  {included.length > 0 && <div><dt>Incluye</dt><dd>{included.join(', ')}</dd></div>}
+                  {notIncluded.length > 0 && <div><dt>No incluye</dt><dd>{notIncluded.join(', ')}</dd></div>}
+                  <div><dt>Piezas originales</dt><dd>{device.original_parts ? 'Sí' : 'No'}</dd></div>
+                  <div><dt>Funcionamiento completo</dt><dd>{device.fully_functional ? 'Sí' : 'No'}</dd></div>
+                </dl>
+              </details>
             </div>
           </div>
+        </div>
 
-          <div className="mt-2 space-y-3">
-            {contactEnabled && whatsappPhone ? (
-              <a 
-                href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
+        <footer className="kevphones-device-detail__actions">
+          <div className="kevphones-device-detail__action-price">
+            <span>Precio</span>
+            <strong>{formattedPrice || '-'}</strong>
+          </div>
+          {contactEnabled && whatsappPhone ? (
+            <a
+              href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
                   `Hola, estoy interesado en este dispositivo de KevPhonesGC:\n\n${displayTitle}\n${(device.category === 'other' ? technicalSpecs.slice(0, 4).map(s => `${s.label}: ${s.value}`) : device.category === 'apple_watch' ? [device.size, device.connectivity, device.case_material] : device.category === 'airpods' ? [device.case_type, device.color] : device.category === 'ipad' ? [device.storage, device.connectivity, device.color] : [device.storage, device.color]).filter(Boolean).map(v => `${v}\n`).join('')}Precio: ${effectivePrice ? `${effectivePrice} €` : 'No disponible'}\n\n¿Sigue disponible?`
                 )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-4 rounded-xl font-semibold bg-[#1F8745] text-white hover:bg-[#25A154] flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
-              >
-                Preguntar por WhatsApp
-              </a>
-            ) : (
-              <div>
-                <button 
-                  disabled
-                  className="w-full py-4 rounded-xl font-semibold bg-[#111114] text-zinc-600 border border-[#1F1F24] flex items-center justify-center gap-2 cursor-not-allowed"
-                >
-                  Contacto temporalmente no disponible
-                </button>
-              </div>
-            )}
-
-            <Link 
-              href={`/cotizar?mode=trade_in&target=${device.id}`}
-              className="w-full py-4 rounded-xl font-medium bg-transparent text-zinc-300 border border-[#1F1F24] hover:bg-[#111114] hover:text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
-              onClick={() => {
-                document.body.style.overflow = previousOverflowRef.current
-              }}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="kevphones-device-detail__contact"
             >
-              Entregar mi móvil como parte de pago
-            </Link>
-          </div>
-
-        </div>
+              Preguntar por WhatsApp
+            </a>
+          ) : (
+            <button type="button" disabled className="kevphones-device-detail__contact">
+              Contacto temporalmente no disponible
+            </button>
+          )}
+        </footer>
       </div>
     </div>,
     document.body

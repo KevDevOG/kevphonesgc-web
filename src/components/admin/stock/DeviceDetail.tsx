@@ -151,6 +151,14 @@ function getTechnicalSpecsRows(device: Device): { label: string; value: string }
   return rows
 }
 
+type SaleData = {
+  final_sale_price: number | string | null
+  sold_at: string | null
+  sale_location: string | null
+  observations: string | null
+  clients: { name: string; phone: string; location: string | null } | null
+} | null
+
 type TradeInContext = {
   direction: 'outgoing' | 'incoming'
   id: string
@@ -181,9 +189,11 @@ type TradeInContext = {
 export function DeviceDetail({ 
   device, 
   tradeInContext,
+  saleData,
   catalogImages
 }: { 
   device: Device
+  saleData?: SaleData
   tradeInContext?: TradeInContext
   catalogImages?: { model_id: string; color: string; storage_path: string }[]
 }) {
@@ -235,6 +245,12 @@ export function DeviceDetail({
 
   const effectivePrice = device.discount_price ?? device.listing_price
   const potentialProfit = Number(effectivePrice) - Number(device.purchase_price)
+  const recordedSalePrice = saleData?.final_sale_price !== null && saleData?.final_sale_price !== undefined
+    ? Number(saleData.final_sale_price)
+    : tradeInContext ? tradeInContext.finalSalePrice : null
+  const displayedSalePrice = device.status === 'available' ? Number(effectivePrice) : recordedSalePrice ?? Number(device.listing_price)
+  const displayedProfit = device.status === 'available' ? potentialProfit : recordedSalePrice !== null ? recordedSalePrice - Number(device.purchase_price) : null
+
   
   const formatDate = (dateString: string) => {
     const d = new Date(dateString)
@@ -246,200 +262,53 @@ export function DeviceDetail({
     : null
 
   return (
-    <div className="flex flex-col gap-6 lg:gap-8 w-full max-w-6xl mx-auto text-white">
+    <div className="admin-device">
       
       {/* 1. Header & Back Link */}
-      <header className="flex flex-col gap-4">
+      <header className="admin-device__header">
         <Link href="/admin/stock" className="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-400 hover:text-white transition-colors w-fit">
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[18px]">arrow_back</span>
           Volver a Stock
         </Link>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-none mb-1.5">
+            <h1 className="admin-device__title">
               {getDeviceTitle(device)}
             </h1>
             <p className="text-sm font-semibold text-zinc-400">
               {model?.category === 'other'
                 ? [getOtherProductTypeLabel(device.custom_product_type), device.storage, device.color].filter(Boolean).join(' · ')
-                : [device.storage, device.color].filter(Boolean).join(' · ')}
+                : (model?.category === 'apple_watch' ? [device.size, device.connectivity, device.case_material, device.color] : model?.category === 'airpods' ? [device.case_type, device.color] : [device.storage, device.color]).filter(Boolean).join(' · ')}
             </p>
           </div>
-          <div className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider ${device.status === 'available' ? (device.is_published ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-orange-500/10 text-orange-400') : 'bg-[#1F1F24] text-zinc-400'}`}>
-            {device.status === 'available' ? (device.is_published ? 'Publicado' : 'Pendiente de publicar') : 'Vendido'}
+          <div data-status={device.status} data-published={device.is_published} className={`admin-device__status px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider ${device.status === 'available' ? (device.is_published ? 'bg-[#22c55e]/10 text-[#22c55e]' : 'bg-orange-500/10 text-orange-400') : 'bg-[#1F1F24] text-zinc-400'}`}>
+            {device.status === 'available' ? (device.is_published ? 'Disponible · Publicado' : 'Disponible · Oculto') : 'Vendido'}
           </div>
         </div>
-      </header>
-
-      {/* Main Desktop Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)] gap-6 lg:gap-8 items-start">
-        
-        {/* LEFT / TOP: Gallery */}
-        <section className="flex flex-col gap-3">
-          <div className="w-full aspect-square bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl overflow-hidden flex items-center justify-center p-6 relative">
-            {activeImageUrl ? (
-              <img 
-                className="w-full h-full object-contain" 
-                src={activeImageUrl} 
-                alt={getDeviceTitle(device)}
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center text-zinc-600 gap-2">
-                <span className="material-symbols-outlined text-4xl">no_photography</span>
-                <span className="text-sm font-semibold">Sin fotos</span>
-              </div>
-            )}
-          </div>
-          
-          {images.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 snap-x">
-              {images.map((img, idx) => (
-                <button
-                  key={img.id}
-                  onClick={() => setActiveImageIndex(idx)}
-                  className={`snap-start flex-shrink-0 w-16 h-16 rounded-xl border overflow-hidden transition-all ${activeImageIndex === idx ? 'border-[#7a32d4] ring-2 ring-[#7a32d4]/30' : 'border-[#1F1F24] hover:border-zinc-600'} bg-[#0B0B0E] p-1`}
-                >
-                  <img 
-                    className="w-full h-full object-cover rounded-lg" 
-                    src={`${supabaseUrl}/storage/v1/object/public/device-images/${img.storage_path}`} 
-                    alt="Thumbnail" 
-                  />
-                </button>
-              ))}
+        <div className="admin-device__actions">
+          {device.status === 'available' && (
+            <div className="admin-device__action-group" role="group" aria-label="Venta y publicación">
+              <Link className="admin-device__primary" href={`/admin/stock/${device.id}/vender`}>Vender dispositivo</Link>
+              {!device.is_published && <button type="button" disabled={isPublishing} onClick={handlePublish}>{isPublishing ? 'Publicando...' : 'Publicar'}</button>}
             </div>
           )}
-        </section>
-
-        {/* RIGHT / MIDDLE: Price Summary & Main Actions */}
-        <section className="flex flex-col gap-6">
-          
-          {/* Financials Box */}
-          <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 flex flex-col gap-4">
-            {device.status === 'available' ? (
-              <>
-                {device.discount_price ? (
-                  <>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Precio habitual</span>
-                      <span className="text-xl font-semibold text-zinc-500 line-through">{formatPrice(device.listing_price)}</span>
-                    </div>
-                    
-                    <div className="flex flex-col mt-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Precio en oferta</span>
-                        <span className="px-2 py-0.5 rounded bg-[#7a32d4]/10 text-[#d7baff] text-[10px] font-bold tracking-wider">
-                          Oferta · -{Math.round(((device.listing_price - device.discount_price) / device.listing_price) * 100)}%
-                        </span>
-                      </div>
-                      <span className="text-4xl font-semibold text-white">{formatPrice(device.discount_price)}</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Precio de venta</span>
-                    <span className="text-4xl font-semibold text-white">{formatPrice(device.listing_price)}</span>
-                  </div>
-                )}
-                <div className="h-px bg-[#1F1F24] w-full my-2"></div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold text-zinc-400">Precio de compra</span>
-                  <span className="text-base font-medium text-zinc-300">{formatPrice(device.purchase_price)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold text-zinc-400">Margen potencial</span>
-                  <span className={`text-base font-bold ${potentialProfit >= 0 ? 'text-[#d7baff]' : 'text-red-400'}`}>
-                    {potentialProfit > 0 ? '+' : ''}{formatPrice(potentialProfit)}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Sold Context - since we don't fetch sale_data directly in page.tsx unless it's a trade-in */}
-                {tradeInContext ? (
-                  <>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Vendido por (Parte de pago)</span>
-                      <span className="text-4xl font-semibold text-[#d7baff]">{formatPrice(tradeInContext.finalSalePrice)}</span>
-                    </div>
-                    <div className="h-px bg-[#1F1F24] w-full my-2"></div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-semibold text-zinc-400">Precio de compra</span>
-                      <span className="text-base font-medium text-zinc-300">{formatPrice(device.purchase_price)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-semibold text-zinc-400">Margen final</span>
-                      <span className="text-base font-bold text-[#d7baff]">
-                        {formatPrice(tradeInContext.finalSalePrice - device.purchase_price)}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Precio de venta registrado</span>
-                      <span className="text-4xl font-semibold text-zinc-300">{formatPrice(device.listing_price)}</span>
-                    </div>
-                    <div className="h-px bg-[#1F1F24] w-full my-2"></div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-semibold text-zinc-400">Precio de compra</span>
-                      <span className="text-base font-medium text-zinc-300">{formatPrice(device.purchase_price)}</span>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Main Actions */}
-          <div className="flex flex-col gap-3">
-            {publishError && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm font-semibold">
-                {publishError}
-              </div>
-            )}
-
-            {/* Generar contenido para iPhone */}
-            {device.device_models?.category === 'iphone' && (
-              <button
-                type="button"
-                onClick={() => setShowStoryGenerator(true)}
-                className="w-full bg-gradient-to-r from-[#7a32d4] to-[#9333ea] hover:from-[#6d28d9] hover:to-[#7e22ce] text-white font-bold text-sm py-3.5 px-4 rounded-xl transition-all shadow-lg shadow-[#7a32d4]/20 flex items-center justify-center gap-2 active:scale-[0.99]"
-              >
-                <span className="material-symbols-outlined text-[20px] text-yellow-300">auto_awesome</span>
+          {(device.status === 'available' || model?.category === 'iphone') && (
+            <div className="admin-device__action-group admin-device__action-group--secondary" role="group" aria-label="Herramientas del dispositivo">
+              {device.status === 'available' && <>
+                <Link href={`/admin/stock/${device.id}/editar`}>Editar</Link>
+                <Link href={`/admin/stock/nuevo?duplicate=${device.id}`}>Duplicar</Link>
+              </>}
+              {model?.category === 'iphone' && <button type="button" onClick={() => setShowStoryGenerator(true)}>
+                <span aria-hidden="true" className="material-symbols-outlined text-[20px] text-yellow-300">auto_awesome</span>
                 Generar contenido
-              </button>
-            )}
-
-            {device.status === 'available' && (
-              <>
-                {!device.is_published && (
-                  <button onClick={handlePublish} disabled={isPublishing} className="w-full bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400 font-bold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-                    <span className="material-symbols-outlined text-[20px]">publish</span>
-                    {isPublishing ? 'Publicando...' : 'Publicar'}
-                  </button>
-                )}
-                <Link href={`/admin/stock/${device.id}/vender`} className="w-full bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
-                  <span className="material-symbols-outlined text-[20px]">sell</span>
-                  Vender dispositivo
-                </Link>
-                <Link href={`/admin/stock/nuevo?duplicate=${device.id}`} className="w-full bg-[#121217] hover:bg-[#1F1F24] border border-[#1F1F24] text-white font-semibold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
-                  <span className="material-symbols-outlined text-[20px]">content_copy</span>
-                  Duplicar
-                </Link>
-                <Link href={`/admin/stock/${device.id}/editar`} className="w-full bg-[#121217] hover:bg-[#1F1F24] border border-[#1F1F24] text-white font-semibold text-sm py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2">
-                  <span className="material-symbols-outlined text-[20px]">edit</span>
-                  Editar
-                </Link>
-                {!showConfirmDelete && (
-                  <button onClick={() => setShowConfirmDelete(true)} className="w-full bg-transparent hover:bg-red-500/10 text-red-400 font-semibold text-sm py-3.5 px-4 rounded-xl transition-colors mt-2 flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined text-[20px]">delete</span>
-                    Eliminar
-                  </button>
-                )}
-              </>
-            )}
-
-            {/* Confirm Delete Modals/Inline */}
+              </button>}
+            </div>
+          )}
+          {device.status === 'available' && !showConfirmDelete && <div className="admin-device__action-group admin-device__action-group--destructive">
+            <button type="button" className="admin-device__destructive" onClick={() => setShowConfirmDelete(true)}>Eliminar</button>
+          </div>}
+        </div>
+        {publishError && <p role="alert" className="admin-device__error">{publishError}</p>}
             {showConfirmDelete && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-5 flex flex-col gap-4 mt-2">
                 <h4 className="text-red-400 font-bold text-sm">¿Eliminar este dispositivo?</h4>
@@ -469,18 +338,72 @@ export function DeviceDetail({
                 </div>
               </div>
             )}
-          </div>
+      </header>
+
+      {/* Main Desktop Grid */}
+      <div className="admin-device__overview">
+        
+        {/* Financial summary */}
+        <section className="admin-device__financial-record">
+          
+          <dl className="admin-device__finance">
+            <div><dt>Compra</dt><dd>{formatPrice(device.purchase_price)}</dd></div>
+            <div><dt>{device.status === 'available' ? 'Venta anunciada' : recordedSalePrice !== null ? 'Venta final' : 'Precio anunciado'}</dt><dd>{formatPrice(displayedSalePrice)}</dd>
+              {device.status === 'available' && device.discount_price ? <>
+                <del>{formatPrice(device.listing_price)}</del>
+                <small>Descuento: {Math.round(((device.listing_price - device.discount_price) / device.listing_price) * 100)}%</small>
+              </> : null}
+            </div>
+            <div><dt>{device.status === 'available' ? 'Margen potencial' : 'Beneficio registrado'}</dt><dd data-tone={displayedProfit === null || displayedProfit === 0 ? 'neutral' : displayedProfit > 0 ? 'positive' : 'negative'}>{displayedProfit === null ? '—' : `${displayedProfit > 0 ? '+' : ''}${formatPrice(displayedProfit)}`}</dd></div>
+          </dl>
+          {device.status === 'sold' && !saleData && !tradeInContext && <p className="admin-device__muted">Sin importe de venta registrado.</p>}
+
         </section>
+
+        {/* LEFT / TOP: Gallery */}
+        <section className="admin-device__gallery">
+          <div className="admin-device__stage">
+            {activeImageUrl ? (
+              <img 
+                className="w-full h-full object-contain" 
+                src={activeImageUrl} 
+                alt={getDeviceTitle(device)}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center text-zinc-600 gap-2">
+                <span aria-hidden="true" className="material-symbols-outlined text-4xl">no_photography</span>
+                <span className="text-sm font-semibold">Sin fotos</span>
+              </div>
+            )}
+          </div>
+          
+          {images.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 snap-x">
+              {images.map((img, idx) => (
+                <button
+                  key={img.id}
+                  aria-label={`Ver foto ${idx + 1}`}
+                  aria-pressed={activeImageIndex === idx}
+                  onClick={() => setActiveImageIndex(idx)}
+                  className={`snap-start flex-shrink-0 w-16 h-16 rounded-xl border overflow-hidden transition-all ${activeImageIndex === idx ? 'border-[#7a32d4] ring-2 ring-[#7a32d4]/30' : 'border-[#1F1F24] hover:border-zinc-600'} bg-[#0B0B0E] p-1`}
+                >
+                  <img 
+                    className="w-full h-full object-cover rounded-lg" 
+                    src={`${supabaseUrl}/storage/v1/object/public/device-images/${img.storage_path}`} 
+                    alt="" 
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
       </div>
 
-      {/* LOWER CONTENT: Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 border-t border-[#1F1F24] pt-8">
-        
-        {/* Left Column: Tech Specs */}
-        <div className="flex flex-col gap-6">
-          
-          <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6">
-            <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Dispositivo</h3>
+      {/* Device, functionality, purchase/seller, sale and internal record. */}
+      <div className="admin-device__record">
+          <section className="admin-device__section">
+            <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Dispositivo</h2>
             <div className="flex flex-col gap-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-zinc-500">Categoría</span>
@@ -492,7 +415,7 @@ export function DeviceDetail({
                   <span className="text-sm font-semibold text-white">{getOtherProductTypeLabel(device.custom_product_type)}</span>
                 </div>
               )}
-              {model?.category === 'other' && model?.brand && (
+              {model?.brand && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-zinc-500">Marca</span>
                   <span className="text-sm font-semibold text-white">{model.brand}</span>
@@ -551,74 +474,50 @@ export function DeviceDetail({
                 </div>
               )}
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-zinc-500">IMEI / Serie</span>
-                <span className="text-sm font-mono text-zinc-300">{device.imei_serial || 'No registrado'}</span>
-              </div>
-              <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-zinc-500">Estado Físico</span>
                 <span className="text-sm font-semibold text-white">{conditionMap[device.condition] || device.condition}</span>
               </div>
             </div>
-          </div>
-
-          {model?.category === 'other' && (() => {
-            const techSpecs = getTechnicalSpecsRows(device)
-            if (techSpecs.length === 0) return null
-            return (
-              <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6">
-                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Especificaciones técnicas</h3>
+            {model?.category === 'other' && (() => {
+              const techSpecs = getTechnicalSpecsRows(device)
+              if (techSpecs.length === 0) return null
+              return (
+                <div className="admin-device__subsection">
+                  <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Especificaciones técnicas</h3>
+                  <div className="flex flex-col gap-4">
+                    {techSpecs.map((row, idx) => (
+                      <div key={idx} className="flex justify-between items-center gap-4">
+                        <span className="text-sm font-medium text-zinc-500 flex-shrink-0">{row.label}</span>
+                        <span className="text-sm font-semibold text-white text-right break-words">{row.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+            {(device.battery_health !== null || device.battery_cycles !== null) && (
+              <div className="admin-device__subsection">
+                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Batería</h3>
                 <div className="flex flex-col gap-4">
-                  {techSpecs.map((row, idx) => (
-                    <div key={idx} className="flex justify-between items-center gap-4">
-                      <span className="text-sm font-medium text-zinc-500 flex-shrink-0">{row.label}</span>
-                      <span className="text-sm font-semibold text-white text-right break-words">{row.value}</span>
+                  {device.battery_health !== null && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-zinc-500">Salud</span>
+                      <span className="text-sm font-semibold text-white">{device.battery_health}%</span>
                     </div>
-                  ))}
+                  )}
+                  {device.battery_cycles !== null && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-zinc-500">Ciclos</span>
+                      <span className="text-sm font-semibold text-white">{device.battery_cycles}</span>
+                    </div>
+                  )}
                 </div>
               </div>
-            )
-          })()}
+            )}
+          </section>
 
-          {(device.battery_health !== null || device.battery_cycles !== null) && (
-            <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6">
-              <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Batería</h3>
-              <div className="flex flex-col gap-4">
-                {device.battery_health !== null && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-zinc-500">Salud</span>
-                    <span className="text-sm font-semibold text-white">{device.battery_health}%</span>
-                  </div>
-                )}
-                {device.battery_cycles !== null && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-zinc-500">Ciclos</span>
-                    <span className="text-sm font-semibold text-white">{device.battery_cycles}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6">
-            <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Accesorios</h3>
-            <div className="flex flex-col gap-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-zinc-500">Caja</span>
-                <span className={`text-sm font-bold ${device.has_box ? 'text-white' : 'text-zinc-500'}`}>{device.has_box ? 'Sí' : 'No'}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-zinc-500">Cable</span>
-                <span className={`text-sm font-bold ${device.has_cable ? 'text-white' : 'text-zinc-500'}`}>{device.has_cable ? 'Sí' : 'No'}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-zinc-500">Factura</span>
-                <span className={`text-sm font-bold ${device.has_invoice ? 'text-white' : 'text-zinc-500'}`}>{device.has_invoice ? 'Sí' : 'No'}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6">
-            <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Funcionamiento</h3>
+          <section className="admin-device__section">
+            <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Funcionamiento</h2>
             <div className="flex flex-col gap-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-zinc-500">Garantía oficial</span>
@@ -635,14 +534,27 @@ export function DeviceDetail({
                 <span className={`text-sm font-bold ${device.fully_functional ? 'text-white' : 'text-red-400'}`}>{device.fully_functional ? 'Sí' : 'No'}</span>
               </div>
             </div>
-          </div>
-        </div>
+            <div className="admin-device__subsection">
+              <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Accesorios</h3>
+              <div className="flex flex-col gap-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-500">Caja</span>
+                  <span className={`text-sm font-bold ${device.has_box ? 'text-white' : 'text-zinc-500'}`}>{device.has_box ? 'Sí' : 'No'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-500">Cable</span>
+                  <span className={`text-sm font-bold ${device.has_cable ? 'text-white' : 'text-zinc-500'}`}>{device.has_cable ? 'Sí' : 'No'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-500">Factura</span>
+                  <span className={`text-sm font-bold ${device.has_invoice ? 'text-white' : 'text-zinc-500'}`}>{device.has_invoice ? 'Sí' : 'No'}</span>
+                </div>
+              </div>
+            </div>
+          </section>
 
-        {/* Right Column: Business Specs */}
-        <div className="flex flex-col gap-6">
-          
-          <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6">
-            <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Compra</h3>
+          <section className="admin-device__section">
+            <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-5">Compra</h2>
             <div className="flex flex-col gap-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-zinc-500">Precio</span>
@@ -669,12 +581,24 @@ export function DeviceDetail({
                 </div>
               )}
             </div>
-          </div>
+          </section>
+
+          {device.status === 'sold' && saleData && <section className="admin-device__section admin-device__sale">
+            <h2>Venta registrada</h2>
+            <dl>
+              {saleData.sold_at && <div><dt>Fecha de venta</dt><dd>{formatDate(saleData.sold_at)}</dd></div>}
+              {saleData.clients?.name && <div><dt>Comprador</dt><dd>{saleData.clients.name}</dd></div>}
+              {saleData.clients?.phone && <div><dt>Teléfono</dt><dd>{saleData.clients.phone}</dd></div>}
+              {saleData.clients?.location && <div><dt>Ubicación del comprador</dt><dd>{saleData.clients.location}</dd></div>}
+              {saleData.sale_location && <div><dt>Lugar de venta</dt><dd>{saleData.sale_location}</dd></div>}
+              {saleData.observations && <div><dt>Observaciones de venta</dt><dd className="whitespace-pre-wrap">{saleData.observations}</dd></div>}
+            </dl>
+          </section>}
 
           {tradeInContext && (
-            <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-6 border-t-2 border-t-[#d7baff]">
+            <div className="admin-device__section admin-device__trade-in">
               <div className="flex justify-between items-start mb-5">
-                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Parte de pago</h3>
+                <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Parte de pago</h2>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#d7baff]/10 text-[#d7baff]">
                   {tradeInContext.direction === 'outgoing' ? 'Entregado' : 'Recibido'}
                 </span>
@@ -771,15 +695,19 @@ export function DeviceDetail({
             </div>
           )}
 
+        <section className="admin-device__section admin-device__internal">
+          <h2>Datos internos</h2>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-zinc-500">IMEI / Serie</span>
+            <span className="text-sm font-mono text-zinc-300">{device.imei_serial || 'No registrado'}</span>
+          </div>
           {device.internal_notes && (
-            <div className="bg-[#121217] border border-[#2a2a30] rounded-2xl p-6 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/50"></div>
+            <div className="admin-device__subsection">
               <h3 className="text-sm font-bold text-amber-500/80 uppercase tracking-wider mb-3">Notas internas</h3>
               <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{device.internal_notes}</p>
             </div>
           )}
-
-        </div>
+        </section>
       </div>
 
       {/* Trade-In Modals */}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 import Link from 'next/link'
@@ -17,11 +17,13 @@ type SaleRequest = {
   model_id: string
   storage: string | null
   color: string | null
-  customer_name: string
-  customer_phone: string
+  customer_name: string | null
+  customer_phone: string | null
   customer_location: string | null
   estimated_min: number | null
   estimated_max: number | null
+  battery_health?: number | null
+  device_condition?: string | null
   status: string
   created_at: string
   device_models: DeviceModel | null
@@ -38,174 +40,156 @@ const statusLabels: Record<string, string> = {
   discarded: 'Descartada'
 }
 
-const statusColors: Record<string, string> = {
-  new: 'bg-[#d7baff]/10 text-[#d7baff] border-[#d7baff]/20',
-  in_progress: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-  purchased: 'bg-[#22c55e]/10 text-[#22c55e] border-[#22c55e]/20',
-  discarded: 'bg-red-500/10 text-red-500 border-red-500/20'
+const conditionLabels: Record<string, string> = {
+  sealed: 'Precintado',
+  like_new: 'Como nuevo',
+  good: 'Buen estado',
+  marked: 'Con marcas'
+}
+
+const currency = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' })
+
+function estimate(request: SaleRequest) {
+  return request.estimated_min !== null && request.estimated_max !== null
+    ? `${currency.format(request.estimated_min)} – ${currency.format(request.estimated_max)}`
+    : 'Sin estimación'
+}
+
+function status(request: SaleRequest) {
+  return <span className="admin-requests__status" data-status={request.status}>{statusLabels[request.status] || request.status}</span>
+}
+
+function date(request: SaleRequest) {
+  return <time dateTime={request.created_at}>{new Date(request.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</time>
+}
+
+function variant(request: SaleRequest) {
+  return [request.storage, request.color].filter(Boolean).join(' · ')
+}
+
+function details(request: SaleRequest) {
+  return [
+    request.battery_health != null ? `Batería ${request.battery_health}%` : null,
+    request.device_condition ? conditionLabels[request.device_condition] : null
+  ].filter(Boolean).join(' · ')
 }
 
 export function SaleRequestsList({ initialRequests }: SaleRequestsListProps) {
+  const searchId = useId()
   const [search, setSearch] = useState('')
-  const [activeFilter, setActiveFilter] = useState<'all' | 'new' | 'in_progress' | 'purchased'>('new')
+  const [activeFilter, setActiveFilter] = useState('new')
+  const [sortOrder, setSortOrder] = useState('recent')
+  const query = search.trim().toLocaleLowerCase('es')
 
-  const filteredRequests = initialRequests.filter(req => {
-    if (activeFilter !== 'all' && req.status !== activeFilter) {
-      return false
-    }
-
-    if (search) {
-      const q = search.toLowerCase()
-      const matchName = req.customer_name.toLowerCase().includes(q)
-      const matchPhone = req.customer_phone.toLowerCase().includes(q)
-      const matchModel = req.device_models?.name?.toLowerCase().includes(q)
-      const matchStorage = req.storage?.toLowerCase().includes(q)
-      const matchColor = req.color?.toLowerCase().includes(q)
-      
-      return matchName || matchPhone || matchModel || matchStorage || matchColor
-    }
-
-    return true
+  const filteredRequests = initialRequests.filter(request => {
+    if (activeFilter !== 'all' && request.status !== activeFilter) return false
+    if (!query) return true
+    return [request.customer_name, request.customer_phone, request.customer_location, request.device_models?.name, request.storage, request.color]
+      .filter(Boolean).join(' ').toLocaleLowerCase('es').includes(query)
   })
+  // The default preserves the server's existing newest-first order.
+  const visibleRequests = sortOrder === 'oldest'
+    ? [...filteredRequests].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
+    : filteredRequests
 
-  const counts = {
-    all: initialRequests.length,
-    new: initialRequests.filter(r => r.status === 'new').length,
-    in_progress: initialRequests.filter(r => r.status === 'in_progress').length,
-    purchased: initialRequests.filter(r => r.status === 'purchased').length
-  }
-
+  const counts = initialRequests.reduce<Record<string, number>>((result, request) => {
+    result[request.status] = (result[request.status] || 0) + 1
+    return result
+  }, {})
   const filters = [
-    { id: 'new', label: 'Nuevas', count: counts.new },
-    { id: 'in_progress', label: 'En proceso', count: counts.in_progress },
-    { id: 'purchased', label: 'Compradas', count: counts.purchased },
-    { id: 'all', label: 'Todas', count: counts.all }
+    { id: 'new', label: 'Nuevas' },
+    { id: 'in_progress', label: 'En proceso' },
+    { id: 'purchased', label: 'Compradas' },
+    // Retain any additional real status present in the loaded data.
+    ...Object.keys(counts).filter(key => !['new', 'in_progress', 'purchased'].includes(key))
+      .map(id => ({ id, label: statusLabels[id] || id })),
+    { id: 'all', label: 'Todas' }
   ]
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(value)
+  const hasFilters = Boolean(query) || activeFilter !== 'all' || sortOrder !== 'recent'
+  const resetFilters = () => {
+    setSearch('')
+    setActiveFilter('all')
+    setSortOrder('recent')
   }
 
   return (
     <AdminPageShell>
-      <AdminPageHeader
-        title="Solicitudes"
-        subtitle="Gestiona las solicitudes de venta recibidas."
-      />
+      <div className="admin-requests">
+        <AdminPageHeader
+          title="Solicitudes"
+          subtitle="Gestiona las solicitudes de venta recibidas."
+          action={<p className="admin-requests__summary"><strong>{counts.new || 0}</strong> nuevas <span>· {initialRequests.length} en total</span></p>}
+        />
 
-      <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full">
-        {/* Filters and Search */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0" style={{ scrollbarWidth: 'none' }}>
+        <div className="admin-requests__controls">
+          <div className="admin-requests__search">
+            <label htmlFor={searchId} className="sr-only">Buscar solicitud por cliente, teléfono o dispositivo</label>
+            <span aria-hidden="true" className="material-symbols-outlined">search</span>
+            <input id={searchId} type="search" placeholder="Buscar solicitud..." value={search} onChange={event => setSearch(event.target.value)} />
+          </div>
+          <div className="admin-requests__tabs" role="group" aria-label="Filtrar solicitudes por estado">
             {filters.map(filter => (
-              <button
-                key={filter.id}
-                onClick={() => setActiveFilter(filter.id as any)}
-                className={`
-                  px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors border
-                  ${activeFilter === filter.id 
-                    ? 'bg-[#7a32d4]/10 text-[#d7baff] border-[#7a32d4]/30' 
-                    : 'bg-[#121217] text-zinc-400 border-[#1F1F24] hover:text-white hover:bg-[#1F1F24]'}
-                `}
-              >
-                {filter.label}
-                <span className="ml-1.5 opacity-60">({filter.count})</span>
+              <button key={filter.id} type="button" aria-pressed={activeFilter === filter.id} onClick={() => setActiveFilter(filter.id)}>
+                {filter.label} <span>{filter.id === 'all' ? initialRequests.length : counts[filter.id] || 0}</span>
               </button>
             ))}
           </div>
-
-          <div className="relative w-full lg:w-80">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-zinc-500">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="Buscar por cliente, teléfono o dispositivo"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#121217] text-white border border-[#1F1F24] rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#7a32d4]/50 focus:ring-1 focus:ring-[#7a32d4]/50 transition-all placeholder:text-zinc-500"
-            />
+          <div className="admin-requests__filter-footer">
+            <p role="status" aria-live="polite">{visibleRequests.length} {visibleRequests.length === 1 ? 'solicitud' : 'solicitudes'}</p>
+            <label className="admin-requests__sort">Ordenar
+              <select value={sortOrder} onChange={event => setSortOrder(event.target.value)}>
+                <option value="recent">Más recientes</option>
+                <option value="oldest">Más antiguas</option>
+              </select>
+            </label>
+            {hasFilters && <button className="admin-requests__reset" type="button" onClick={resetFilters}>Limpiar filtros</button>}
           </div>
         </div>
 
-        {/* List */}
-        {filteredRequests.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filteredRequests.map(req => (
-              <Link href={`/admin/solicitudes/${req.id}`} key={req.id} className="block group">
-                <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-5 flex flex-col gap-4 group-hover:border-[#7a32d4]/50 group-hover:bg-[#121217] transition-all h-full">
-                  
-                  {/* Header: Model & Status */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex flex-col">
-                      <h3 className="text-white font-bold text-[15px] leading-tight">
-                        {req.device_models?.name || 'Modelo desconocido'}
-                      </h3>
-                      <p className="text-sm text-zinc-400 mt-0.5 font-medium">
-                        {[req.storage, req.color].filter(Boolean).join(' · ')}
-                      </p>
-                    </div>
-                    <span className={`px-2.5 py-1 text-[11px] font-bold rounded uppercase tracking-wider border shrink-0 ${statusColors[req.status] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>
-                      {statusLabels[req.status] || req.status}
-                    </span>
+        {visibleRequests.length > 0 ? <>
+          <ul className="admin-requests__mobile" aria-label="Solicitudes de venta">
+            {visibleRequests.map(request => (
+              <li key={request.id}>
+                <Link href={`/admin/solicitudes/${request.id}`} className="admin-requests__card" data-status={request.status}>
+                  <div className="admin-requests__card-meta">{status(request)}{date(request)}</div>
+                  <h3>{request.customer_name || 'Sin nombre'}</h3>
+                  {(request.customer_phone || request.customer_location) && <p className="admin-requests__contact">{[request.customer_phone, request.customer_location].filter(Boolean).join(' · ')}</p>}
+                  <p className="admin-requests__model">{request.device_models?.name || 'Modelo desconocido'}</p>
+                  {variant(request) && <p className="admin-requests__muted">{variant(request)}</p>}
+                  {details(request) && <p className="admin-requests__muted">{details(request)}</p>}
+                  <div className="admin-requests__card-bottom">
+                    <div><span>Valoración</span><strong>{estimate(request)}</strong></div>
+                    <span className="admin-requests__view">Ver <span className="sr-only">solicitud de {request.customer_name || 'cliente sin nombre'}</span><span aria-hidden="true" className="material-symbols-outlined">arrow_forward</span></span>
                   </div>
-
-                  {/* Divider */}
-                  <div className="h-px bg-[#1F1F24] w-full"></div>
-
-                  {/* Body: Customer & Estimate */}
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-start gap-2.5">
-                      <span className="material-symbols-outlined text-[18px] text-zinc-500 mt-0.5">person</span>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-zinc-200">{req.customer_name}</span>
-                        {req.customer_location && (
-                          <span className="text-xs text-zinc-500">{req.customer_location}</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5">
-                      <span className="material-symbols-outlined text-[18px] text-[#7a32d4] shrink-0">payments</span>
-                      {req.estimated_min !== null && req.estimated_max !== null ? (
-                        <span className="text-sm font-bold text-[#d7baff]">
-                          {formatCurrency(req.estimated_min)} – {formatCurrency(req.estimated_max)}
-                        </span>
-                      ) : (
-                        <span className="text-sm font-medium text-zinc-500">Sin estimación</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Footer: Date & Action */}
-                  <div className="mt-auto pt-4 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-zinc-500 flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-                      {new Date(req.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
-                    </span>
-                    <span className="text-sm font-bold text-[#d7baff] group-hover:text-white transition-colors flex items-center gap-1">
-                      Ver detalle
-                      <span className="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
-                    </span>
-                  </div>
-                </div>
-              </Link>
+                </Link>
+              </li>
             ))}
+          </ul>
+          <div className="admin-requests__desktop">
+            <table>
+              <caption className="sr-only">Solicitudes de venta recibidas</caption>
+              <thead><tr>
+                <th scope="col">Cliente</th><th scope="col">Dispositivo</th><th scope="col">Valoración</th><th scope="col">Estado</th><th scope="col">Fecha</th><th scope="col"><span className="sr-only">Acciones</span></th>
+              </tr></thead>
+              <tbody>
+                {visibleRequests.map(request => (
+                  <tr key={request.id} data-status={request.status}>
+                    <td><strong>{request.customer_name || 'Sin nombre'}</strong>{request.customer_phone && <span>{request.customer_phone}</span>}{request.customer_location && <span>{request.customer_location}</span>}</td>
+                    <td><strong>{request.device_models?.name || 'Modelo desconocido'}</strong>{variant(request) && <span>{variant(request)}</span>}{details(request) && <span>{details(request)}</span>}</td>
+                    <td className="admin-requests__estimate">{estimate(request)}</td>
+                    <td>{status(request)}</td>
+                    <td>{date(request)}</td>
+                    <td><Link href={`/admin/solicitudes/${request.id}`}>Ver solicitud<span className="sr-only"> de {request.customer_name || 'cliente sin nombre'}</span></Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <div className="bg-[#0B0B0E] border border-[#1F1F24] rounded-2xl p-12 flex flex-col items-center justify-center text-center gap-3">
-            <span className="material-symbols-outlined text-[48px] text-zinc-700">inbox_customize</span>
-            <h3 className="text-white text-lg font-bold">
-              {search || activeFilter !== 'all' ? 'No hay solicitudes que coincidan con los filtros.' : 'No hay solicitudes todavía.'}
-            </h3>
-            <p className="text-zinc-500 text-sm max-w-sm">
-              {search || activeFilter !== 'all' ? 'Prueba cambiando los términos de búsqueda o filtros seleccionados.' : 'Las solicitudes recibidas desde la web aparecerán aquí.'}
-            </p>
-          </div>
-        )}
+        </> : <div className="admin-requests__empty">
+          <h3>{initialRequests.length === 0 ? 'No hay solicitudes todavía.' : 'No hay solicitudes que coincidan con los filtros.'}</h3>
+          <p>{initialRequests.length === 0 ? 'Las solicitudes recibidas desde la web aparecerán aquí.' : 'Prueba con otra búsqueda o limpia los filtros.'}</p>
+          {initialRequests.length > 0 && hasFilters && <button type="button" onClick={resetFilters}>Limpiar filtros</button>}
+        </div>}
       </div>
     </AdminPageShell>
   )
