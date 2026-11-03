@@ -6,6 +6,8 @@ import crypto from 'crypto'
 export type CreateSessionInput = {
   customerPhone: string
   category: string
+  customerName?: string | null
+  customerLocation?: string | null
 }
 
 export type UploadTarget = {
@@ -36,9 +38,26 @@ export async function createSaleRequestUploadSessionAction(
     return { success: false, error: 'Teléfono no válido.' }
   }
 
-  const normalizedPhone = customerPhone.trim().replace(/[\s\-()]/g, '')
+  const trimmedPhone = customerPhone.trim()
+  if (!trimmedPhone || trimmedPhone.length > 30) {
+    return { success: false, error: 'Teléfono no válido.' }
+  }
+
+  const normalizedPhone = trimmedPhone.replace(/[\s\-()]/g, '')
   if (!/^\+?[0-9]{6,15}$/.test(normalizedPhone)) {
     return { success: false, error: 'Teléfono no válido.' }
+  }
+
+  if (input.customerName !== undefined && input.customerName !== null) {
+    if (typeof input.customerName !== 'string' || input.customerName.trim().length > 120) {
+      return { success: false, error: 'Datos no válidos.' }
+    }
+  }
+
+  if (input.customerLocation !== undefined && input.customerLocation !== null) {
+    if (typeof input.customerLocation !== 'string' || input.customerLocation.trim().length > 150) {
+      return { success: false, error: 'Datos no válidos.' }
+    }
   }
 
   if (!category || typeof category !== 'string') {

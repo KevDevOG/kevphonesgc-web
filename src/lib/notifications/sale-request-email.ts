@@ -11,6 +11,15 @@ export type SaleRequestEmailPayload = {
   customerLocation: string | null
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export async function sendSaleRequestAdminNotification(payload: SaleRequestEmailPayload) {
   try {
     const resendApiKey = process.env.RESEND_API_KEY
@@ -26,8 +35,8 @@ export async function sendSaleRequestAdminNotification(payload: SaleRequestEmail
     const formatMoney = (amount: number) =>
       new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount)
 
-    const deviceDesc = [payload.modelName, payload.storage, payload.color].filter(Boolean).join(' · ')
-    const valuation =
+    const rawDeviceDesc = [payload.modelName, payload.storage, payload.color].filter(Boolean).join(' · ')
+    const rawValuation =
       payload.estimatedMin !== null && payload.estimatedMax !== null
         ? `${formatMoney(payload.estimatedMin)} – ${formatMoney(payload.estimatedMax)}`
         : 'Sin estimación'
@@ -38,12 +47,21 @@ export async function sendSaleRequestAdminNotification(payload: SaleRequestEmail
     const textContent = `
 Nueva solicitud de venta
 
-Dispositivo: ${deviceDesc}
+Dispositivo: ${rawDeviceDesc}
 Cliente: ${payload.customerName}${customerLocationText}
-Valoración: ${valuation}
+Valoración: ${rawValuation}
 
 Ver solicitud: ${ctaUrl}
 `
+
+    const safeModelName = escapeHtml(payload.modelName)
+    const safeStorage = payload.storage ? escapeHtml(payload.storage) : null
+    const safeColor = payload.color ? escapeHtml(payload.color) : null
+    const deviceDesc = [safeModelName, safeStorage, safeColor].filter(Boolean).join(' · ')
+    const safeCustomerName = escapeHtml(payload.customerName)
+    const safeCustomerLocation = payload.customerLocation ? escapeHtml(payload.customerLocation) : null
+    const valuation = escapeHtml(rawValuation)
+    const safeCtaUrl = escapeHtml(ctaUrl)
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -73,8 +91,8 @@ Ver solicitud: ${ctaUrl}
 
             <div class="field">
               <div class="label">Cliente</div>
-              <div class="value">${payload.customerName}</div>
-              ${payload.customerLocation ? `<div class="value" style="font-size: 14px; color: #4b5563; margin-top: 2px;">${payload.customerLocation}</div>` : ''}
+              <div class="value">${safeCustomerName}</div>
+              ${safeCustomerLocation ? `<div class="value" style="font-size: 14px; color: #4b5563; margin-top: 2px;">${safeCustomerLocation}</div>` : ''}
             </div>
 
             <div class="field">
@@ -83,7 +101,7 @@ Ver solicitud: ${ctaUrl}
             </div>
 
             <div class="cta-container">
-              <a href="${ctaUrl}" class="cta-button">Ver solicitud</a>
+              <a href="${safeCtaUrl}" class="cta-button">Ver solicitud</a>
             </div>
           </div>
         </body>

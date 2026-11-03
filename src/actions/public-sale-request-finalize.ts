@@ -19,6 +19,7 @@ export type FinalizeRequestInput = {
   blocked: boolean
   officialWarrantyUntil?: string | null
   customerName: string
+  customerPhone?: string | null
   customerLocation?: string | null
   notes?: string | null
   source?: string | null
@@ -79,7 +80,7 @@ export async function finalizePublicSaleRequestAction(
     return { success: false, error: 'Los datos de la solicitud no son válidos.' }
   }
 
-  const optionalStrings = [input.storage, input.color, input.officialWarrantyUntil, input.customerLocation, input.notes, input.source]
+  const optionalStrings = [input.storage, input.color, input.officialWarrantyUntil, input.customerPhone, input.customerLocation, input.notes, input.source]
   for (const val of optionalStrings) {
     if (val !== undefined && val !== null && typeof val !== 'string') {
       return { success: false, error: 'Los datos de la solicitud no son válidos.' }
@@ -88,8 +89,15 @@ export async function finalizePublicSaleRequestAction(
 
   // 2. Text Normalization
   const customerName = trimOrNull(input.customerName)
-  if (!customerName || customerName.length > 200) {
+  if (!customerName) {
     return { success: false, error: 'El nombre del cliente es requerido.' }
+  }
+  if (customerName.length > 120) {
+    return { success: false, error: 'Los datos de la solicitud no son válidos.' }
+  }
+  const customerPhone = trimOrNull(input.customerPhone)
+  if (customerPhone && customerPhone.length > 30) {
+    return { success: false, error: 'Los datos de la solicitud no son válidos.' }
   }
   const storage = trimOrNull(input.storage)
   if (storage && storage.length > 100) {
@@ -100,11 +108,11 @@ export async function finalizePublicSaleRequestAction(
     return { success: false, error: 'Los datos de la solicitud no son válidos.' }
   }
   const customerLocation = trimOrNull(input.customerLocation)
-  if (customerLocation && customerLocation.length > 300) {
+  if (customerLocation && customerLocation.length > 150) {
     return { success: false, error: 'Los datos de la solicitud no son válidos.' }
   }
   const notes = trimOrNull(input.notes)
-  if (notes && notes.length > 4000) {
+  if (notes && notes.length > 2000) {
     return { success: false, error: 'Los datos de la solicitud no son válidos.' }
   }
   const source = trimOrNull(input.source)
