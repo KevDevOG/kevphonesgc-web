@@ -6,6 +6,11 @@ import { revalidatePath } from 'next/cache'
 export async function getExpectedCashBreakdown(providedSettings?: any) {
   const supabase = await createClient()
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || user.id !== '76320352-4c29-42ad-a105-345e0b5928dd') {
+    return null
+  }
+
   let settings = providedSettings
   if (!settings) {
     const { data } = await supabase
