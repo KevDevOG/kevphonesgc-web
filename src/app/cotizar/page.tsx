@@ -30,12 +30,14 @@ export default async function CotizarPage({
   let targetDevice = null
   if (mode === 'trade_in' && targetId) {
     const { data: device, error: deviceError } = await publicSupabase
-      .from('devices')
-      .select('id, storage, color, listing_price, status, device_models(name)')
-      .eq('id', targetId)
-      .single()
+      .from('public_stock')
+      .select('device_id, model_name, storage, color, listing_price, discount_price')
+      .eq('device_id', targetId)
+      .maybeSingle()
 
-    if (deviceError || !device || device.status !== 'available' || typeof device.listing_price !== 'number') {
+    const effectivePrice = device?.discount_price ?? device?.listing_price
+
+    if (deviceError || !device || typeof effectivePrice !== 'number' || effectivePrice < 0) {
       return (
         <div className="kevphones-quote-page flex flex-col min-h-screen bg-black">
           <PublicHeader />
@@ -58,11 +60,11 @@ export default async function CotizarPage({
     }
 
     targetDevice = {
-      id: device.id,
-      model_name: (device.device_models as any)?.name || 'Dispositivo',
+      id: device.device_id,
+      model_name: device.model_name || 'Dispositivo',
       storage: device.storage,
       color: device.color,
-      listing_price: device.listing_price
+      listing_price: effectivePrice
     }
   }
 

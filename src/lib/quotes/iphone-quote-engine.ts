@@ -137,11 +137,13 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
     if (!input.targetDeviceId) {
       return { ok: false, code: 'configuration_error' }
     }
-    const { data: targetDevice, error: targetError } = await publicSupabase
+    const { data: targetDevice, error: targetError } = await adminSupabase
       .from('devices')
-      .select('id, status, listing_price, discount_price')
+      .select('id, status, is_published, listing_price, discount_price')
       .eq('id', input.targetDeviceId)
-      .single()
+      .eq('status', 'available')
+      .eq('is_published', true)
+      .maybeSingle()
 
     if (targetError) {
       console.error('Quote engine target device query failed', {
@@ -153,7 +155,7 @@ export async function calculateIphoneQuote(input: QuoteInput): Promise<QuoteResu
       return { ok: false, code: 'configuration_error' }
     }
 
-    if (!targetDevice || targetDevice.status !== 'available' || typeof targetDevice.listing_price !== 'number' || targetDevice.listing_price < 0) {
+    if (!targetDevice || targetDevice.status !== 'available' || !targetDevice.is_published || typeof targetDevice.listing_price !== 'number' || targetDevice.listing_price < 0) {
       return { ok: false, code: 'configuration_error' }
     }
     targetListingPrice = targetDevice.discount_price ?? targetDevice.listing_price
