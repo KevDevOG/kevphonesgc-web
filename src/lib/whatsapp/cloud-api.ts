@@ -112,8 +112,8 @@ export function maskPhoneNumber(phone?: string | null): string {
  * Verifies the X-Hub-Signature-256 header sent by Meta using META_APP_SECRET.
  * Uses constant-time buffer comparison to prevent timing attacks.
  *
- * If no app secret is configured, returns true (allows local testing without signature).
- * If app secret is configured, strictly validates the sha256 HMAC signature.
+ * Fails closed: requires both appSecret and signatureHeader to be present.
+ * Strictly validates the sha256 HMAC signature.
  */
 export function verifyMetaSignature(
   rawBody: string,
@@ -121,7 +121,7 @@ export function verifyMetaSignature(
   appSecret: string | undefined
 ): boolean {
   if (!appSecret) {
-    return true
+    return false
   }
 
   if (!signatureHeader) {

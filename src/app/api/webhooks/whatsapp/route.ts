@@ -69,7 +69,8 @@ export async function GET(request: Request) {
  * Receives incoming WhatsApp Business Cloud API webhook events.
  *
  * Processing flow:
- * - Verifies Meta signature (X-Hub-Signature-256) when META_APP_SECRET is configured.
+ * - Fails closed if META_APP_SECRET is not configured (HTTP 503).
+ * - Requires and strictly verifies Meta signature (X-Hub-Signature-256) (HTTP 401 on failure).
  * - Safely parses JSON payloads.
  * - Ignores unsupported webhook event types (status updates, media, reactions).
  * - Extracts incoming user text messages (sender, messageId, timestamp, textBody).
@@ -82,6 +83,15 @@ export async function GET(request: Request) {
  * - Does NOT send automatic replies via Meta transport (outbound Meta sending remains disabled).
  */
 export async function POST(request: Request) {
+  // 1. Require Meta app secret to be configured (fail closed)
+  const { appSecret } = getWhatsAppConfig()
+  if (!appSecret) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[WhatsApp Webhook] META_APP_SECRET is not configured')
+    }
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 })
+  }
+
   let rawBody: string
   try {
     rawBody = await request.text()
@@ -89,18 +99,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unable to read request body' }, { status: 400 })
   }
 
-  // 1. Verify Meta webhook signature if META_APP_SECRET is configured
-  const { appSecret } = getWhatsAppConfig()
+  // 2. Require and verify Meta webhook signature (X-Hub-Signature-256)
   const signatureHeader = request.headers.get('x-hub-signature-256')
-
-  if (appSecret) {
-    const isAuthentic = verifyMetaSignature(rawBody, signatureHeader, appSecret)
-    if (!isAuthentic) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('[WhatsApp Webhook] Signature verification failed')
-      }
-      return new Response('Unauthorized', { status: 401 })
+  const isAuthentic = verifyMetaSignature(rawBody, signatureHeader, appSecret)
+  if (!isAuthentic) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[WhatsApp Webhook] Signature verification failed')
     }
+    return new Response('Unauthorized', { status: 401 })
   }
 
   // 2. Parse JSON safely
