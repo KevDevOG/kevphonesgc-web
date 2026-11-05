@@ -50,6 +50,34 @@ export const metadata: Metadata = {
   }
 };
 
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://kevphones.es/#organization",
+      "name": "KevPhonesGC",
+      "url": "https://kevphones.es",
+      "logo": "https://kevphones.es/brand/kevphonesgc-logo.PNG",
+      "description": "Compra iPhone disponibles o vende el tuyo con valoración orientativa en Gran Canaria. Consulta stock y solicita tu valoración en KevPhonesGC.",
+      "areaServed": {
+        "@type": "AdministrativeArea",
+        "name": "Gran Canaria"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://kevphones.es/#website",
+      "url": "https://kevphones.es",
+      "name": "KevPhonesGC",
+      "publisher": {
+        "@id": "https://kevphones.es/#organization"
+      },
+      "inLanguage": "es"
+    }
+  ]
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -57,6 +85,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         {children}
         <VercelAnalytics />
         <SpeedInsights />
