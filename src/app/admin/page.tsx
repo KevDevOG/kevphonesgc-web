@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { AdminPageShell } from '@/components/admin/layout/AdminPageShell'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
-import { AdminDashboard } from '@/components/admin/dashboard/AdminDashboard'
+import { AdminDashboard, type DashboardAlert } from '@/components/admin/dashboard/AdminDashboard'
+import { getStockAge } from '@/lib/stock-age'
 
 export const metadata = {
   title: 'KevPhonesGC Admin - Resumen'
@@ -47,13 +48,17 @@ export default async function AdminPage() {
     { data: devices },
     { data: expenses },
     { data: capitalMovements },
-    { data: historicalSales }
+    { data: historicalSales },
+    { count: pendingWantedCount },
+    { count: pendingSaleRequestsCount }
   ] = await Promise.all([
     supabase.from('sales').select('id, device_id, final_sale_price, sold_at, created_at'),
     supabase.from('devices').select('id, purchase_price, purchased_at, status, created_at, device_models(name)'),
     supabase.from('expenses').select('id, category_id, amount, expense_date, created_at, expense_categories(name)'),
     supabase.from('capital_movements').select('id, movement_type, amount, movement_date, created_at'),
-    supabase.from('historical_sales').select('id, product_name, purchase_date, purchase_price, sale_date, sale_price, gross_profit, created_at')
+    supabase.from('historical_sales').select('id, product_name, purchase_date, purchase_price, sale_date, sale_price, gross_profit, created_at'),
+    supabase.from('wanted_devices').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('sale_requests').select('id', { count: 'exact', head: true }).eq('status', 'new')
   ])
 
   // Parse arrays
@@ -260,6 +265,79 @@ export default async function AdminPage() {
   allActivities.sort((a, b) => b.timestamp - a.timestamp)
   const recentActivities = allActivities.slice(0, 6)
 
+  // ------------------------------------------------------------------
+  // OPERATIONAL ALERTS
+  // ------------------------------------------------------------------
+  const availableDevices = devicesArr.filter(d => d.status === 'available')
+  let slowStockCount = 0
+  let staleStockCount = 0
+
+  availableDevices.forEach(d => {
+    const age = getStockAge(d.purchased_at)
+    if (!age) return
+    if (age.level === 'stale') {
+      staleStockCount++
+    } else if (age.level === 'slow') {
+      slowStockCount++
+    }
+  })
+
+  const alerts: DashboardAlert[] = []
+
+  if (staleStockCount > 0) {
+    alerts.push({
+      id: 'stale-stock',
+      title: 'Stock estancado',
+      count: staleStockCount,
+      description: `${staleStockCount} ${staleStockCount === 1 ? 'dispositivo lleva más de 30 días en stock' : 'dispositivos llevan más de 30 días en stock'}`,
+      href: '/admin/stock',
+      actionLabel: 'Ver stock',
+      priority: 'high',
+      icon: 'hourglass_disabled',
+    })
+  }
+
+  const finalSaleRequestsCount = pendingSaleRequestsCount ?? 0
+  if (finalSaleRequestsCount > 0) {
+    alerts.push({
+      id: 'sale-requests',
+      title: 'Solicitudes de venta',
+      count: finalSaleRequestsCount,
+      description: `${finalSaleRequestsCount} ${finalSaleRequestsCount === 1 ? 'solicitud nueva pendiente de revisión' : 'solicitudes nuevas pendientes de revisión'}`,
+      href: '/admin/solicitudes',
+      actionLabel: 'Ver solicitudes',
+      priority: 'high',
+      icon: 'mark_email_unread',
+    })
+  }
+
+  if (slowStockCount > 0) {
+    alerts.push({
+      id: 'slow-stock',
+      title: 'Stock lento',
+      count: slowStockCount,
+      description: `${slowStockCount} ${slowStockCount === 1 ? 'dispositivo lleva más de 14 días en stock' : 'dispositivos llevan más de 14 días en stock'}`,
+      href: '/admin/stock',
+      actionLabel: 'Ver stock',
+      priority: 'medium',
+      icon: 'schedule',
+    })
+  }
+
+  const finalWantedCount = pendingWantedCount ?? 0
+  if (finalWantedCount > 0) {
+    alerts.push({
+      id: 'wanted-devices',
+      title: 'Búsquedas de clientes',
+      count: finalWantedCount,
+      description: `${finalWantedCount} ${finalWantedCount === 1 ? 'búsqueda pendiente de contactar' : 'búsquedas pendientes de contactar'}`,
+      href: '/admin/busquedas',
+      actionLabel: 'Ver búsquedas',
+      priority: 'medium',
+      icon: 'saved_search',
+    })
+  }
+
   return (
     <>
       <AdminDashboard 
@@ -275,6 +353,7 @@ export default async function AdminPage() {
         availableStockCount={availableStockCount}
         profitEvolution={profitEvolution}
         recentActivities={recentActivities}
+        alerts={alerts}
       />
     </>
   )

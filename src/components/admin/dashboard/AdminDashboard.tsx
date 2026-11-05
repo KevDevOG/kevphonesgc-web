@@ -21,6 +21,17 @@ type Activity = {
   originalAmount?: number
 }
 
+export type DashboardAlert = {
+  id: string
+  title: string
+  count: number
+  description: string
+  href: string
+  actionLabel: string
+  priority: 'high' | 'medium'
+  icon: string
+}
+
 type Props = {
   expectedCash: number
   stockCapital: number
@@ -34,6 +45,7 @@ type Props = {
   availableStockCount: number
   profitEvolution: ProfitEvo[]
   recentActivities: Activity[]
+  alerts?: DashboardAlert[]
 }
 
 function formatCurrency(amount: number) {
@@ -75,7 +87,8 @@ export function AdminDashboard({
   monthlyFinalProfit,
   availableStockCount,
   profitEvolution,
-  recentActivities
+  recentActivities,
+  alerts = []
 }: Props) {
 
   // For profit chart
@@ -115,6 +128,89 @@ export function AdminDashboard({
             {expectedCash < 0 && <Link href="/admin/finanzas"><span>El efectivo calculado es negativo</span><span>Revisar finanzas</span></Link>}
           </section>
         )}
+
+        <section aria-labelledby="dashboard-attention-title">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h2 id="dashboard-attention-title" className="admin-dashboard__section-title">
+              Requiere atención
+            </h2>
+            {alerts && alerts.length > 0 && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#1f1f24] text-zinc-300 tabular-nums">
+                {alerts.length} {alerts.length === 1 ? 'aviso' : 'avisos'}
+              </span>
+            )}
+          </div>
+
+          {alerts && alerts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {alerts.map(alert => (
+                <Link
+                  key={alert.id}
+                  href={alert.href}
+                  className={`group flex items-center justify-between p-3.5 rounded-xl border bg-[#0b0b0e] hover:bg-[#121217] transition-all min-h-[56px] gap-3 ${
+                    alert.priority === 'high'
+                      ? 'border-[#1f1f24] border-l-4 border-l-red-500'
+                      : alert.id === 'slow-stock'
+                      ? 'border-[#1f1f24] border-l-4 border-l-orange-500'
+                      : 'border-[#1f1f24] border-l-4 border-l-amber-500'
+                  }`}
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span
+                      aria-hidden="true"
+                      className={`material-symbols-outlined text-[20px] flex-shrink-0 mt-0.5 ${
+                        alert.priority === 'high'
+                          ? 'text-red-400'
+                          : alert.id === 'slow-stock'
+                          ? 'text-orange-400'
+                          : 'text-amber-400'
+                      }`}
+                    >
+                      {alert.icon}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-semibold text-white group-hover:text-[var(--admin-accent-text)] transition-colors">
+                          {alert.title}
+                        </h3>
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                            alert.priority === 'high'
+                              ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                              : alert.id === 'slow-stock'
+                              ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
+                              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          }`}
+                        >
+                          {alert.count}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2">
+                        {alert.description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs font-semibold text-[var(--admin-accent-text)] flex-shrink-0 ml-1">
+                    <span className="hidden sm:inline">{alert.actionLabel}</span>
+                    <span aria-hidden="true" className="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">
+                      arrow_forward
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 p-3.5 rounded-xl border border-[#1f1f24] bg-[#0b0b0e] text-zinc-400">
+              <span aria-hidden="true" className="material-symbols-outlined text-emerald-400 text-[20px] flex-shrink-0">
+                check_circle
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-zinc-200">Todo al día</p>
+                <p className="text-xs text-zinc-400 mt-0.5">Ahora mismo no hay tareas prioritarias.</p>
+              </div>
+            </div>
+          )}
+        </section>
 
         <section aria-labelledby="dashboard-actions-title">
           <h2 id="dashboard-actions-title" className="admin-dashboard__section-title">Acciones rápidas</h2>
