@@ -5,6 +5,7 @@ import { submitPublicIphoneQuote } from '@/actions/public-quote'
 import QuoteResultCard from './QuoteResultCard'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { trackQuoteStarted, trackQuoteCompleted } from '@/lib/analytics/events'
 
 type ModelData = {
   id: string
@@ -72,6 +73,14 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
 
   const selectedModel = models.find(m => m.id === modelId)
   const stepRef = useRef<HTMLDivElement>(null)
+  const quoteStartedRef = useRef(false)
+
+  const triggerQuoteStarted = () => {
+    if (!quoteStartedRef.current) {
+      quoteStartedRef.current = true
+      trackQuoteStarted()
+    }
+  }
 
   useEffect(() => {
     if (step === 1) return
@@ -84,6 +93,7 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
   // -- HANDLERS --
 
   const handleModelChange = (id: string) => {
+    triggerQuoteStarted()
     setModelId(id)
     setStorage('')
     setColor('')
@@ -97,6 +107,7 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
     
     // Validation per step
     if (step === 1) {
+      triggerQuoteStarted()
       if (!modelId) {
         setValidationError('Por favor, selecciona un modelo.')
         return
@@ -222,6 +233,9 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
         }
       } else {
         setQuoteResult(res)
+        trackQuoteCompleted({
+          model: selectedModel?.name || 'iPhone'
+        })
       }
     } catch (e) {
       setErrorMsg('No hemos podido calcular la valoración. Inténtalo de nuevo.')
@@ -231,6 +245,7 @@ export default function IphoneQuoteFlow({ models, quoteMode = 'sell', targetDevi
   }
 
   const resetFlow = () => {
+    quoteStartedRef.current = false
     setStep(1)
     setModelId('')
     setStorage('')

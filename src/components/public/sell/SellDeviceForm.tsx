@@ -5,6 +5,7 @@ import { GuidedPhotoUpload, SelectedPhoto } from './GuidedPhotoUpload'
 import { createSaleRequestUploadSessionAction } from '@/actions/public-sale-request-uploads'
 import { finalizePublicSaleRequestAction } from '@/actions/public-sale-request-finalize'
 import { createClient } from '@/lib/supabase/client'
+import { trackSaleRequestStarted, trackSaleRequestSubmitted } from '@/lib/analytics/events'
 import Link from 'next/link'
 
 interface SellDeviceFormProps {
@@ -72,6 +73,14 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
   const [isPrefilled, setIsPrefilled] = useState(false)
   const [prefillTradeInTarget, setPrefillTradeInTarget] = useState<any | null>(null)
   const [quoteHandoffToken, setQuoteHandoffToken] = useState<string | null>(null)
+  const saleStartedRef = useRef(false)
+
+  const triggerSaleStarted = () => {
+    if (!saleStartedRef.current) {
+      saleStartedRef.current = true
+      trackSaleRequestStarted()
+    }
+  }
 
   useEffect(() => {
     try {
@@ -140,6 +149,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
     setIsPrefilled(false)
     setPrefillTradeInTarget(null)
     setQuoteHandoffToken(null)
+    saleStartedRef.current = false
     setModelId('')
     setStorage('')
     setColor('')
@@ -161,6 +171,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
   const availableColors = variants.filter(v => v.model_id === modelId && v.variant_type === 'color')
 
   const goNext = () => {
+    triggerSaleStarted()
     setValidationError(null)
     setSubmitError(null)
 
@@ -386,6 +397,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
         throw new Error(finalizeRes.error || 'Error al finalizar.')
       }
 
+      trackSaleRequestSubmitted()
       setIsSuccess(true)
       sessionStorage.removeItem('kevphones_quote_prefill_v1')
 
@@ -469,7 +481,7 @@ export function SellDeviceForm({ models, variants }: SellDeviceFormProps) {
                 <h2 tabIndex={-1} className="text-2xl sm:text-3xl font-bold text-white mb-2">¿Qué dispositivo quieres vender?</h2>
               </div>
               <div className="flex-1  min-h-0 pr-1 sm:pr-2 space-y-4">
-                <button onClick={() => setDeviceType('iphone')} aria-pressed={deviceType === 'iphone'} className={optionCardClass(deviceType === 'iphone')}>
+                <button onClick={() => { setDeviceType('iphone'); triggerSaleStarted() }} aria-pressed={deviceType === 'iphone'} className={optionCardClass(deviceType === 'iphone')}>
                   <div>
                     <span className="text-lg font-medium text-white block mb-1">iPhone</span>
                     <span className="text-sm text-zinc-400">Vender mi iPhone usado o precintado</span>

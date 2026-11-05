@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { trackWhatsappClick } from '@/lib/analytics/events'
 
 export type PublicFooterProps = {
   whatsappPhone: string | null
@@ -47,7 +48,7 @@ export function PublicFooter({
             <div className="kevphones-footer__contact">
               <h3>{showWhatsApp ? 'Contacto y redes' : 'Síguenos'}</h3>
               <ul>
-                {showWhatsApp && <li><a href={`https://wa.me/${whatsappPhone}`} target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a></li>}
+                {showWhatsApp && <li><a href={`https://wa.me/${whatsappPhone}`} onClick={() => trackWhatsappClick('footer')} target="_blank" rel="noopener noreferrer">Hablar por WhatsApp</a></li>}
                 {instagramUrl && <li><a href={instagramUrl} target="_blank" rel="noopener noreferrer">Instagram</a></li>}
                 {tiktokUrl && <li><a href={tiktokUrl} target="_blank" rel="noopener noreferrer">TikTok</a></li>}
                 {wallapopUrl && <li><a href={wallapopUrl} target="_blank" rel="noopener noreferrer">Wallapop</a></li>}

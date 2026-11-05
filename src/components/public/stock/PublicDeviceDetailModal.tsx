@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { PublicStockItem } from './PublicStockSection'
 import { getActiveWarrantyExpiry } from './PublicStockCard'
+import { trackProductView, trackWhatsappClick } from '@/lib/analytics/events'
 
 interface PublicDeviceDetailModalProps {
   device: PublicStockItem
@@ -131,10 +132,19 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const trackedProductRef = useRef(false)
 
   useEffect(() => {
     setMounted(true)
     
+    if (!trackedProductRef.current) {
+      trackedProductRef.current = true
+      trackProductView({
+        model: displayTitle || device.model_name || 'Desconocido',
+        category: device.category
+      })
+    }
+
     if (!modalOpenRef.current) {
       window.history.pushState({ deviceModal: true }, '')
       modalOpenRef.current = true
@@ -375,6 +385,7 @@ export function PublicDeviceDetailModal({ device, onClose, whatsappPhone, contac
               href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
                   `Hola, estoy interesado en este dispositivo de KevPhonesGC:\n\n${displayTitle}\n${(device.category === 'other' ? technicalSpecs.slice(0, 4).map(s => `${s.label}: ${s.value}`) : device.category === 'apple_watch' ? [device.size, device.connectivity, device.case_material] : device.category === 'airpods' ? [device.case_type, device.color] : device.category === 'ipad' ? [device.storage, device.connectivity, device.color] : [device.storage, device.color]).filter(Boolean).map(v => `${v}\n`).join('')}Precio: ${effectivePrice ? `${effectivePrice} €` : 'No disponible'}\n\n¿Sigue disponible?`
                 )}`}
+              onClick={() => trackWhatsappClick('product')}
               target="_blank"
               rel="noopener noreferrer"
               className="kevphones-device-detail__contact"
