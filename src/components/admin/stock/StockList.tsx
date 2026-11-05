@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
 import { deleteDeviceAction, publishDeviceAction } from '@/actions/devices'
 import { updateDeviceSaleAction, cancelDeviceSaleAction } from '@/actions/sales'
+import { getStockAge } from '@/lib/stock-age'
 import Link from 'next/link'
 
 type Category = string
@@ -214,6 +215,18 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
     })
     return result.sort((a, b) => {
       if (sort === 'recent') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      if (sort === 'age_desc') {
+        const ageA = a.status === 'available' ? getStockAge(a.purchased_at)?.days ?? -1 : -1
+        const ageB = b.status === 'available' ? getStockAge(b.purchased_at)?.days ?? -1 : -1
+        if (ageB !== ageA) return ageB - ageA
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
+      if (sort === 'age_asc') {
+        const ageA = a.status === 'available' ? getStockAge(a.purchased_at)?.days ?? 999999 : 999999
+        const ageB = b.status === 'available' ? getStockAge(b.purchased_at)?.days ?? 999999 : 999999
+        if (ageA !== ageB) return ageA - ageB
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
       const valueA = sort === 'margin' ? margin(a) : sort.startsWith('buy') ? Number(a.purchase_price) : salePrice(a)
       const valueB = sort === 'margin' ? margin(b) : sort.startsWith('buy') ? Number(b.purchase_price) : salePrice(b)
       if (valueA === null || !Number.isFinite(valueA)) return valueB === null || !Number.isFinite(valueB) ? 0 : 1
@@ -343,7 +356,22 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
     const imgUrl = device.device_images?.length && supabaseUrl ? `${supabaseUrl}/storage/v1/object/public/device-images/${device.device_images[0].storage_path}` : null
     return imgUrl ? <img src={imgUrl} alt={getDeviceTitle(device)} loading="lazy" decoding="async" /> : <span aria-hidden="true" className="material-symbols-outlined">devices</span>
   }
-  const status = (device: Device) => <div className="admin-stock__status"><span>{device.status === 'available' ? 'Disponible' : 'Vendido'}</span><span data-published={device.is_published}>{device.is_published ? 'Publicado' : 'Oculto'}</span></div>
+  const status = (device: Device) => {
+    const isAvailable = device.status === 'available'
+    const age = isAvailable ? getStockAge(device.purchased_at) : null
+
+    return (
+      <div className="admin-stock__status">
+        <span>{isAvailable ? 'Disponible' : 'Vendido'}</span>
+        <span data-published={device.is_published}>{device.is_published ? 'Publicado' : 'Oculto'}</span>
+        {age && (
+          <span data-age-level={age.level}>
+            {age.level === 'normal' ? age.label : age.combinedLabel}
+          </span>
+        )}
+      </div>
+    )
+  }
   const details = (device: Device) => <>{conditionMap[device.condition] || device.condition}{['iphone', 'ipad', 'apple_watch', 'macbook'].includes(device.device_models?.category) && device.battery_health !== null && <span className="admin-stock__muted">Batería {device.battery_health}%</span>}</>
   const price = (device: Device) => <><strong>{Number.isFinite(salePrice(device)) ? formatPrice(salePrice(device)) : '—'}</strong>{device.status === 'available' && effectivePrice(device) < Number(device.listing_price) && <del>{formatPrice(device.listing_price)}</del>}</>
   const marginValue = (device: Device) => { const value = margin(device); return <span data-tone={value === null || value === 0 ? 'neutral' : value > 0 ? 'positive' : 'negative'}>{value === null ? '—' : `${value > 0 ? '+' : ''}${formatPrice(value)}`}</span> }
@@ -364,7 +392,7 @@ export function StockList({ availableDevices, soldDevices, availableCount, stock
           <label>Categoría<select value={category} onChange={event => setCategory(event.target.value)}><option value="all">Todas</option>{categories.map(value => <option key={value} value={value}>{categoryLabels[value] || value}</option>)}</select></label>
           <label>Estado<select value={view} onChange={event => setView(event.target.value as typeof view)}><option value="all">Todos</option><option value="available">Disponibles</option><option value="sold">Vendidos</option></select></label>
           <label>Publicación<select value={publication} onChange={event => setPublication(event.target.value)}><option value="all">Todos</option><option value="published">Publicados</option><option value="hidden">Ocultos</option></select></label>
-          <label>Ordenar<select value={sort} onChange={event => setSort(event.target.value)}><option value="recent">Más recientes</option><option value="sale_asc">Precio venta: menor a mayor</option><option value="sale_desc">Precio venta: mayor a menor</option><option value="buy_asc">Precio compra: menor a mayor</option><option value="buy_desc">Precio compra: mayor a menor</option>{allDevices.some(device => margin(device) !== null) && <option value="margin">Mayor margen</option>}</select></label>
+          <label>Ordenar<select value={sort} onChange={event => setSort(event.target.value)}><option value="recent">Más recientes</option><option value="age_desc">Más tiempo en stock</option><option value="age_asc">Menos tiempo en stock</option><option value="sale_asc">Precio venta: menor a mayor</option><option value="sale_desc">Precio venta: mayor a menor</option><option value="buy_asc">Precio compra: menor a mayor</option><option value="buy_desc">Precio compra: mayor a menor</option>{allDevices.some(device => margin(device) !== null) && <option value="margin">Mayor margen</option>}</select></label>
         </div>
         <div className="admin-stock__results"><span role="status">{filteredList.length} resultados</span>{hasFilters && <button type="button" onClick={resetFilters}>Limpiar filtros</button>}</div>
       </section>

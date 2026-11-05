@@ -2695,6 +2695,10 @@ body {
 .admin-shell .admin-stock__status { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 14px; line-height: 1.5; }
 .admin-shell .admin-stock__status [data-published='true'] { color: var(--color-emerald-400); }
 .admin-shell .admin-stock__status [data-published='false'] { color: var(--color-amber-400); }
+.admin-shell .admin-stock__status [data-age-level='normal'] { color: #a1a1aa; font-size: 13px; }
+.admin-shell .admin-stock__status [data-age-level='attention'] { color: var(--color-amber-400); font-size: 13px; font-weight: 550; }
+.admin-shell .admin-stock__status [data-age-level='slow'] { color: #fb923c; font-size: 13px; font-weight: 550; }
+.admin-shell .admin-stock__status [data-age-level='stale'] { color: var(--color-red-400); font-size: 13px; font-weight: 550; }
 .admin-shell .admin-stock__mobile-info { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 10px; font-size: 14px; line-height: 1.4; }
 .admin-shell .admin-stock__mobile-info strong { font-size: 18px; font-weight: 650; }
 .admin-shell .admin-stock del { display: block; color: #a1a1aa; font-size: 14px; }

@@ -7,6 +7,7 @@ import { deleteDeviceAction, publishDeviceAction } from '@/actions/devices'
 import { EditTradeInForm } from '@/components/admin/stock/EditTradeInForm'
 import { CancelTradeInDialog } from '@/components/admin/stock/CancelTradeInDialog'
 import { StoryGeneratorModal } from '@/components/admin/stock/StoryGeneratorModal'
+import { getStockAge } from '@/lib/stock-age'
 
 type Device = {
   id: string
@@ -250,6 +251,7 @@ export function DeviceDetail({
     : tradeInContext ? tradeInContext.finalSalePrice : null
   const displayedSalePrice = device.status === 'available' ? Number(effectivePrice) : recordedSalePrice ?? Number(device.listing_price)
   const displayedProfit = device.status === 'available' ? potentialProfit : recordedSalePrice !== null ? recordedSalePrice - Number(device.purchase_price) : null
+  const stockAge = device.status === 'available' ? getStockAge(device.purchased_at) : null
 
   
   const formatDate = (dateString: string) => {
@@ -574,6 +576,33 @@ export function DeviceDetail({
                 <span className="text-sm font-medium text-zinc-500">Fecha</span>
                 <span className="text-sm font-semibold text-white">{formatDate(device.purchased_at)}</span>
               </div>
+              {stockAge && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-zinc-500">Tiempo en stock</span>
+                  <span className="text-sm font-semibold text-white text-right">
+                    <span>{stockAge.label}</span>
+                    {stockAge.levelLabel && (
+                      <span
+                        data-age-level={stockAge.level}
+                        className={`inline-block ml-2 text-xs font-semibold px-2 py-0.5 rounded ${
+                          stockAge.level === 'attention'
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            : stockAge.level === 'slow'
+                            ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
+                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        }`}
+                      >
+                        {stockAge.levelLabel}
+                      </span>
+                    )}
+                    {stockAge.formattedEntryDate && (
+                      <small className="block text-xs font-normal text-zinc-400 mt-0.5">
+                        Desde {stockAge.formattedEntryDate}
+                      </small>
+                    )}
+                  </span>
+                </div>
+              )}
               {device.purchase_location && (
                 <div className="flex flex-col gap-1.5 mt-2 pt-4 border-t border-[#1F1F24]/50">
                   <span className="text-xs font-bold text-zinc-500 uppercase">Lugar de compra</span>
