@@ -14,10 +14,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-
 export const metadata: Metadata = {
-  metadataBase: siteUrl ? new URL(siteUrl) : undefined,
+  metadataBase: new URL("https://kevphones.es"),
   title: {
     default: "KevPhonesGC | Compra y venta de iPhone en Canarias",
     template: "%s | KevPhonesGC",

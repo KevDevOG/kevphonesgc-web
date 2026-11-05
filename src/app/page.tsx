@@ -4,8 +4,15 @@ import { PublicReviewsSection, PublicReview } from '@/components/public/reviews/
 import { PublicFaqSection } from '@/components/public/faq/PublicFaqSection'
 import { PublicFooter } from '@/components/public/footer/PublicFooter'
 import { PublicHeader } from '@/components/public/PublicHeader'
+import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: '/',
+  },
+}
 
 export default async function Home() {
   const supabase = await createClient()

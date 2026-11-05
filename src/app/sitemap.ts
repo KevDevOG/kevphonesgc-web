@@ -1,24 +1,21 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const baseUrl = 'https://kevphones.es'
 
   return [
     {
-      url: `${siteUrl}`,
-      lastModified: new Date(),
+      url: `${baseUrl}/`,
       changeFrequency: 'daily',
       priority: 1,
     },
     {
-      url: `${siteUrl}/cotizar`,
-      lastModified: new Date(),
+      url: `${baseUrl}/cotizar`,
       changeFrequency: 'weekly',
       priority: 0.9,
     },
     {
-      url: `${siteUrl}/vender`,
-      lastModified: new Date(),
+      url: `${baseUrl}/vender`,
       changeFrequency: 'weekly',
       priority: 0.9,
     },
