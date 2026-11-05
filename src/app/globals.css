@@ -423,7 +423,7 @@ body {
 }
 
 @media (max-width: 767px) {
-  .kevphones-home {
+  :is(.kevphones-home, .kevphones-stock-page) {
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
 }
@@ -1208,7 +1208,8 @@ body {
 }
 
 /* Phase 2F: lower public Home only. Approved header, hero and stock stay separate. */
-.kevphones-home :is(.kevphones-lower-section, .kevphones-footer) {
+.kevphones-home .kevphones-lower-section,
+.kevphones-footer {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
@@ -1412,30 +1413,30 @@ body {
   line-height: 1.6;
 }
 
-.kevphones-home .kevphones-footer {
+.kevphones-footer {
   border-top: 1px solid #34303c;
   background: #050506;
 }
 
-.kevphones-home .kevphones-footer__inner {
+.kevphones-footer__inner {
   max-width: 1280px;
   margin-inline: auto;
   padding: 24px 16px 16px;
 }
 
-.kevphones-home .kevphones-footer__main {
+.kevphones-footer__main {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px 16px;
   padding-bottom: 20px;
 }
 
-.kevphones-home .kevphones-footer__brand {
+.kevphones-footer__brand {
   grid-column: 1 / -1;
   min-width: 0;
 }
 
-.kevphones-home .kevphones-footer__logo {
+.kevphones-footer__logo {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -1446,13 +1447,13 @@ body {
   letter-spacing: -0.025em;
 }
 
-.kevphones-home .kevphones-footer__logo-image {
+.kevphones-footer__logo-image {
   position: relative;
   width: 36px;
   height: 36px;
 }
 
-.kevphones-home .kevphones-footer__brand > p {
+.kevphones-footer__brand > p {
   max-width: 38ch;
   margin-top: 8px;
   color: #a1a1aa;
@@ -1460,23 +1461,23 @@ body {
   line-height: 1.5;
 }
 
-.kevphones-home .kevphones-footer h3 {
+.kevphones-footer h3 {
   margin-bottom: 4px;
   color: #f5f3f8;
   font-size: 16px;
   font-weight: 600;
 }
 
-.kevphones-home :is(.kevphones-footer__navigation, .kevphones-footer__contact) {
+:is(.kevphones-footer__navigation, .kevphones-footer__contact) {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.kevphones-home .kevphones-footer__navigation:last-child {
+.kevphones-footer__navigation:last-child {
   grid-column: 1 / -1;
 }
 
-.kevphones-home :is(.kevphones-footer__navigation, .kevphones-footer__contact, .kevphones-footer__bottom) a {
+:is(.kevphones-footer__navigation, .kevphones-footer__contact, .kevphones-footer__bottom) a {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -1486,7 +1487,7 @@ body {
   line-height: 1.4;
 }
 
-.kevphones-home .kevphones-footer__bottom {
+.kevphones-footer__bottom {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1496,19 +1497,19 @@ body {
   border-top: 1px solid #1f1f24;
 }
 
-.kevphones-home .kevphones-footer__bottom p {
+.kevphones-footer__bottom p {
   color: #a1a1aa;
   font-size: 14px;
   line-height: 1.5;
 }
 
-.kevphones-home .kevphones-footer__bottom ul {
+.kevphones-footer__bottom ul {
   display: flex;
   flex-wrap: wrap;
   gap: 0 20px;
 }
 
-.kevphones-home :is(.kevphones-reviews, .kevphones-conversion, .kevphones-faq, .kevphones-footer) :is(a, button):focus-visible {
+:is(.kevphones-home :is(.kevphones-reviews, .kevphones-conversion, .kevphones-faq), .kevphones-footer) :is(a, button):focus-visible {
   outline: 2px solid var(--color-purple-500);
   outline-offset: 2px;
   border-radius: 4px;
@@ -1527,7 +1528,7 @@ body {
     color: var(--color-purple-300);
   }
 
-  .kevphones-home .kevphones-footer a:hover {
+  .kevphones-footer a:hover {
     color: #ffffff;
   }
 }
@@ -1545,7 +1546,7 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .kevphones-home .kevphones-footer__inner {
+  .kevphones-footer__inner {
     padding-inline: 24px;
   }
 }
@@ -1572,20 +1573,20 @@ body {
     align-items: start;
   }
 
-  .kevphones-home .kevphones-footer__inner {
+  .kevphones-footer__inner {
     padding: 32px 32px 20px;
   }
 
-  .kevphones-home .kevphones-footer__main {
+  .kevphones-footer__main {
     grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr));
     gap: 32px;
   }
 
-  .kevphones-home .kevphones-footer__brand {
+  .kevphones-footer__brand {
     grid-column: auto;
   }
 
-  .kevphones-home .kevphones-footer__navigation:last-child {
+  .kevphones-footer__navigation:last-child {
     grid-column: 2 / -1;
   }
 }

@@ -27,7 +27,7 @@ export function PublicFooter({
         <div className="kevphones-footer__main">
           <div className="kevphones-footer__brand">
             <Link href="/" aria-label="KevPhonesGC, inicio" className="kevphones-footer__logo">
-              <span className="kevphones-footer__logo-image">
+              <span className="kevphones-footer__logo-image relative inline-block w-9 h-9 shrink-0">
                 <Image src="/brand/kevphonesgc-logo.PNG" alt="" fill className="object-contain" sizes="36px" />
               </span>
               <span>KevPhonesGC</span>
