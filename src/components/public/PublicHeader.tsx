@@ -61,7 +61,7 @@ export function PublicHeader() {
             </Link>
           </nav>
 
-          <span className="hidden lg:block text-sm text-zinc-400">Canarias</span>
+          <span className="hidden lg:block text-sm text-zinc-400">Gran Canaria</span>
           <a href={catalogHref} onClick={() => setStockSelected(true)} className="md:hidden inline-flex min-h-11 items-center justify-center px-3 text-sm font-semibold text-purple-400">
             Ver stock
           </a>

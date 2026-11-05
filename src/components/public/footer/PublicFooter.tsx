@@ -32,7 +32,7 @@ export function PublicFooter({
               </span>
               <span>KevPhonesGC</span>
             </Link>
-            <p>Compra, venta y tasación de dispositivos en Canarias.</p>
+            <p>Compra y venta de iPhone y tecnología en Gran Canaria.</p>
           </div>
 
           <nav aria-label="Enlaces del pie de página" className="kevphones-footer__navigation">

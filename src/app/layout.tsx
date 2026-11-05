@@ -17,10 +17,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://kevphones.es"),
   title: {
-    default: "KevPhonesGC | Compra y venta de iPhone en Canarias",
+    default: "Compra y vende iPhone en Gran Canaria | KevPhonesGC",
     template: "%s | KevPhonesGC",
   },
-  description: "Compra, vende y valora tu iPhone en Canarias con KevPhonesGC. Consulta el stock disponible, solicita una valoración y contacta directamente por WhatsApp.",
+  description: "Compra iPhone disponibles o vende el tuyo con valoración orientativa en Gran Canaria. Consulta stock y solicita tu valoración en KevPhonesGC.",
   applicationName: "KevPhonesGC",
   authors: [{ name: "KevPhonesGC" }],
   creator: "KevPhonesGC",
@@ -45,8 +45,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_ES",
     siteName: "KevPhonesGC",
-    title: "KevPhonesGC | Compra y venta de iPhone en Canarias",
-    description: "Compra, vende y valora tu iPhone en Canarias con KevPhonesGC. Consulta el stock disponible, solicita una valoración y contacta directamente por WhatsApp.",
+    title: "Compra y vende iPhone en Gran Canaria | KevPhonesGC",
+    description: "Compra iPhone disponibles o vende el tuyo con valoración orientativa en Gran Canaria. Consulta stock y solicita tu valoración en KevPhonesGC.",
   }
 };
 

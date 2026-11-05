@@ -2,10 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import { SellDeviceForm } from '@/components/public/sell/SellDeviceForm'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Vende tu dispositivo',
-  description: 'Envía los datos y fotos de tu dispositivo para solicitar una revisión y propuesta de compra de KevPhonesGC.',
+  title: 'Vende tu iPhone y dispositivos en Gran Canaria',
+  description: 'Envía los datos y fotos de tu iPhone u otros dispositivos para solicitar una revisión y propuesta de compra en Gran Canaria con KevPhonesGC.',
   alternates: {
     canonical: '/vender'
   }
@@ -41,6 +42,18 @@ export default async function VenderPage() {
           models={typedModels} 
           variants={typedVariants} 
         />
+        <aside className="max-w-2xl mx-auto px-4 py-8 text-center text-xs text-zinc-500 space-y-2">
+          <p>
+            Solicitud de venta de iPhone y tecnología en Gran Canaria. El envío de la solicitud no garantiza la compra inmediata ni un precio definitivo; cada propuesta se confirma tras la revisión física del dispositivo.
+          </p>
+          <p>
+            ¿Prefieres estimar el precio primero? Puedes usar nuestro{' '}
+            <Link href="/cotizar" className="text-purple-400 hover:underline">
+              cotizador de iPhone
+            </Link>
+            .
+          </p>
+        </aside>
       </main>
     </div>
   )

@@ -9,15 +9,15 @@ const faqItems = [
   },
   {
     question: "¿Dónde realizáis las entregas?",
-    answer: "Trabajamos en Canarias. Las entregas en mano se coordinan principalmente en Gran Canaria y podemos valorar entregas o envíos al resto de islas según cada operación."
+    answer: "Trabajamos en Canarias, coordinando entregas y revisiones en mano principalmente en Gran Canaria. También podemos valorar envíos o entregas en otras islas según la operación."
   },
   {
     question: "¿Cómo funciona la tasación de mi iPhone?",
-    answer: "Puedes completar nuestra tasación online indicando el modelo, capacidad, batería y estado del dispositivo. Obtendrás una valoración orientativa y la cantidad definitiva se confirma después de revisar físicamente el iPhone."
+    answer: "Puedes completar nuestra tasación online indicando el modelo, capacidad, batería y estado del dispositivo. Obtendrás una valoración orientativa y la cantidad definitiva se confirma tras revisar físicamente el iPhone en Gran Canaria."
   },
   {
     question: "¿Puedo vender mi iPhone directamente?",
-    answer: "Sí. Puedes enviarnos una solicitud de venta con los datos y fotografías del dispositivo. Revisaremos la información y nos pondremos en contacto contigo para continuar con la operación."
+    answer: "Sí. Puedes enviarnos una solicitud de venta con los datos y fotos del dispositivo para acordar la revisión y propuesta de compra en Gran Canaria."
   },
   {
     question: "¿Puedo entregar mi iPhone como parte de pago?",

@@ -3,10 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import IphoneQuoteFlow from '@/components/public/quote/IphoneQuoteFlow'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Valora tu iPhone',
-  description: 'Obtén una valoración orientativa de tu iPhone en pocos pasos. El precio final se confirma después de revisar físicamente el dispositivo.',
+  title: 'Valora tu iPhone en Gran Canaria',
+  description: 'Obtén una valoración orientativa de tu iPhone en Gran Canaria. Consulta el valor estimado y continúa con tu solicitud de venta en KevPhonesGC.',
   alternates: {
     canonical: '/cotizar'
   }
@@ -146,6 +147,18 @@ export default async function CotizarPage({
             targetDevice={targetDevice}
           />
         </div>
+        <aside className="max-w-2xl mx-auto px-4 py-8 text-center text-xs text-zinc-500 space-y-2">
+          <p>
+            Valoración orientativa para comprar y vender iPhone en Gran Canaria. El precio final se confirma tras la revisión física del dispositivo.
+          </p>
+          <p>
+            ¿Prefieres enviar fotos directamente? Puedes iniciar una{' '}
+            <Link href="/vender" className="text-purple-400 hover:underline">
+              solicitud de venta
+            </Link>
+            .
+          </p>
+        </aside>
       </main>
     </div>
   )

@@ -252,11 +252,13 @@ export default async function Home() {
         <section className="kevphones-hero" aria-labelledby="home-title">
           <div className="kevphones-hero__layout">
             <div className="kevphones-hero__content">
-              <h1 id="home-title">KEVPHONES</h1>
-              <p className="kevphones-hero__headline">
-                Compra y vende <span>iPhone en Canarias</span>
+              <p className="m-0 text-white font-[650] leading-[1.04] md:leading-[1.02] tracking-[-0.045em] text-[clamp(38px,10.5vw,48px)] md:text-[clamp(48px,7vw,68px)] xl:text-[76px] [text-wrap:balance] [overflow-wrap:anywhere]">
+                KEVPHONES
               </p>
-              <p className="kevphones-hero__support">Stock real, dispositivos revisados y valoración de tu iPhone en pocos pasos.</p>
+              <h1 id="home-title" className="kevphones-hero__headline">
+                Compra y vende <span>iPhone en Gran Canaria</span>
+              </h1>
+              <p className="kevphones-hero__support">Stock disponible de iPhone revisados, compra con trato directo en Gran Canaria y valoración orientativa para vender tu móvil.</p>
               <div className="kevphones-hero__actions">
                 <a href="#stock" className="kevphones-hero__primary">
                   Ver stock
@@ -306,7 +308,7 @@ export default async function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z" />
                 <circle cx="12" cy="10" r="2.5" />
               </svg>
-              Atención en Canarias
+              Entrega en Gran Canaria
             </li>
           </ul>
         </div>
@@ -328,8 +330,8 @@ export default async function Home() {
         <section className="kevphones-conversion" aria-labelledby="conversion-title">
           <div className="kevphones-lower-section kevphones-conversion__inner">
             <div>
-              <h2 id="conversion-title" className="kevphones-lower-title">Cotiza o vende tu dispositivo</h2>
-              <p>Recibe una valoración orientativa o envía una solicitud de venta con los datos y fotografías del dispositivo.</p>
+              <h2 id="conversion-title" className="kevphones-lower-title">Cotiza o vende tu iPhone</h2>
+              <p>Recibe una valoración orientativa online o envía tu solicitud para vender tu iPhone u otros dispositivos en Gran Canaria.</p>
             </div>
             <div className="kevphones-conversion__actions">
               <Link href="/cotizar" className="kevphones-conversion__primary">Cotizar mi iPhone</Link>
