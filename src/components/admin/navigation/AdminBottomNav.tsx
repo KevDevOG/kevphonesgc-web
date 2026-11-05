@@ -10,6 +10,7 @@ const groups = [
     { href: '/admin/stock', icon: 'inventory_2', label: 'Stock' },
     { href: '/admin/stock/rapido', icon: 'add_box', label: 'Entrada rápida' },
     { href: '/admin/solicitudes', icon: 'inbox', label: 'Solicitudes' },
+    { href: '/admin/busquedas', icon: 'notifications', label: 'Búsquedas' },
     { href: '/admin/clientes', icon: 'group', label: 'Clientes' },
   ] },
   { label: 'Contabilidad', items: [

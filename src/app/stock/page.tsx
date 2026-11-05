@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/footer/PublicFooter'
 import { PublicStockSection } from '@/components/public/stock/PublicStockSection'
+import { WantedDeviceRequest } from '@/components/public/stock/WantedDeviceRequest'
 import { getPublicStockData } from '@/components/public/stock/get-public-stock'
 
 export const dynamic = 'force-dynamic'
@@ -64,6 +65,7 @@ export default async function StockPage() {
           whatsappPhone={whatsappPhone}
           contactEnabled={contactEnabled}
         />
+        <WantedDeviceRequest source="stock" />
       </main>
       <PublicFooter 
         whatsappPhone={whatsappPhone}

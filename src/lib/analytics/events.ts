@@ -64,3 +64,11 @@ export function trackSaleRequestSubmitted() {
   safeTrack('sale_request_submitted')
 }
 
+/**
+ * 7. wanted_request_submitted: Fires when a public wanted-device request is submitted.
+ * Safe property: source ('home' | 'stock' | 'iphone_stock')
+ */
+export function trackWantedRequestSubmitted(source: 'home' | 'stock' | 'iphone_stock') {
+  safeTrack('wanted_request_submitted', { source })
+}
+

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { PublicStockSection } from '@/components/public/stock/PublicStockSection'
+import { WantedDeviceRequest } from '@/components/public/stock/WantedDeviceRequest'
 import { getPublicStockData } from '@/components/public/stock/get-public-stock'
 import { PublicReviewsSection, PublicReview } from '@/components/public/reviews/PublicReviewsSection'
 import { PublicFaqSection } from '@/components/public/faq/PublicFaqSection'
@@ -115,6 +116,7 @@ export default async function Home() {
             whatsappPhone={whatsappPhone}
             contactEnabled={contactEnabled}
           />
+          <WantedDeviceRequest source="home" />
         </section>
 
         {publicReviews.length > 0 && (

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/footer/PublicFooter'
 import { PublicStockSection } from '@/components/public/stock/PublicStockSection'
+import { WantedDeviceRequest } from '@/components/public/stock/WantedDeviceRequest'
 import { getPublicStockData } from '@/components/public/stock/get-public-stock'
 
 export const dynamic = 'force-dynamic'
@@ -79,6 +80,7 @@ export default async function StockIPhonePage() {
           contactEnabled={contactEnabled}
           lockedCategory="iphone"
         />
+        <WantedDeviceRequest source="iphone_stock" category="iphone" />
       </main>
       <PublicFooter 
         whatsappPhone={whatsappPhone}
