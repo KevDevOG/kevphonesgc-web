@@ -1,6 +1,6 @@
 import { StoryImageOption } from './story-image-resolver'
 
-export type StoryTemplate = 'disponible' | 'oferta'
+export type StoryTemplate = 'disponible' | 'oferta' | 'sold'
 
 export interface StoryRenderOptions {
   template: StoryTemplate
@@ -29,7 +29,8 @@ const LOGO_URL = '/brand/kevphonesgc-logo.PNG'
 
 const TEMPLATE_BADGES: Record<StoryTemplate, string> = {
   disponible: '¡DISPONIBLE AHORA!',
-  oferta: '¡OFERTA!'
+  oferta: '¡OFERTA!',
+  sold: '¡VENDIDO!'
 }
 
 /**
@@ -215,6 +216,74 @@ function splitTwoLines(text: string): [string, string] | null {
 }
 
 /**
+ * Draws the dominant "VENDIDO" stamp overlay centered over the central product/specs area.
+ */
+function drawSoldOverlay(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  family: string
+) {
+  ctx.save()
+
+  const cx = w / 2
+  const cy = 1000
+  const stampW = 780
+  const stampH = 175
+  const angle = -10 * (Math.PI / 180) // -10 degrees stamp tilt
+
+  ctx.translate(cx, cy)
+  ctx.rotate(angle)
+
+  // 1. Heavy dark drop shadow to guarantee contrast on any background/photo
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.88)'
+  ctx.shadowBlur = 36
+  ctx.shadowOffsetY = 16
+
+  // 2. Translucent dark backing with rounded corners
+  const r = 24
+  drawRoundedRect(ctx, -stampW / 2, -stampH / 2, stampW, stampH, r)
+  ctx.fillStyle = 'rgba(15, 3, 6, 0.90)'
+  ctx.fill()
+
+  // 3. Thick red outer border with neon glow
+  ctx.shadowColor = 'rgba(239, 68, 68, 0.75)'
+  ctx.shadowBlur = 26
+  ctx.lineWidth = 7
+  ctx.strokeStyle = '#ef4444'
+  ctx.stroke()
+
+  // 4. Subtle inner border for classic authentic stamp frame
+  ctx.save()
+  ctx.shadowBlur = 0
+  ctx.lineWidth = 2.5
+  ctx.strokeStyle = 'rgba(248, 113, 113, 0.55)'
+  const innerPad = 12
+  drawRoundedRect(
+    ctx,
+    -stampW / 2 + innerPad,
+    -stampH / 2 + innerPad,
+    stampW - innerPad * 2,
+    stampH - innerPad * 2,
+    r - 8
+  )
+  ctx.stroke()
+  ctx.restore()
+
+  // 5. "VENDIDO" text: dominant, bold, vibrant red
+  ctx.shadowColor = 'rgba(239, 68, 68, 0.85)'
+  ctx.shadowBlur = 24
+  setTracking(ctx, 8)
+  ctx.font = `900 108px ${family}`
+  ctx.fillStyle = '#ef4444'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('VENDIDO', 0, 4)
+
+  ctx.restore()
+}
+
+/**
  * KevPhonesGC Story renderer (1080x1920).
  * Poster layout: logo → badge → huge model → huge color → [product | cards] → price → footer.
  */
@@ -233,6 +302,7 @@ export async function renderStoryToCanvas(
   const family = await resolveFontFamily()
   const isSealed = options.condition === 'sealed'
   const isOffer = options.template === 'oferta'
+  const isSold = options.template === 'sold'
 
   const [productImg, logoImg] = await Promise.all([
     options.activeImage.url ? loadSafeImage(options.activeImage.url) : Promise.resolve(null),
@@ -299,12 +369,12 @@ export async function renderStoryToCanvas(
   const badgeY = logoY + logoH + 16
 
   drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2)
-  ctx.fillStyle = 'rgba(122, 50, 212, 0.18)'
+  ctx.fillStyle = isSold ? 'rgba(220, 38, 38, 0.22)' : 'rgba(122, 50, 212, 0.18)'
   ctx.fill()
-  ctx.shadowColor = LILAC
+  ctx.shadowColor = isSold ? '#ef4444' : LILAC
   ctx.shadowBlur = 18
   ctx.lineWidth = 2.5
-  ctx.strokeStyle = LILAC
+  ctx.strokeStyle = isSold ? '#ef4444' : LILAC
   ctx.stroke()
   ctx.shadowBlur = 0
   ctx.textAlign = 'center'
@@ -638,7 +708,7 @@ export async function renderStoryToCanvas(
     ctx.fillText(priceText, MARGIN + CONTENT_W - 44, priceY + priceH / 2 + pSize * 0.36)
     ctx.restore()
   } else {
-    const label = isOffer ? 'OFERTA' : 'PRECIO DISPONIBLE'
+    const label = isOffer ? 'OFERTA' : isSold ? 'PRECIO DE VENTA' : 'PRECIO DISPONIBLE'
     ctx.save()
     ctx.textAlign = 'center'
     ctx.textBaseline = 'alphabetic'
@@ -672,7 +742,7 @@ export async function renderStoryToCanvas(
   ctx.textBaseline = 'middle'
   setTracking(ctx, -1)
   ctx.font = `900 40px ${family}`
-  const preText = 'Disponible en '
+  const preText = isSold ? 'Más stock en ' : 'Disponible en '
   const siteText = 'KevPhones.es'
   const preW = ctx.measureText(preText).width
   const siteW = ctx.measureText(siteText).width
@@ -683,4 +753,9 @@ export async function renderStoryToCanvas(
   ctx.fillStyle = LILAC
   ctx.fillText(siteText, startX + preW, footerY + footerH / 2 + 2)
   ctx.restore()
+
+  // ---------- SOLD OVERLAY (DOMINANT VENDIDO STAMP) ----------
+  if (isSold) {
+    drawSoldOverlay(ctx, W, H, family)
+  }
 }

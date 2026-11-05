@@ -292,12 +292,22 @@ export function DeviceDetail({
               {!device.is_published && <button type="button" disabled={isPublishing} onClick={handlePublish}>{isPublishing ? 'Publicando...' : 'Publicar'}</button>}
             </div>
           )}
-          {(device.status === 'available' || model?.category === 'iphone') && (
+          {device.status === 'sold' && (
+            <div className="admin-device__action-group" role="group" aria-label="Acciones de dispositivo vendido">
+              <button 
+                type="button" 
+                onClick={() => setShowStoryGenerator(true)}
+                className="admin-device__primary bg-red-600 hover:bg-red-700 text-white flex items-center gap-1.5"
+              >
+                <span aria-hidden="true" className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                Story Vendido
+              </button>
+            </div>
+          )}
+          {device.status === 'available' && (
             <div className="admin-device__action-group admin-device__action-group--secondary" role="group" aria-label="Herramientas del dispositivo">
-              {device.status === 'available' && <>
-                <Link href={`/admin/stock/${device.id}/editar`}>Editar</Link>
-                <Link href={`/admin/stock/nuevo?duplicate=${device.id}`}>Duplicar</Link>
-              </>}
+              <Link href={`/admin/stock/${device.id}/editar`}>Editar</Link>
+              <Link href={`/admin/stock/nuevo?duplicate=${device.id}`}>Duplicar</Link>
               {model?.category === 'iphone' && <button type="button" onClick={() => setShowStoryGenerator(true)}>
                 <span aria-hidden="true" className="material-symbols-outlined text-[20px] text-yellow-300">auto_awesome</span>
                 Generar contenido
@@ -730,6 +740,7 @@ export function DeviceDetail({
         <StoryGeneratorModal
           device={device as any}
           catalogImages={catalogImages}
+          defaultTemplate={device.status === 'sold' ? 'sold' : 'disponible'}
           isOpen={showStoryGenerator}
           onClose={() => setShowStoryGenerator(false)}
         />

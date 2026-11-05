@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { registerDeviceSaleAction } from '@/actions/sales'
+import { useStoryLauncher } from '@/components/admin/stock/useStoryLauncher'
 
 type Client = {
   id: string
@@ -29,10 +30,12 @@ type Device = {
 
 export function SellDeviceForm({ device, clients = [] }: { device: Device, clients?: Client[] }) {
   const router = useRouter()
+  const story = useStoryLauncher()
   const defaultSalePrice = device.discount_price ?? device.listing_price
   const [finalPrice, setFinalPrice] = useState<string>(defaultSalePrice.toString())
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [saleCompleted, setSaleCompleted] = useState(false)
 
   const [clientMode, setClientMode] = useState<'existing' | 'new'>('new')
   const [selectedClientId, setSelectedClientId] = useState<string>('')
@@ -81,11 +84,54 @@ export function SellDeviceForm({ device, clients = [] }: { device: Device, clien
       setError(res.error)
       setIsSubmitting(false)
     } else if (res.success) {
-      router.push(`/admin/stock/${device.id}`)
+      setSaleCompleted(true)
+      setIsSubmitting(false)
     }
   }
 
   const todayStr = new Date().toISOString().split('T')[0]
+
+  if (saleCompleted) {
+    return (
+      <div className="w-full max-w-xl mx-auto bg-[#0B0B0E] border border-zinc-800 rounded-2xl p-6 sm:p-8 flex flex-col items-center text-center gap-6">
+        <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+          <span className="material-symbols-outlined text-3xl">check_circle</span>
+        </div>
+        <div className="flex flex-col gap-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            ¡Venta registrada con éxito!
+          </h2>
+          <p className="text-sm text-zinc-400">
+            El dispositivo ha sido marcado como vendido. Puedes generar el Story para anunciar la venta.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full">
+          <button
+            type="button"
+            onClick={() => story.open(device.id, 'sold')}
+            disabled={story.loadingId === device.id}
+            className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 shadow-lg shadow-red-600/20"
+          >
+            <span className="material-symbols-outlined text-[20px]">auto_awesome</span>
+            {story.loadingId === device.id ? 'Preparando...' : 'Generar Story Vendido'}
+          </button>
+          <Link
+            href={`/admin/stock/${device.id}`}
+            className="flex-1 bg-[#1A1A22] hover:bg-zinc-800 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center transition-colors"
+          >
+            Ver dispositivo
+          </Link>
+        </div>
+
+        {story.error && (
+          <p role="alert" className="text-xs text-red-400">{story.error}</p>
+        )}
+
+        {story.modal}
+      </div>
+    )
+  }
 
   return (
     <div className="admin-device-form admin-device-form--sale flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">

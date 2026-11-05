@@ -14,6 +14,7 @@ import {
 export interface StoryGeneratorDevice {
   id: string
   model_id?: string
+  status?: string
   storage: string | null
   color: string | null
   condition: string
@@ -56,6 +57,13 @@ const TEMPLATE_PRESETS: { id: StoryTemplate; label: string; badge: string; icon:
     badge: '¡OFERTA!',
     icon: 'local_fire_department',
     desc: 'Versión promocional con precio destacado'
+  },
+  {
+    id: 'sold',
+    label: 'Vendido',
+    badge: '¡VENDIDO!',
+    icon: 'verified',
+    desc: 'Versión con sello VENDIDO en rojo para anunciar venta'
   }
 ]
 
@@ -69,8 +77,18 @@ export function StoryGeneratorModal({
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [template, setTemplate] = useState<StoryTemplate>(
     defaultTemplate ??
-      (device.discount_price && device.discount_price < device.listing_price ? 'oferta' : 'disponible')
+      (device.status === 'sold'
+        ? 'sold'
+        : device.discount_price && device.discount_price < device.listing_price
+        ? 'oferta'
+        : 'disponible')
   )
+
+  useEffect(() => {
+    if (defaultTemplate) {
+      setTemplate(defaultTemplate)
+    }
+  }, [defaultTemplate])
   const [customBadge, setCustomBadge] = useState<string>('')
   const [customPrice, setCustomPrice] = useState<string>('')
   const [isRendering, setIsRendering] = useState<boolean>(true)
@@ -450,9 +468,10 @@ export function StoryGeneratorModal({
                 <span className="material-symbols-outlined text-[16px] text-[#c084fc]">palette</span>
                 Plantilla de publicación
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {TEMPLATE_PRESETS.map(t => {
                   const isSelected = template === t.id
+                  const isSoldPreset = t.id === 'sold'
                   return (
                     <button
                       key={t.id}
@@ -461,14 +480,24 @@ export function StoryGeneratorModal({
                         setTemplate(t.id)
                         setCustomBadge('')
                       }}
-                      className={`flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all ${
+                      className={`flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all ${
                         isSelected
-                          ? 'bg-[#7a32d4]/20 border-[#a855f7] text-white shadow-md shadow-[#7a32d4]/25'
+                          ? isSoldPreset
+                            ? 'bg-red-500/20 border-red-500 text-white shadow-md shadow-red-500/25'
+                            : 'bg-[#7a32d4]/20 border-[#a855f7] text-white shadow-md shadow-[#7a32d4]/25'
                           : 'bg-[#13131a] border-[#20202c] text-zinc-400 hover:text-white hover:border-zinc-700'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className={`material-symbols-outlined text-[20px] ${isSelected ? 'text-[#c084fc]' : 'text-zinc-500'}`}>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`material-symbols-outlined text-[18px] ${
+                            isSelected
+                              ? isSoldPreset
+                                ? 'text-red-400'
+                                : 'text-[#c084fc]'
+                              : 'text-zinc-500'
+                          }`}
+                        >
                           {t.icon}
                         </span>
                         <span className="text-sm font-bold text-white">{t.label}</span>

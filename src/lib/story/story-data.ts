@@ -23,6 +23,7 @@ export async function fetchStoryData(deviceId: string): Promise<StoryData | null
     .select(`
       id,
       model_id,
+      status,
       storage,
       color,
       condition,
@@ -61,6 +62,7 @@ export async function fetchStoryData(deviceId: string): Promise<StoryData | null
     device: {
       id: device.id,
       model_id: device.model_id,
+      status: (device as any).status,
       storage: device.storage,
       color: device.color,
       condition: device.condition,
