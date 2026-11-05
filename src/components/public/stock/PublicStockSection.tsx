@@ -1,6 +1,7 @@
 'use client'
 
 import { useId, useRef, useState } from 'react'
+import Link from 'next/link'
 import { PublicStockCard } from './PublicStockCard'
 import { PublicDeviceDetailModal } from './PublicDeviceDetailModal'
 
@@ -179,11 +180,21 @@ export function PublicStockSection({ devices, whatsappPhone, contactEnabled }: P
         </div>
       ) : (
         <div className="kevphones-catalogue__empty">
-          <h3>{hasChanges ? 'No encontramos dispositivos con estos filtros.' : 'No tenemos dispositivos disponibles ahora.'}</h3>
+          <h3>{hasChanges ? 'No encontramos dispositivos con estos filtros.' : 'No hay dispositivos disponibles ahora mismo.'}</h3>
           {hasChanges ? (
             <button type="button" className="kevphones-catalogue__reset" onClick={resetCatalogue}>Limpiar filtros</button>
           ) : (
-            <p>Vuelve a consultar el catálogo pronto.</p>
+            <div className="space-y-4 text-center mt-3">
+              <p className="text-zinc-400">Vuelve a consultar el catálogo pronto o solicita una valoración si quieres vender el tuyo.</p>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <Link href="/cotizar" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors">
+                  Cotizar mi iPhone
+                </Link>
+                <Link href="/vender" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-white transition-colors">
+                  Vender mi dispositivo
+                </Link>
+              </div>
+            </div>
           )}
         </div>
       )}
