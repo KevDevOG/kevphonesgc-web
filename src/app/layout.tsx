@@ -44,10 +44,25 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_ES",
+    url: "https://kevphones.es/",
     siteName: "KevPhonesGC",
     title: "Compra y vende iPhone en Gran Canaria | KevPhonesGC",
     description: "Compra iPhone disponibles o vende el tuyo con valoración orientativa en Gran Canaria. Consulta stock y solicita tu valoración en KevPhonesGC.",
-  }
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "KevPhonesGC - Compra y vende iPhone en Gran Canaria",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Compra y vende iPhone en Gran Canaria | KevPhonesGC",
+    description: "Compra iPhone disponibles o vende el tuyo con valoración orientativa en Gran Canaria. Consulta stock y solicita tu valoración en KevPhonesGC.",
+    images: ["/opengraph-image"],
+  },
 };
 
 const organizationJsonLd = {

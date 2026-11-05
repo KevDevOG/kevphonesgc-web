@@ -9,6 +9,28 @@ export const metadata: Metadata = {
   description: 'Envía los datos y fotos de tu iPhone u otros dispositivos para solicitar una revisión y propuesta de compra en Gran Canaria con KevPhonesGC.',
   alternates: {
     canonical: '/vender'
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'es_ES',
+    url: 'https://kevphones.es/vender',
+    siteName: 'KevPhonesGC',
+    title: 'Vende tu iPhone en Gran Canaria | KevPhonesGC',
+    description: 'Envía los datos y fotos de tu iPhone u otros dispositivos para solicitar una revisión y propuesta de compra en Gran Canaria con KevPhonesGC.',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'KevPhonesGC - Compra y vende iPhone en Gran Canaria'
+      }
+    ]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Vende tu iPhone en Gran Canaria | KevPhonesGC',
+    description: 'Envía los datos y fotos de tu iPhone u otros dispositivos para solicitar una revisión y propuesta de compra en Gran Canaria con KevPhonesGC.',
+    images: ['/opengraph-image']
   }
 }
 

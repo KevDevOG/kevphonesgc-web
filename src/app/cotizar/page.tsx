@@ -10,6 +10,28 @@ export const metadata: Metadata = {
   description: 'Obtén una valoración orientativa de tu iPhone en Gran Canaria. Consulta el valor estimado y continúa con tu solicitud de venta en KevPhonesGC.',
   alternates: {
     canonical: '/cotizar'
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'es_ES',
+    url: 'https://kevphones.es/cotizar',
+    siteName: 'KevPhonesGC',
+    title: 'Valora tu iPhone en Gran Canaria | KevPhonesGC',
+    description: 'Obtén una valoración orientativa de tu iPhone en Gran Canaria. Consulta el valor estimado y continúa con tu solicitud de venta en KevPhonesGC.',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'KevPhonesGC - Compra y vende iPhone en Gran Canaria'
+      }
+    ]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Valora tu iPhone en Gran Canaria | KevPhonesGC',
+    description: 'Obtén una valoración orientativa de tu iPhone en Gran Canaria. Consulta el valor estimado y continúa con tu solicitud de venta en KevPhonesGC.',
+    images: ['/opengraph-image']
   }
 }
 
