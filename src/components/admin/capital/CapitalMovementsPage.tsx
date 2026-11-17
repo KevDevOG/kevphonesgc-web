@@ -2,7 +2,11 @@
 
 import React, { useState, useRef } from 'react'
 import { AdminPageHeader } from '@/components/admin/layout/AdminPageHeader'
-import { registerCapitalMovement, editCapitalMovement, deleteCapitalMovement } from '@/actions/capital-movements'
+import { registerCapitalMovement, editCapitalMovement, deleteCapitalMovement, createWithdrawalReceiptUpload, getCapitalMovementReceiptUrl } from '@/actions/capital-movements'
+import { createClient } from '@/lib/supabase/client'
+import { WithdrawalReceiptField, getReceiptContentType, validateReceiptFile } from '@/components/admin/capital/WithdrawalReceiptField'
+
+const RECEIPTS_BUCKET = 'capital-movement-receipts'
 
 type Movement = {
   id: string
@@ -10,6 +14,7 @@ type Movement = {
   amount: number
   movement_date: string
   note: string | null
+  receipt_path?: string | null
   created_at: string
   is_reconciliation_adjustment: boolean
 }
@@ -113,18 +118,67 @@ function RegisterMovementForm() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [movementType, setMovementType] = useState('contribution')
-  
+  const [receiptFile, setReceiptFile] = useState<File | null>(null)
+  const [receiptError, setReceiptError] = useState<string | null>(null)
+
   const formRef = useRef<HTMLFormElement>(null)
+
+  const handleTypeChange = (value: string) => {
+    setMovementType(value)
+    if (value !== 'withdrawal') {
+      setReceiptFile(null)
+      setReceiptError(null)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsPending(true)
     setError(null)
     setSuccess(null)
-    
+
     const formData = new FormData(e.currentTarget)
-    
+
     try {
+      // Optional receipt: only for withdrawals. The image goes straight to
+      // private storage through a server-issued signed upload; the server then
+      // validates the real bytes before linking it to the movement.
+      const receipt = movementType === 'withdrawal' ? receiptFile : null
+      if (receipt) {
+        const validationError = validateReceiptFile(receipt)
+        const contentType = getReceiptContentType(receipt)
+        if (validationError || !contentType) {
+          setReceiptError(validationError || 'Formato no válido. Usa una imagen JPG, PNG, WebP o HEIC.')
+          return
+        }
+
+        const ticket = await createWithdrawalReceiptUpload({ fileSize: receipt.size, fileType: contentType })
+        const { uploadId, path, token } = ticket
+        if (ticket.error || !uploadId || !path || !token) {
+          setError(ticket.error || 'No se pudo preparar la subida del justificante.')
+          return
+        }
+
+        // For File/Blob bodies storage-js uses the blob's own type (contentType
+        // is ignored), so ensure it carries the resolved image type (e.g. HEIC
+        // files reported with an empty type by some browsers).
+        const uploadBody = receipt.type === contentType
+          ? receipt
+          : new File([receipt], receipt.name, { type: contentType })
+
+        const supabase = createClient()
+        const { error: uploadError } = await supabase.storage
+          .from(RECEIPTS_BUCKET)
+          .uploadToSignedUrl(path, token, uploadBody, { contentType })
+
+        if (uploadError) {
+          setError('No se pudo subir el justificante. Comprueba la imagen e inténtalo de nuevo.')
+          return
+        }
+
+        formData.set('receipt_upload_id', uploadId)
+      }
+
       const result = await registerCapitalMovement(formData)
       if (result.error) {
         setError(result.error)
@@ -136,6 +190,8 @@ function RegisterMovementForm() {
           if (amountInput) amountInput.value = ''
           if (noteInput) noteInput.value = ''
         }
+        setReceiptFile(null)
+        setReceiptError(null)
         setTimeout(() => setSuccess(null), 3000)
       }
     } catch (err) {
@@ -175,7 +231,7 @@ function RegisterMovementForm() {
             name="movement_type" 
             required
             value={movementType}
-            onChange={(e) => setMovementType(e.target.value)}
+            onChange={(e) => handleTypeChange(e.target.value)}
             className={inputClass}
           >
             <option value="contribution">Aportación</option>
@@ -227,9 +283,19 @@ function RegisterMovementForm() {
             />
           </div>
         </div>
-        
-        <button 
-          type="submit" 
+
+        {movementType === 'withdrawal' && (
+          <WithdrawalReceiptField
+            file={receiptFile}
+            error={receiptError}
+            disabled={isPending}
+            onChange={setReceiptFile}
+            onError={setReceiptError}
+          />
+        )}
+
+        <button
+          type="submit"
           disabled={isPending}
           className="w-full px-6 py-3 bg-[#7a32d4]/10 hover:bg-[#7a32d4]/20 border border-[#7a32d4]/30 text-[#d7baff] font-bold text-[14px] rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
         >
@@ -246,6 +312,39 @@ function MovementItem({ movement }: { movement: Movement }) {
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editType, setEditType] = useState(movement.movement_type)
+  const [isOpeningReceipt, setIsOpeningReceipt] = useState(false)
+  const [receiptViewError, setReceiptViewError] = useState<string | null>(null)
+
+  const hasReceipt = movement.movement_type === 'withdrawal' && !!movement.receipt_path
+
+  const handleViewReceipt = async () => {
+    setIsOpeningReceipt(true)
+    setReceiptViewError(null)
+    // Open the tab synchronously so popup blockers allow it, then navigate it
+    // to the short-lived signed URL generated on the server.
+    const receiptWindow = window.open('', '_blank')
+    if (receiptWindow) receiptWindow.opener = null
+
+    try {
+      const result = await getCapitalMovementReceiptUrl(movement.id)
+      const url = result.url
+      if (url) {
+        if (receiptWindow) {
+          receiptWindow.location.href = url
+        } else {
+          window.location.href = url
+        }
+      } else {
+        receiptWindow?.close()
+        setReceiptViewError(result.error || 'No se pudo abrir el justificante.')
+      }
+    } catch (err) {
+      receiptWindow?.close()
+      setReceiptViewError('No se pudo abrir el justificante.')
+    } finally {
+      setIsOpeningReceipt(false)
+    }
+  }
 
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -464,6 +563,22 @@ function MovementItem({ movement }: { movement: Movement }) {
               </>
             )}
           </div>
+          {hasReceipt && (
+            <div className="flex flex-col items-start mt-2">
+              <button
+                type="button"
+                onClick={handleViewReceipt}
+                disabled={isOpeningReceipt}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#121217] hover:bg-[#1F1F24] border border-[#1F1F24] hover:border-[#7a32d4]/30 text-[12px] font-bold text-zinc-300 hover:text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[14px]">receipt_long</span>
+                {isOpeningReceipt ? 'Abriendo...' : 'Ver justificante'}
+              </button>
+              {receiptViewError && (
+                <span className="text-red-400 text-[12px] font-bold mt-1">{receiptViewError}</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
       
